@@ -1,0 +1,24 @@
+# Dane, oprogramowanie i prawa
+
+Własny kod i dokumentacja zespołu pozostają prywatne w okresie wskazanym przez KOWR. Nabycie praw do własnych elementów nie przenosi praw producentów danych, bibliotek ani usług. Testy wykonano bez kluczy do dostawców danych i bez ponownej publikacji pełnych zbiorów.
+
+| Element | Warunki i atrybucja |
+|---|---|
+| GUGiK ULDK / EGiB | [Warunki ULDK](https://uldk.gugik.gov.pl/opis.html#_faq) wskazują bezpłatne użycie, także komercyjne, i obowiązek wskazania źródła. Mapa i PDF wskazują GUGiK. |
+| NASA POWER | [NASA POWER, dokumentacja](https://power.larc.nasa.gov/docs/) i [NASA Earthdata policy](https://www.earthdata.nasa.gov/engage/open-data-services-and-software). Dane publiczne, atrybucja projektu POWER i wejść MERRA-2, GEOS, CERES. Wykazywać wersje i chwilę pobrania. |
+| IMGW-PIB | [Regulamin i ponowne wykorzystanie](https://danepubliczne.imgw.pl/pl/datastore). Dane stacji i wodowskazów mają oznaczenie źródła oraz przetworzenia. Publikując inny produkt lub zmieniając przeznaczenie należy sprawdzić zasady dla konkretnego zbioru. |
+| Sentinel-2 / Planetary Computer i Earth Search | [Copernicus Sentinel Data Legal Notice](https://ewds.climate.copernicus.eu/licences/ec-sentinel). Zmodyfikowane dane z oznaczeniem „Contains modified Copernicus Sentinel data” i rokiem sceny. Dostęp do publicznego archiwum zapewniają [Planetary Computer na jego warunkach usługi](https://planetarycomputer.microsoft.com/terms) oraz Earth Search na AWS. Przyszłe wdrożenie korzysta z własnych ścieżek dostępu do danych zgodnych z licencją Sentinel. |
+| ISRIC SoilGrids 2.0 | [ISRIC](https://www.isric.org/explore/soilgrids), CC BY 4.0. Raport wskazuje źródło i przeliczenie warstw. |
+| ESA WorldCover | [Instrukcja ESA WorldCover 2021](https://worldcover2021.esa.int/data/docs/WorldCover_PUM_V2.0.pdf), CC BY 4.0. Atrybucja ESA WorldCover 2021 oraz informacji Sentinel. |
+| EU-DEM / Open Topo Data | [Dokumentacja zbioru](https://www.opentopodata.org/datasets/eudem/) i [warunki usługi](https://www.opentopodata.org/). Użycie z atrybucją Copernicus/EU-DEM. Publiczny endpoint ma limity 100 punktów, 1 zapytanie/s, 1000 zapytań/dzień. Przy większym wdrożeniu użyć własnego hostingu danych zgodnie z licencją. |
+| Copernicus GLO-30 | [Warunki Copernicus DEM](https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM). Wymagana atrybucja DLR, Airbus, EU i ESA. |
+| OpenStreetMap | [ODbL dla danych](https://www.openstreetmap.org/copyright) i oddzielna [polityka kafelków](https://operations.osmfoundation.org/policies/tiles/). Użycie interaktywne w przeglądarce, bez masowego pobierania. Do produkcji wybrać hosting map odpowiadający skali. |
+| Open-Meteo / ERA5-Land | [Warunki API](https://open-meteo.com/en/terms) ograniczają bezpłatny endpoint do użytku niekomercyjnego. Adapter wyłączony w standardowym uruchomieniu. [Licencja produktu w CDS](https://cds.climate.copernicus.eu/datasets/reanalysis-era5-land?tab=overview) to odrębne warunki od dostępu przez Open-Meteo. |
+| Metody | [FAO Irrigation and Drainage Paper 56](https://www.fao.org/4/X0490E/x0490e00.htm), własna implementacja wzorów i odwołanie do tabel 12, 19, 22. Tabele nie są kopiowane w całości. |
+| Narzędzia AI | Codex od OpenAI wspierał przygotowanie kodu, testów, tekstu i grafiki z prawdziwych zrzutów. [Warunki OpenAI](https://openai.com/policies/terms-of-use/). W czasie wykonywania analiza nie wywołuje modelu językowego ani płatnego API AI. |
+
+## Komponenty
+
+Angular, RxJS, Playwright i TypeScript: MIT lub Apache-2.0 zgodnie z metadanymi konkretnej paczki. Leaflet i typy Leaflet: BSD-2-Clause lub MIT według pakietu. FastAPI, HTTPX, Uvicorn i Starlette: MIT lub BSD-3-Clause. NumPy, Shapely, Rasterio, PyProj i ReportLab: licencje BSD zgodnie z metadanymi danego pakietu. Dane i biblioteki dołączane przez koła Rasterio i PyProj obejmują GDAL, PROJ i ich zależności z deklaracjami w plikach licencji kół. Font DejaVu zachowuje licencję Bitstream Vera i warunki rozszerzeń projektu. SQLite jest w domenie publicznej. Expat używa licencji MIT, pakiety systemowe obrazu Debiana mają własne deklaracje w katalogu /usr/share/doc. Testy korzystają z Pytest (MIT). Narzędzia budowania: Node (MIT i licencje zależności), npm (Artistic-2.0), uv (MIT/Apache-2.0), Ruff (MIT), FFmpeg (LGPL/GPL według zainstalowanej kompilacji).
+
+Wersje rozstrzygają `backend/uv.lock` i `frontend/package-lock.json`. Odczytane deklaracje instalacji są w `docs/COMPONENTS.tsv`. Przy dystrybucji binarnej należy zachować dołączone pliki licencji i obowiązkowe atrybucje.

@@ -1,0 +1,72 @@
+# WodoStrażnik
+
+**Jakobiany · HackNation 2026 · KOWR · Zatrzymaj wodę, chroń plony**
+
+WodoStrażnik pomaga gospodarstwom zdecydować, kiedy sprawdzić zapas wody w glebie, jak ograniczyć straty wilgoci i od czego zacząć planowanie retencji. Wybierz działkę ewidencyjną, uprawę i datę. System pobierze źródła, przeliczy dane dla wskazanego pola i pokaże, z czego wynika każde zalecenie.
+
+## Uruchomienie
+
+Operator potrzebuje Docker Compose i dostępu HTTPS do publicznych źródeł. Rolnik otwiera aplikację w zwykłej przeglądarce.
+
+```bash
+docker compose up --build -d
+curl http://127.0.0.1:8080/health
+```
+
+Otwórz [aplikację lokalną](http://127.0.0.1:8080) lub [API OpenAPI](http://127.0.0.1:8080/docs). Przykład pokazu to działka 301103_2.0009.549/7, ziemniak i 5 lipca 2024. Typ uprawy historycznej wymaga potwierdzenia przez użytkownika.
+
+Bez Dockera użyj Node.js 24, uv, Python 3.13 i fontów DejaVu. Na Ubuntu lub Debianie doinstaluj fonts-dejavu-core.
+
+```bash
+npm --prefix frontend ci
+./scripts/run.sh
+```
+
+Do wdrożenia zewnętrznego uruchom obraz za reverse proxy HTTPS i użyj wolumenu dla /var/lib/wodo. Obraz nasłuchuje na 8000, a Compose udostępnia go lokalnie na 8080. Hosting zewnętrzny wymaga konta i konfiguracji dostępu dla jury.
+
+## Funkcje
+
+- Wyszukiwanie pełnym identyfikatorem, z mapy lub przez nazwę i numer obrębu. Import Polygon lub MultiPolygon GeoJSON w WGS 84.
+- Sześć upraw, ruchomy przedział dziesięciu lat, opcjonalna faza, początek wegetacji, lokalna obserwacja i znane nawadnianie.
+- Bilans pogodowy, porównania sezonowe, model strefy korzeni, indeksy Sentinel-2, pokrycie terenu, wody powierzchniowe, stacje IMGW i spadek terenu.
+- Uzasadnienia działań, scenariusz dodatkowej wody, PDF z granicą, druk i eksport JSON.
+
+## Architektura i dane
+
+Angular i Leaflet renderują formularz oraz mapę. FastAPI udostępnia API i serwuje zbudowaną aplikację z tej samej domeny. Klienci źródeł działają równolegle. Moduł science.py liczy ET₀ FAO-56, ETc, scenariusze stanu początkowego i porównania historyczne. Moduł analysis.py wybiera reguły na podstawie obliczeń, a ReportLab generuje dokument z obiektu raportu.
+
+| API | Działanie |
+|---|---|
+| GET /health, /api/crops | Zasięg dat i słownik upraw |
+| GET /api/parcels/{id}, /api/parcels/search, /api/parcels/by-point, POST /api/parcels/import | Wyszukiwanie i walidacja geometrii |
+| POST /api/analysis | Pobranie danych i obliczenie oceny |
+| GET /api/analysis/{id} | Odczyt raportu |
+| GET /api/analysis/{id}/provenance, /api/analysis/{id}/report | Metadane oraz eksport PDF lub JSON |
+| GET /api/data-sources/status | Dostępność źródeł w ostatniej analizie |
+
+Geometria pochodzi z GUGiK. NASA POWER i IMGW dostarczają meteorologię, Sentinel-2 obserwacje powierzchni, SoilGrids charakterystyki retencji, ESA WorldCover informację o pokryciu i wodach, a Copernicus modele powierzchni. IMGW hydro uzupełnia bieżący raport o najbliższy przydatny wodowskaz. Źródła są pobierane na żądanie według ważności cache. SQLite przechowuje metadane, serie i pochodne z sumą SHA-256. Identyfikator raportu jest losowy i wygasa najpóźniej po 14 dniach. Raporty i zalecenia są obliczane po każdym uruchomieniu analizy. Pełne zbiory dostawców pozostają poza repozytorium.
+
+- [Źródła i zakres](docs/DATA_SOURCES.md)
+- [Licencje i komponenty](docs/DATA_LICENSES.md)
+- [Metoda i ograniczenia](docs/DATA_LIMITATIONS.md)
+- [Metadane pobrań i pomiary](submission/live-verification.json)
+- [Macierz wymagań](docs/REQUIREMENTS_MATRIX.md)
+- [Lista zgłoszeniowa](SUBMISSION_CHECKLIST.md)
+
+Kod, testy, dokumentację i materiały przygotowano z pomocą OpenAI Codex. W działającej aplikacji wnioskowanie jest deterministyczne. Użytkownik może odtworzyć powód zalecenia na podstawie danych i reguły.
+
+## Testy i walidacja
+
+```bash
+(cd backend && uv run --locked python -m pytest -q tests/test_wodo.py)
+python3 scripts/check_live.py
+(cd frontend && npx playwright install chromium && npm run test:e2e)
+```
+
+Test ET₀ sprawdza dobowy przykład 18 FAO-56 (3,9 mm/d ±0,15), a test retencji przykład 36 (TAW 36 mm, RAW 10,8 mm). Testy sprawdzają też bilans masy, współrzędne, chmury, odmowy wejść i zakres dat. Weryfikacja rzeczywistych danych obejmuje trzy regiony. Do pomiaru na zimno ustaw nowy katalog przez WODO_CACHE_DIR.
+
+## Bezpieczeństwo, koszty i skala
+
+Aplikacja nie wymaga kont rolników. Backend ogranicza źródła sieciowe, rozmiar wejść, czasy odpowiedzi, tempo i liczbę jednoczesnych analiz. Komunikat dla użytkownika nie zawiera szczegółów wyjątku. Operator powinien trzymać cache poza webrootem i włączyć TLS przy publikacji. Dostawcy otrzymują identyfikatory lub położenia konieczne do pobrania danych.
+
+Uruchomienie lokalne nie wymaga opłat za dane ani AI. Szacunek dla małego wdrożenia to jedna instancja 2 vCPU, 2–4 GB RAM i kilka GB trwałego wolumenu. Przykładowa cena małej instancji 2 vCPU z 4 GB RAM to 5,49 EUR miesięcznie netto bez publicznego IPv4. Domena, kopie i większy ruch mogą zwiększyć koszt. [Cennik Hetzner](https://docs.hetzner.com/general/infrastructure-and-availability/price-adjustment/). Przy większej skali potrzebne byłyby współdzielony cache, własne kafelki i DEM, monitoring limitów i uzgodnione budżety zapytań. Open-Meteo ma odrębne warunki dla dostępu komercyjnego.
