@@ -46,7 +46,7 @@ import { ParcelStore } from '../../core/state/parcel.store';
 
       @if (variant() === 'full') {
         @if (store.parcel(); as parcel) {
-          <div class="flex items-start gap-3 rounded-xl border border-primary-200 bg-primary-50 p-3 dark:border-primary-800 dark:bg-primary-950" role="status">
+          <div class="flex items-start gap-3 rounded-xl border border-primary-200 bg-primary-50 p-3 dark:border-primary-500 dark:bg-primary-900" role="status">
             <i class="pi pi-check-circle mt-0.5 text-primary" aria-hidden="true"></i>
             <div class="min-w-0 flex-1 text-sm">
               <div class="break-all font-semibold">{{parcel.id}}</div>

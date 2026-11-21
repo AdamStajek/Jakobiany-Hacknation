@@ -14,9 +14,9 @@ describe('RiskScale', () => {
   });
   it('wyróżnia dokładnie jeden stopień', () => {
     const bars = render('Niskie w modelu').querySelectorAll('.h-2');
-    expect([...bars].filter((b) => /bg-\[#(385A15|778C12|EE8106)\]/.test(b.className)).length).toBe(1);
+    expect([...bars].filter((b) => !b.className.includes('bg-black/15')).length).toBe(1);
   });
   it('nieznane ryzyko traktuje jako niepewne', () => {
-    expect(render('coś innego').querySelector('[class*="bg-[#778C12]"]')).not.toBeNull();
+    expect(render('coś innego').querySelectorAll('.h-2')[1].className).not.toContain('bg-black/15');
   });
 });

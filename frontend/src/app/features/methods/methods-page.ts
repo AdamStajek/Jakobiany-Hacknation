@@ -36,7 +36,7 @@ type Item = {name: string; what: string; url: string};
         </div>
       </section>
 
-      <section aria-labelledby="limity" class="space-y-2 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-950 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-50">
+      <section aria-labelledby="limity" class="space-y-2 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-950 dark:border-amber-500 dark:bg-amber-950 dark:text-amber-50">
         <h2 id="limity" class="text-lg font-semibold">Jak czytać wynik</h2>
         <ul class="ml-5 list-disc space-y-1 text-sm">
           <li>To ocena przesiewowa: podpowiada, gdzie i kiedy sprawdzić pole. Nie jest dawką nawadniania ani dokumentem urzędowym.</li>
