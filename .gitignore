@@ -34,3 +34,7 @@ build/
 !.env.example
 !.env.sample
 !.env.template
+
+# WodoStrażnik runtime cache and browser output
+.wodo-cache/
+submission/.capture/

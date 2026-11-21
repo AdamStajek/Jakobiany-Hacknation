@@ -34,3 +34,7 @@
 !**/.env.example
 !**/.env.sample
 !**/.env.template
+
+.wodo-cache
+submission
+data
