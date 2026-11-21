@@ -83,7 +83,8 @@ export class ExpertApi {
 @Injectable({ providedIn: 'root' })
 export class RulesApi {
   private readonly api = inject(ApiClient);
-  list(q: PageQuery = {}) { return this.api.page<SectorRules>('/sector-rules', q); }
+  /** Backend zwraca zwykłą tablicę (bez paginacji); `include_proposals` wymaga roli eksperta. */
+  list(q: { sector_code?: string; include_proposals?: boolean } = {}) { return this.api.get<SectorRules[]>('/sector-rules', q); }
   propose(body: SectorRulesInput) { return this.api.post<SectorRules>('/sector-rules', body); }
 }
 

@@ -3,6 +3,7 @@ import { of, delay, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { environment } from '../environment';
 import { DETAIL_EXTRAS, EVIDENCE, FACTS, JOBS, PROJECTS, RISKS } from './fixtures/projects';
+import { SECTOR_RULES } from './fixtures/sector-rules';
 
 const page = (items: any[], url: URL) => {
   const limit = Number(url.searchParams.get('limit') ?? 25);
@@ -63,6 +64,24 @@ export const mockInterceptor: HttpInterceptorFn = (req, next) => {
   }
   if (m === 'POST' && (path === '/imports' || /\/enrich$/.test(path))) {
     return of(new HttpResponse({ status: 202, body: JOBS['job-partial'], headers: new HttpHeaders({ Location: '/api/v1/jobs/job-partial' }) })).pipe(delay(300));
+  }
+  if (path === '/sector-rules') {
+    if (m === 'GET') {
+      const withProposals = url.searchParams.get('include_proposals') === 'true';
+      return ok(SECTOR_RULES.filter((x) => withProposals || x.review_status !== 'proposed'));
+    }
+    if (m === 'POST') {
+      const body = req.body as { based_on_id?: string };
+      const current = SECTOR_RULES.find((x) => x.review_status === 'approved');
+      if (body.based_on_id !== current?.id) {
+        return throwError(() => new HttpErrorResponse({
+          status: 409, url: req.url, error: { code: 'stale_sector_rules', message: 'Wskaż aktualną wersję bazową wiedzy sektorowej.' },
+        }));
+      }
+      const created = { ...body, id: `water_and_sewerage_v${SECTOR_RULES.length + 1}`, revision: 1, review_status: 'proposed' };
+      SECTOR_RULES.push(created);
+      return ok(created, 201);
+    }
   }
   return next(req);
 };

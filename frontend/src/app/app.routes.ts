@@ -78,16 +78,9 @@ export const routes: Routes = [
       'Dowody i decyzja eksperta',
     ],
   }, ['analyst', 'expert']),
-  page('ustawienia', {
-    title: 'Ustawienia i wiedza ekspercka',
-    subtitle: 'Konfiguracja bez zmian w kodzie',
-    priority: 'P0',
-    scope: [
-      'Katalog ryzyk R01–R15 i propozycje nowych kategorii',
-      'Checklista informacji wg typu i fazy inwestycji',
-      'Wagi podobieństwa',
-      'Konfiguracja modelu i adresów źródeł',
-    ],
-  }, ['expert', 'operator']),
+  {
+    path: 'ustawienia',
+    loadChildren: () => import('./features/ustawienia/ustawienia.routes').then((m) => m.USTAWIENIA_ROUTES),
+  },
   { path: '**', redirectTo: 'projekty' },
 ];
