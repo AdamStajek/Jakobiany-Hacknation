@@ -130,8 +130,8 @@ export class WodoMap implements OnDestroy {
       map.addSource('parcel', {type: 'geojson', data: EMPTY});
       map.addSource('water', {type: 'geojson', data: EMPTY});
       map.addSource('markers', {type: 'geojson', data: EMPTY});
-      map.addLayer({id: 'parcel-fill', type: 'fill', source: 'parcel', paint: {'fill-color': '#10b981', 'fill-opacity': 0.35}});
-      map.addLayer({id: 'parcel-line', type: 'line', source: 'parcel', paint: {'line-color': '#047857', 'line-width': 3}});
+      map.addLayer({id: 'parcel-fill', type: 'fill', source: 'parcel', paint: {'fill-color': '#EE8106', 'fill-opacity': 0.16}});
+      map.addLayer({id: 'parcel-line', type: 'line', source: 'parcel', paint: {'line-color': '#EE8106', 'line-width': 3}});
       map.addLayer({id: 'water-point', type: 'circle', source: 'water',
         paint: {'circle-radius': 7, 'circle-color': '#0369a1', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2}});
       map.addLayer({id: 'marker-points', type: 'circle', source: 'markers',

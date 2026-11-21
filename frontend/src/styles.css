@@ -8,9 +8,29 @@
 
 @custom-variant dark (&:where(.app-dark, .app-dark *));
 
-html { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
-body { margin: 0; background: var(--p-surface-50); color: var(--p-text-color); }
+/* Tokeny marki „Pole Widzenia” (--pw-*) — nie zmieniać. */
+:root {
+  --pw-forest: #0D2A00;
+  --pw-leaf: #778C12;
+  --pw-field: #385A15;
+  --pw-deep-green: #103101;
+  --pw-orange: #EE8106;
+  --pw-ivory: #F7F6EE;
+  --ui-white: #FFFFFF;
+  --ui-border: #D8DFCF;
+  --ui-soft: #EEF1E8;
+  --ui-muted: #506047;
+  --ui-overlay: rgba(13, 42, 0, 0.52);
+}
+
+html { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.55; }
+body { margin: 0; background: var(--pw-ivory); color: var(--pw-forest); }
 html.app-dark { color-scheme: dark; }
-html.app-dark body { background: var(--p-surface-950); }
-:focus-visible { outline: 3px solid var(--p-primary-color); outline-offset: 2px; }
+html.app-dark body { background: var(--p-surface-950); color: var(--p-text-color); }
+:focus-visible { outline: 3px solid var(--pw-forest); outline-offset: 3px; }
+html.app-dark :focus-visible { outline-color: var(--pw-orange); }
+.pw-brand img { display: block; height: auto; object-fit: contain; }
+/* Logo jest rastrem z ciemnymi elementami — w trybie ciemnym leży na jasnej płytce. */
+html.app-dark .pw-brand { background: var(--pw-ivory); border-radius: 10px; padding: 2px 8px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 @media print { header, footer, nav { display: none !important; } }

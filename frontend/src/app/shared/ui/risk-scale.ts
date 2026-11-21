@@ -22,6 +22,6 @@ const INDEX: Record<string, number> = {
 export class RiskScale {
   readonly risk = input.required<string>();
   protected readonly levels = LEVELS;
-  protected readonly bar = ['bg-emerald-600', 'bg-amber-500', 'bg-red-600'];
+  protected readonly bar = ['bg-[#385A15]', 'bg-[#778C12]', 'bg-[#EE8106]'];
   protected readonly active = computed(() => INDEX[this.risk()] ?? 1);
 }
