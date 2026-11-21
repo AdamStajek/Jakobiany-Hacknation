@@ -32,6 +32,15 @@ export const AppPreset = definePreset(Aura, {
     },
   },
   components: {
+    // Domyślne red.500 na zaciemnionym tle ma w ciemnym motywie za niski kontrast; red.300 spełnia AA.
+    message: {
+      error: {
+        color: 'light-dark({red.600}, {red.300})',
+        closeButton: {focusRing: {color: 'light-dark({red.600}, {red.300})'}},
+        outlined: {color: 'light-dark({red.600}, {red.300})', borderColor: 'light-dark({red.600}, {red.300})'},
+        simple: {color: 'light-dark({red.600}, {red.300})'},
+      },
+    },
     button: {
       colorScheme: {
         light: {root: {primary: {background: '#EE8106', hoverBackground: '#D87505', activeBackground: '#C26904', borderColor: '#EE8106',

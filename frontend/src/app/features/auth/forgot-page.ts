@@ -22,7 +22,7 @@ import { emailError } from './validators';
       } @else {
         <form class="flex flex-col gap-4" (submit)="$event.preventDefault(); submit()" novalidate>
           <app-auth-field id="forgot-email" label="Adres e-mail konta" type="email" autocomplete="email" [(value)]="email" [error]="fieldError()" />
-          @if (error()) { <p-message severity="error" role="alert">{{error()}}</p-message> }
+          @if (error()) { <p-message severity="error" icon="pi pi-exclamation-circle" role="alert">{{error()}}</p-message> }
           <p-button type="submit" label="Wyślij link" icon="pi pi-send" styleClass="w-full" [loading]="busy()" [disabled]="busy()" />
         </form>
       }

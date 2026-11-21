@@ -3,6 +3,7 @@ import { ApiService } from '../api/api.service';
 import { errorMessage } from '../api/errors';
 import { AnalysisRequest, Crop, Report } from '../api/types';
 import { ParcelStore } from './parcel.store';
+import { formFromReport } from './report-form';
 
 export type AnalysisForm = Omit<AnalysisRequest, 'parcel_id' | 'geojson'>;
 
@@ -21,6 +22,19 @@ export class AnalysisStore {
   readonly running = computed(() => !!this.progress());
   /** [lon, lat] najbliższej stałej wody z ostatniego raportu. */
   readonly waterPoint = computed(() => this.report()?.sources.find((s) => s.key === 'land')?.nearest_water_point ?? null);
+
+  /** Parametry ostatniej analizy uruchomionej w tej sesji, powiązane z identyfikatorem raportu. */
+  private readonly submitted = signal<{analysisId: string; form: AnalysisForm} | null>(null);
+  /**
+   * Parametry, których dotyczy bieżący raport: dokładne z własnej analizy, a dla raportu otwartego z linku
+   * odtworzone z jego treści. null, gdy nie ma raportu (formularz zostaje bez zmian).
+   */
+  readonly reportForm = computed<AnalysisForm | null>(() => {
+    const report = this.report();
+    if (!report) return null;
+    const submitted = this.submitted();
+    return submitted?.analysisId === report.analysis_id ? submitted.form : formFromReport(report, this.crops());
+  });
 
   constructor() {
     // Zmiana działki unieważnia poprzedni raport (chyba że raport dotyczy tej samej działki).
@@ -76,12 +90,14 @@ export class AnalysisStore {
     try {
       const geojson = this.parcels.importedGeometry();
       const request = {...form, ...(geojson ? {geojson} : {parcel_id: parcel.id})};
-      this.report.set(await this.api.analyzeWithProgress(request, ({done, total, label}) => {
+      const report = await this.api.analyzeWithProgress(request, ({done, total, label}) => {
         if (!total) { this.progress.set('Pobieramy dane ze źródeł…'); return; }
         // Ostatnie ~10% to składanie raportu po zebraniu źródeł.
         this.percent.set(Math.round((done / total) * 90));
         this.progress.set(done < total ? `Pobrano: ${label} (${done}/${total})` : 'Łączymy dane i przygotowujemy zalecenia…');
-      }, this.abort.signal));
+      }, this.abort.signal);
+      this.submitted.set({analysisId: report.analysis_id, form});
+      this.report.set(report);
     } catch (error) {
       if (!(error instanceof DOMException && error.name === 'AbortError')) this.error.set(errorMessage(error));
     } finally {

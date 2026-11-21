@@ -40,7 +40,7 @@ type PrefsState = 'loading' | 'ready' | 'error';
               <p-button label="Wyślij potwierdzenie ponownie" icon="pi pi-send" size="small" severity="secondary" [outlined]="true"
                 [loading]="resending()" [disabled]="resending()" (onClick)="resend()" />
               @if (resendInfo()) { <p class="text-sm" role="status">{{resendInfo()}}</p> }
-              @if (resendError()) { <p-message severity="error" role="alert">{{resendError()}}</p-message> }
+              @if (resendError()) { <p-message severity="error" icon="pi pi-exclamation-circle" role="alert">{{resendError()}}</p-message> }
             </div>
           }
           <div class="mt-4">
@@ -52,7 +52,7 @@ type PrefsState = 'loading' | 'ready' | 'error';
           @switch (prefsState()) {
             @case ('loading') { <div role="status" aria-label="Wczytywanie ustawień"><p-skeleton height="2.5rem" borderRadius="10px" /></div> }
             @case ('error') {
-              <p-message severity="error" role="alert">
+              <p-message severity="error" icon="pi pi-exclamation-circle" role="alert">
                 <span>{{prefsError()}}</span>
                 <p-button label="Spróbuj ponownie" size="small" severity="secondary" [text]="true" (onClick)="loadPrefs()" />
               </p-message>
@@ -65,7 +65,7 @@ type PrefsState = 'loading' | 'ready' | 'error';
                   <span class="text-muted-color">Wiadomość, gdy na Twoim polu trzeba coś sprawdzić.</span></span>
                 @if (savingPrefs()) { <i class="pi pi-spin pi-spinner" aria-hidden="true"></i> }
               </label>
-              @if (prefsError()) { <p-message class="mt-2 block" severity="error" role="alert">{{prefsError()}}</p-message> }
+              @if (prefsError()) { <p-message class="mt-2 block" severity="error" icon="pi pi-exclamation-circle" role="alert">{{prefsError()}}</p-message> }
             }
           }
         </app-panel>
@@ -81,7 +81,7 @@ type PrefsState = 'loading' | 'ready' | 'error';
               <label for="delete-confirm" class="text-sm font-medium">Aby potwierdzić, wpisz swoją nazwę użytkownika: <strong>{{user.username}}</strong></label>
               <input id="delete-confirm" type="text" autocomplete="off" class="p-inputtext p-component h-11 w-full"
                 [value]="confirmText()" (input)="confirmText.set(read($event))" />
-              @if (deleteError()) { <p-message severity="error" role="alert">{{deleteError()}}</p-message> }
+              @if (deleteError()) { <p-message severity="error" icon="pi pi-exclamation-circle" role="alert">{{deleteError()}}</p-message> }
               <div class="flex flex-wrap gap-2">
                 <p-button label="Usuń konto na stałe" icon="pi pi-trash" severity="danger" [loading]="deleting()"
                   [disabled]="deleting() || confirmText().trim() !== user.username" (onClick)="deleteAccount()" />

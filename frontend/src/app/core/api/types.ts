@@ -37,10 +37,11 @@ export type Report = {
   daily: {rain_mm: number | null; et0_mm: number | null; temp_c: number | null};
   sources: Source[]; missing: Record<string, string>; recommendations: Recommendation[];
   scenario: {input_mm: number; depletion_reduction_mm: [number, number]; note: string} | null;
+  soil_observation?: 'dry' | 'moist' | 'wet' | null;
   metrics: {
     risk: string; kc: number; stage: string; crop: {label: string; root_m: number};
     weather_last_day: string | null; recent: Recent | null;
-    root: {taw_mm: number; raw_mm: number; days: number; initially_wet: {depletion_mm: number}; initially_dry: {depletion_mm: number}} | null;
+    root: {taw_mm: number; raw_mm: number; days: number; input_mm?: number; initially_wet: {depletion_mm: number}; initially_dry: {depletion_mm: number}} | null;
     history: {seasons: Season[]; negative_seasons: number; riskiest_months: string[]; matched_years: number;
       matched_balance_mm: number | null; matched_rain_mm: number | null; median_season_mm: number | null};
     satellite_comparison?: {ndvi_delta: number; ndmi_delta: number; n: number; interpretation: string};

@@ -25,7 +25,7 @@ import { MIN_PASSWORD, passwordError, repeatError } from './validators';
           <app-auth-field id="reset-password" label="Nowe hasło" type="password" autocomplete="new-password" [(value)]="password"
             [hint]="'Co najmniej ' + min + ' znaków.'" [error]="errors().password" />
           <app-auth-field id="reset-repeat" label="Powtórz nowe hasło" type="password" autocomplete="new-password" [(value)]="repeat" [error]="errors().repeat" />
-          @if (error()) { <p-message severity="error" role="alert">{{error()}}</p-message> }
+          @if (error()) { <p-message severity="error" icon="pi pi-exclamation-circle" role="alert">{{error()}}</p-message> }
           <p-button type="submit" label="Ustaw hasło" icon="pi pi-check" styleClass="w-full" [loading]="busy()" [disabled]="busy()" />
         </form>
       }

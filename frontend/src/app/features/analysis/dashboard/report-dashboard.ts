@@ -5,6 +5,7 @@ import { MessageModule } from 'primeng/message';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { Report, Source } from '../../../core/api/types';
+import { formatDate, formatDateTime } from '../../../shared/format';
 import { ConfidenceChip } from '../../../shared/ui/confidence-chip';
 import { KpiCard } from '../../../shared/ui/kpi-card';
 import { Panel } from '../../../shared/ui/panel';
@@ -147,16 +148,30 @@ const TONE_CLASS: Record<Tone, string> = {
           </p-message>
         }
         @if (advanced()) {
-          <p-table [value]="report().sources" [scrollable]="true" size="small" stripedRows>
+          <ul class="space-y-3 md:hidden" aria-label="Źródła danych">
+            @for (s of sourceRows(); track s.key) {
+              <li class="rounded-lg border border-surface p-3 text-sm">
+                <div class="font-semibold">{{s.name}}</div>
+                <dl class="mt-1 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
+                  <dt class="text-muted-color">Rodzaj</dt><dd>{{s.kind}}</dd>
+                  <dt class="text-muted-color">Rozdzielczość</dt><dd>{{s.resolution}}</dd>
+                  <dt class="text-muted-color">Pobrano</dt><dd>{{s.retrieved}} @if (s.cached) { <p-tag value="cache" severity="secondary" /> }</dd>
+                  <dt class="text-muted-color">Publikacja</dt><dd>{{s.published}}</dd>
+                </dl>
+                <a [href]="s.url" target="_blank" rel="noopener" class="mt-2 inline-block text-xs text-primary underline">Otwórz źródło: {{s.name}} ↗</a>
+              </li>
+            }
+          </ul>
+          <p-table class="hidden md:block" [value]="sourceRows()" [scrollable]="true" size="small" stripedRows>
             <ng-template #header>
-              <tr><th>Źródło</th><th>Rodzaj</th><th>Rozdzielczość</th><th>Pobrano</th><th>Publikacja</th><th></th></tr>
+              <tr><th>Źródło</th><th>Rodzaj</th><th>Rozdzielczość</th><th>Pobrano</th><th>Publikacja</th><th><span class="sr-only">Odnośnik</span></th></tr>
             </ng-template>
             <ng-template #body let-s>
               <tr>
                 <td class="font-medium">{{s.name}}</td><td>{{s.kind}}</td><td>{{s.resolution}}</td>
-                <td>{{s.retrieved_at}} @if (s.cached) { <p-tag value="cache" severity="secondary" /> }</td>
-                <td>{{s.publication_date ?? 'brak daty'}}</td>
-                <td><a [href]="s.url" target="_blank" rel="noopener" class="text-primary underline">Otwórz ↗</a></td>
+                <td class="whitespace-nowrap">{{s.retrieved}} @if (s.cached) { <p-tag value="cache" severity="secondary" /> }</td>
+                <td class="whitespace-nowrap">{{s.published}}</td>
+                <td><a [href]="s.url" target="_blank" rel="noopener" class="text-primary underline" [attr.aria-label]="'Otwórz źródło: ' + s.name">Otwórz ↗</a></td>
               </tr>
             </ng-template>
           </p-table>
@@ -193,6 +208,9 @@ export class ReportDashboard {
   }
   protected readonly risk = computed(() => RISK[this.report().metrics.risk] ?? {tone: 'info' as Tone, icon: 'pi-info-circle'});
   protected readonly riskClass = computed(() => TONE_CLASS[this.risk().tone]);
+  protected readonly sourceRows = computed(() => this.report().sources.map((s) => ({
+    ...s, retrieved: formatDateTime(s.retrieved_at), published: s.publication_date ? formatDate(s.publication_date) : 'brak daty',
+  })));
   protected readonly missing = computed(() => Object.entries(this.report().missing));
   protected readonly satellite = computed(() => this.source('satellite'));
 
