@@ -1,0 +1,123 @@
+<article class="mx-auto max-w-6xl space-y-6 px-4 pt-4 pb-24 lg:px-8 lg:pt-8 lg:pb-8 text-lg leading-relaxed">
+  @if (guide(); as test) {
+    <nav aria-label="Eksperymenty na polu">
+      <a routerLink="/eksperymenty" class="inline-flex min-h-11 items-center gap-2 font-semibold text-primary underline underline-offset-4">
+        <i class="pi pi-list" aria-hidden="true"></i> Wszystkie eksperymenty
+      </a>
+    </nav>
+
+    <div class="rounded-2xl border border-primary-200 bg-primary-50 p-5 sm:p-8 dark:border-primary-800 dark:bg-primary-950">
+      <h1 class="text-3xl font-bold leading-tight tracking-tight sm:text-4xl">{{ test.title }}</h1>
+      <p class="mt-2 max-w-2xl">{{ test.purpose }}</p>
+      <dl class="mt-4 flex flex-wrap gap-x-8 gap-y-1 text-base">
+        <div class="flex flex-wrap items-baseline gap-x-2">
+          <dt class="font-semibold">Czas</dt><dd>{{ test.time }}</dd>
+        </div>
+        <div class="flex flex-wrap items-baseline gap-x-2">
+          <dt class="font-semibold">Koszt sprzętu</dt><dd>{{ test.cost }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="grid items-start gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
+      <div class="space-y-4">
+        <section aria-labelledby="sprzet" class="rounded-xl border border-surface bg-surface-0 p-5 dark:bg-surface-900">
+          <h2 id="sprzet" class="mb-2 text-xl font-bold">Co przygotować</h2>
+          <ul class="ml-5 list-disc space-y-1">
+            @for (item of test.equipment; track item) {
+              <li>{{ item }}</li>
+            }
+          </ul>
+        </section>
+        <section aria-labelledby="warunki" class="rounded-xl border border-surface bg-surface-0 p-5 dark:bg-surface-900">
+          <h2 id="warunki" class="mb-2 text-xl font-bold">Zanim zaczniesz</h2>
+          <p>{{ test.conditions }}</p>
+          @if (test.slug !== 'deszczomierz') {
+            <p class="mt-2">Omijaj miejsca z podziemnymi rurami i kablami oraz okolice głębokich rowów i skarp.</p>
+          }
+        </section>
+      </div>
+
+      <div class="space-y-6">
+        <section aria-labelledby="kroki">
+          <h2 id="kroki" class="mb-3 text-2xl font-bold">Krok po kroku</h2>
+          <ol class="list-decimal space-y-3">
+            @for (step of test.steps; track step.title) {
+              <li class="ml-8 rounded-xl border border-surface bg-surface-0 px-4 py-3 marker:font-bold marker:text-primary sm:px-5 dark:bg-surface-900">
+                <h3 class="text-xl font-semibold leading-snug">{{ step.title }}</h3>
+                <p class="mt-1">{{ step.instruction }}</p>
+                @if (test.slug === 'wilgotnosc-gleby' && $index === 1) {
+                  <figure class="my-3 max-w-xs">
+                    <figcaption class="mb-1 text-base font-semibold">Przykładowe głębokości</figcaption>
+                    <dl class="overflow-hidden rounded-lg text-base">
+                      <div class="flex min-h-8 items-center justify-between gap-3 bg-amber-100 px-3 text-amber-950"><dt>0–10 cm</dt><dd>Próbka 1</dd></div>
+                      <div class="flex min-h-8 items-center justify-between gap-3 bg-amber-200 px-3 text-amber-950"><dt>10–20 cm</dt><dd>Próbka 2</dd></div>
+                      <div class="flex min-h-16 items-center justify-between gap-3 bg-amber-800 px-3 text-white"><dt>20–40 cm</dt><dd>Próbka 3</dd></div>
+                    </dl>
+                  </figure>
+                }
+              </li>
+            }
+          </ol>
+        </section>
+
+        @if (test.reference; as reference) {
+          <section aria-labelledby="sciaga" class="rounded-xl border border-surface bg-surface-0 p-5 dark:bg-surface-900">
+            <h2 id="sciaga" class="mb-2 text-xl font-bold">{{ reference.title }}</h2>
+            <dl class="divide-y divide-surface">
+              @for (row of reference.rows; track row.label) {
+                <div class="grid gap-x-4 py-2 sm:grid-cols-[12rem_1fr]">
+                  <dt class="font-semibold text-primary">{{ row.label }}</dt>
+                  <dd>{{ row.detail }}</dd>
+                </div>
+              }
+            </dl>
+          </section>
+        }
+
+        <section aria-labelledby="notatka" class="rounded-xl border border-primary-200 bg-primary-50 p-5 dark:border-primary-800 dark:bg-primary-950">
+          <h2 id="notatka" class="text-xl font-bold">Co zapisać w notesie</h2>
+          <p class="mt-2">{{ test.record }}</p>
+          <p class="mt-3 border-l-4 border-primary pl-3"><strong>Przykład zapisu</strong><br>{{ test.example }}</p>
+        </section>
+        <section aria-labelledby="wynik-proby" class="rounded-xl border border-surface bg-surface-0 p-5 dark:bg-surface-900">
+          <h2 id="wynik-proby" class="text-xl font-bold">Jak rozumieć wynik</h2>
+          <p class="mt-2">{{ test.meaning }}</p>
+          @if (test.slug === 'wsiakanie-wody') {
+            <a routerLink="/eksperymenty/struktura-gleby" class="mt-3 inline-block py-2 font-semibold text-primary underline underline-offset-4">
+              Zobacz, jak sprawdzić strukturę gleby
+            </a>
+          }
+        </section>
+        <section aria-labelledby="metoda-proby">
+          <h2 id="metoda-proby" class="mb-1 text-lg font-bold">Materiały źródłowe (po angielsku)</h2>
+          <ul class="text-base">
+            @for (source of test.sources; track source.url) {
+              <li><a [href]="source.url" class="inline-block py-2 text-primary underline underline-offset-4">{{ source.label }}</a></li>
+            }
+          </ul>
+        </section>
+      </div>
+    </div>
+  } @else {
+    <div class="rounded-2xl border border-primary-200 bg-primary-50 p-5 sm:p-8 dark:border-primary-800 dark:bg-primary-950">
+      <h1 class="text-3xl font-bold leading-tight tracking-tight sm:text-4xl">Eksperymenty na polu</h1>
+      <p class="mt-2 max-w-2xl">Wybierz, co chcesz sprawdzić. Przy każdej próbie znajdziesz listę potrzebnych rzeczy i instrukcję krok po kroku.</p>
+    </div>
+    <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      @for (item of guides; track item.slug) {
+        <li>
+          <a [routerLink]="[item.slug]" class="group flex h-full flex-col rounded-xl border border-surface bg-surface-0 p-5 hover:border-primary dark:bg-surface-900">
+            <span class="mb-3 grid size-11 place-items-center rounded-lg bg-primary-50 text-primary dark:bg-primary-950" aria-hidden="true">
+              <i class="pi {{ item.icon }}"></i>
+            </span>
+            <h2 class="text-xl font-bold leading-tight text-primary underline underline-offset-4 group-hover:decoration-2">{{ item.title }}</h2>
+            <p class="mt-2 mb-4">{{ item.purpose }}</p>
+            <p class="mt-auto border-t border-surface pt-3 text-base font-medium">{{ item.time }}</p>
+          </a>
+        </li>
+      }
+    </ul>
+    <p class="max-w-3xl">Każda próba jest dobrowolna. Wynik z jednego miejsca opisuje ten punkt pola. Żeby sprawdzić większy obszar, powtórz próbę w kilku podobnych miejscach.</p>
+  }
+</article>
