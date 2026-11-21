@@ -3,7 +3,7 @@ import type { StyleSpecification } from 'maplibre-gl';
 const GUGIK_ORTO = 'https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMTS/StandardResolution'
   + '?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTOFOTOMAPA&STYLE=default&FORMAT=image/jpeg'
   + '&TILEMATRIXSET=EPSG:3857&TILEMATRIX=EPSG:3857:{z}&TILEROW={y}&TILECOL={x}';
-const GUGIK_PARCELS = 'https://integracja.gugik.gov.pl/cgi-bin/KrajowaIntegracjaEwidencjiGruntow'
+const GUGIK_PARCELS = 'https://integracja01.gugik.gov.pl/cgi-bin/KrajowaIntegracjaEwidencjiGruntow'
   + '?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=dzialki,numery_dzialek&STYLES=&FORMAT=image/png'
   + '&TRANSPARENT=true&CRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256';
 

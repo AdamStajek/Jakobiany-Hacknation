@@ -79,6 +79,23 @@ try {
   await heading.scrollIntoViewIfNeeded();
   await pause(3800);
   if (!capture) {
+    const reportUrl = page.url();
+    assert.match(reportUrl, /\/dzialka\/.+\/analiza\/[a-f0-9]{32}$/, 'adres raportu');
+    await page.goto(reportUrl, {waitUntil:'domcontentloaded'});
+    await heading.waitFor({timeout:30000});
+    assert(await page.getByText('Pokaż dane wykresu').count() >= 3, 'tabele danych wykresów');
+    await page.getByRole('link', {name:'Paszport działki'}).click();
+    await page.getByRole('heading', {name:/Paszport działki/}).waitFor();
+    await page.goto(reportUrl.replace(/\/analiza\/.*$/, ''), {waitUntil:'domcontentloaded'});
+    await page.getByRole('status').getByText(matches, {exact:true}).waitFor({timeout:15000});
+    const themeButton = page.getByRole('button', {name:/Motyw/});
+    await themeButton.click();
+    const light = await page.evaluate(() => !document.documentElement.classList.contains('app-dark'));
+    await themeButton.click();
+    assert(light && await page.evaluate(() => document.documentElement.classList.contains('app-dark')), 'przełącznik motywu');
+    await page.getByRole('button', {name:'Narysuj granicę'}).click();
+    await page.getByText(/Klikaj kolejne rogi/).waitFor();
+    await page.getByRole('button', {name:'Anuluj rysowanie'}).click();
     const now = await (await context.request.get(url + '/health')).json();
     await selectParcel('280104_5.0006.98/2');
     await chooseCrop('Pszenica ozima');

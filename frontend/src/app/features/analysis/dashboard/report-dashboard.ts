@@ -8,6 +8,8 @@ import { TagModule } from 'primeng/tag';
 import { Recommendation, Report, Source } from '../../../core/api/types';
 import { ConfidenceChip } from '../../../shared/ui/confidence-chip';
 import { KpiCard } from '../../../shared/ui/kpi-card';
+import { RiskScale } from '../../../shared/ui/risk-scale';
+import { RouterLink } from '@angular/router';
 import { SatelliteChart, SeasonChart, SoilChart, WaterBalanceChart } from './charts';
 
 type Tone = 'danger' | 'warn' | 'success' | 'info';
@@ -27,7 +29,7 @@ const TONE_CLASS: Record<Tone, string> = {
 
 @Component({
   selector: 'app-report-dashboard',
-  imports: [DecimalPipe, ButtonModule, DrawerModule, MessageModule, TableModule, TagModule, ConfidenceChip, KpiCard,
+  imports: [DecimalPipe, ButtonModule, DrawerModule, MessageModule, TableModule, TagModule, ConfidenceChip, KpiCard, RiskScale, RouterLink,
     WaterBalanceChart, SeasonChart, SoilChart, SatelliteChart],
   template: `
     <section aria-labelledby="wynik" class="space-y-4">
@@ -38,10 +40,12 @@ const TONE_CLASS: Record<Tone, string> = {
             {{report().parcel.area_ha | number:'1.0-4'}} ha · {{report().date}}</p>
         </div>
         <div class="flex flex-wrap gap-2">
-          <a pButton [href]="'/api/analysis/' + report().analysis_id + '/report'" download icon="pi pi-file-pdf" label="Pobierz PDF"></a>
+          <a pButton [href]="'/api/analysis/' + report().analysis_id + '/report'" download icon="pi pi-file-pdf">Pobierz PDF</a>
+          <a pButton [routerLink]="['/dzialka', report().parcel.id, 'paszport']" icon="pi pi-id-card" severity="secondary" [outlined]="true">Paszport działki</a>
+          <p-button icon="pi pi-link" label="Kopiuj link" severity="secondary" [outlined]="true" (onClick)="copyLink()" />
           <p-button icon="pi pi-print" label="Drukuj" severity="secondary" [outlined]="true" (onClick)="print()" />
-          <a pButton [href]="'/api/analysis/' + report().analysis_id + '/report?format=json'" download icon="pi pi-download" label="JSON"
-            severity="secondary" [outlined]="true"></a>
+          <a pButton [href]="'/api/analysis/' + report().analysis_id + '/report?format=json'" download icon="pi pi-download"
+            severity="secondary" [outlined]="true">JSON</a>
         </div>
       </div>
 
@@ -54,6 +58,7 @@ const TONE_CLASS: Record<Tone, string> = {
             <div class="text-sm opacity-80">Ostatnia pełna doba danych: {{report().metrics.weather_last_day}}</div>
           }
         </div>
+        <app-risk-scale class="w-full sm:w-64" [risk]="report().metrics.risk" />
         <app-confidence-chip [level]="report().confidence" />
       </div>
 
@@ -204,4 +209,7 @@ export class ReportDashboard {
 
   protected source(key: string): Source | undefined { return this.report().sources.find((s) => s.key === key); }
   protected print() { window.print(); }
+  protected async copyLink() {
+    try { await navigator.clipboard.writeText(location.href); } catch { /* brak uprawnień schowka */ }
+  }
 }

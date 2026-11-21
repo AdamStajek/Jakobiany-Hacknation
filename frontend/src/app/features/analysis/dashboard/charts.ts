@@ -4,15 +4,17 @@ import { NgxEchartsDirective } from 'ngx-echarts';
 import { Report, Scene } from '../../../core/api/types';
 import { axisStyle, baseOptions, ChartOptions, palette } from '../../../shared/charts/chart-theme';
 import { ChartCard } from '../../../shared/ui/chart-card';
+import { DataTable } from '../../../shared/ui/data-table';
 
 
 @Component({
   selector: 'app-water-balance-chart',
-  imports: [NgxEchartsDirective, ChartCard],
+  imports: [NgxEchartsDirective, ChartCard, DataTable],
   template: `
     <app-chart-card title="Opad i zapotrzebowanie uprawy" subtitle="Ostatnie 30 dni [mm]">
       @if (options(); as o) { <div echarts [options]="o" class="h-64 w-full" role="img" [attr.aria-label]="label()"></div> }
       @else { <p class="text-sm text-muted-color">Brak wystarczających danych pogodowych.</p> }
+      @if (table(); as t) { <app-data-table caption="Opad i zapotrzebowanie uprawy, ostatnie 30 dni" [columns]="['Wielkość', 'mm']" [rows]="t" /> }
     </app-chart-card>
   `,
 })
@@ -21,6 +23,10 @@ export class WaterBalanceChart {
   protected readonly label = computed(() => {
     const r = this.report().metrics.recent;
     return r ? `Opad ${r.rain_mm.toFixed(0)} mm, zapotrzebowanie uprawy ${r.etc_mm.toFixed(0)} mm, ET0 ${r.et0_mm.toFixed(0)} mm` : '';
+  });
+  protected readonly table = computed(() => {
+    const r = this.report().metrics.recent;
+    return r ? [['Opad', r.rain_mm.toFixed(1)], ['Uprawa (ETc)', r.etc_mm.toFixed(1)], ['ET₀', r.et0_mm.toFixed(1)]] : null;
   });
   protected readonly options = computed<ChartOptions | null>(() => {
     const r = this.report().metrics.recent;
@@ -39,11 +45,14 @@ export class WaterBalanceChart {
 
 @Component({
   selector: 'app-season-chart',
-  imports: [NgxEchartsDirective, ChartCard],
+  imports: [NgxEchartsDirective, ChartCard, DataTable],
   template: `
     <app-chart-card title="Bilans pogodowy sezonów" subtitle="Opad − ET₀, kwiecień–wrzesień [mm]. Czerwone: niedobór.">
       @if (options(); as o) { <div echarts [options]="o" class="h-64 w-full" role="img" [attr.aria-label]="label()"></div> }
       @else { <p class="text-sm text-muted-color">Brak kompletnych sezonów do porównania.</p> }
+      @if (report().metrics.history.seasons.length) {
+        <app-data-table caption="Bilans pogodowy sezonów" [columns]="['Rok', 'Opad [mm]', 'ET₀ [mm]', 'Bilans [mm]']" [rows]="table()" />
+      }
     </app-chart-card>
     @if (report().metrics.history; as h) {
       @if (h.seasons.length) {
@@ -59,6 +68,8 @@ export class SeasonChart {
     const h = this.report().metrics.history;
     return `Bilans pogodowy w ${h.seasons.length} sezonach, ${h.negative_seasons} z ujemnym bilansem`;
   });
+  protected readonly table = computed(() => this.report().metrics.history.seasons
+    .map((s) => [s.year, Math.round(s.rain_mm), Math.round(s.et0_mm), Math.round(s.balance_mm)]));
   protected readonly options = computed<ChartOptions | null>(() => {
     const seasons = this.report().metrics.history.seasons;
     if (!seasons.length) return null;
@@ -75,11 +86,12 @@ export class SeasonChart {
 
 @Component({
   selector: 'app-soil-chart',
-  imports: [NgxEchartsDirective, ChartCard, DecimalPipe],
+  imports: [NgxEchartsDirective, ChartCard, DecimalPipe, DataTable],
   template: `
     <app-chart-card title="Woda w profilu gleby" subtitle="Model SoilGrids 250 m [mm/m]. Różnica słupków = woda dostępna dla roślin.">
       @if (options(); as o) { <div echarts [options]="o" class="h-64 w-full" role="img" aria-label="Zawartość wody w warstwach gleby przy 33 i 1500 kPa"></div> }
       @else { <p class="text-sm text-muted-color">Brak wiarygodnych danych o retencji gleby.</p> }
+      @if (table(); as t) { <app-data-table caption="Retencja wody w warstwach gleby" [columns]="['Warstwa', '33 kPa [mm/m]', '1500 kPa [mm/m]']" [rows]="t" /> }
     </app-chart-card>
     @if (report().metrics.root; as root) {
       <p class="mt-2 text-sm text-muted-color">Pojemność strefy korzeni (TAW) <strong>{{root.taw_mm | number:'1.0-1'}} mm</strong>,
@@ -89,6 +101,12 @@ export class SeasonChart {
 })
 export class SoilChart {
   readonly report = input.required<Report>();
+  protected readonly table = computed(() => {
+    const soil = this.report().sources.find((s) => s.key === 'soil');
+    if (!soil?.layers?.some(Boolean)) return null;
+    const depths = soil.layer_depths ?? soil.layers.map((_, i) => String(i));
+    return soil.layers.map((l, i) => [depths[i], l ? l[0] : '–', l ? l[1] : '–']);
+  });
   protected readonly options = computed<ChartOptions | null>(() => {
     const soil = this.report().sources.find((s) => s.key === 'soil');
     if (!soil?.layers?.some(Boolean)) return null;
@@ -108,20 +126,26 @@ export class SoilChart {
 
 @Component({
   selector: 'app-satellite-chart',
-  imports: [NgxEchartsDirective, ChartCard],
+  imports: [NgxEchartsDirective, ChartCard, DataTable],
   template: `
     <app-chart-card title="Stan roślinności (Sentinel-2)" subtitle="NDVI: zieleń i wigor łanu. NDMI: woda w liściach. Wyższe = lepiej.">
       @if (options(); as o) { <div echarts [options]="o" class="h-64 w-full" role="img" aria-label="Wskaźniki NDVI i NDMI w czasie"></div> }
       @else { <p class="text-sm text-muted-color">Za mało użytecznych obrazów, aby narysować przebieg w czasie.</p> }
+      @if (scenes().length > 1) { <app-data-table caption="Wskaźniki satelitarne w czasie" [columns]="['Data', 'NDVI', 'NDMI']" [rows]="table()" /> }
     </app-chart-card>
   `,
 })
 export class SatelliteChart {
   readonly report = input.required<Report>();
-  protected readonly options = computed<ChartOptions | null>(() => {
+  protected readonly scenes = computed(() => {
     const sat = this.report().sources.find((s) => s.key === 'satellite');
     const scenes: (Scene & {current?: boolean})[] = [...(sat?.history ?? []), ...(sat?.scene ? [{...sat.scene, current: true}] : [])]
       .sort((a, b) => a.date.localeCompare(b.date));
+    return scenes;
+  });
+  protected readonly table = computed(() => this.scenes().map((s) => [s.date, s.ndvi.toFixed(2), s.ndmi.toFixed(2)]));
+  protected readonly options = computed<ChartOptions | null>(() => {
+    const scenes = this.scenes();
     if (scenes.length < 2) return null;
     const c = palette();
     const series = (name: string, key: 'ndvi' | 'ndmi', color: string) => ({

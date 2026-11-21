@@ -4,8 +4,10 @@
   "scripts": {
     "start": "ng serve",
     "build": "ng build",
-    "test:e2e": "node e2e.mjs",
-    "gen:api": "openapi-typescript ${API_URL:-http://localhost:8000}/openapi.json -o src/app/core/api/schema.d.ts"
+    "test:e2e": "node e2e/smoke.mjs",
+    "gen:api": "openapi-typescript ${API_URL:-http://localhost:8000}/openapi.json -o src/app/core/api/schema.d.ts",
+    "test": "ng test --no-watch",
+    "lint": "eslint src"
   },
   "dependencies": {
     "@angular/animations": "~21.2.0",
@@ -21,19 +23,28 @@
     "ngx-echarts": "^21.0.0",
     "primeicons": "^8.0.2",
     "primeng": "^21.1.10",
-    "rxjs": "~7.8.0"
+    "rxjs": "~7.8.0",
+    "terra-draw": "^1.40.0",
+    "terra-draw-maplibre-gl-adapter": "^1.5.0"
   },
   "devDependencies": {
     "@angular/build": "~21.2.0",
     "@angular/cli": "~21.2.0",
     "@angular/compiler": "~21.2.0",
     "@angular/compiler-cli": "~21.2.0",
+    "@eslint/js": "^10.0.1",
     "@tailwindcss/postcss": "^4.3.5",
+    "angular-eslint": "^22.8.0",
+    "eslint": "^10.15.0",
+    "jsdom": "^31.0.1",
     "openapi-typescript": "^7.13.0",
     "playwright": "^1.65.1",
     "postcss": "^8.5.33",
+    "prettier": "^3.10.1",
     "tailwindcss": "^4.3.5",
     "tailwindcss-primeui": "^0.6.1",
-    "typescript": "~5.9.0"
+    "typescript": "~5.9.0",
+    "typescript-eslint": "^8.73.0",
+    "vitest": "^4.1.12"
   }
 }

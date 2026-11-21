@@ -1,6 +1,7 @@
 import { Component, ElementRef, OnDestroy, afterNextRender, effect, input, output, signal, viewChild } from '@angular/core';
 import bbox from '@turf/bbox';
 import type { GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl';
+import type { TerraDraw } from 'terra-draw';
 import { Geometry } from '../../core/api/types';
 import { Basemap, MAP_STYLE, POLAND_CENTER } from './map-style';
 
@@ -18,6 +19,21 @@ const EMPTY = {type: 'FeatureCollection' as const, features: []};
           class="px-3 py-1.5 font-medium" [class]="basemap() === item.id ? 'bg-primary text-primary-contrast' : 'hover:bg-surface-100 dark:hover:bg-surface-800'">{{item.label}}</button>
       }
     </div>
+    <div class="absolute bottom-8 left-3 z-10 flex flex-col items-start gap-2 text-sm">
+      <button type="button" (click)="toggleDraw()" [attr.aria-pressed]="drawing()" [disabled]="!ready()"
+        class="rounded-lg border border-surface bg-surface-0 px-3 py-1.5 font-medium shadow disabled:opacity-50 dark:bg-surface-900"
+        [class]="drawing() ? 'ring-2 ring-primary' : 'hover:bg-surface-100 dark:hover:bg-surface-800'">
+        <i class="pi {{drawing() ? 'pi-times' : 'pi-pencil'}}" aria-hidden="true"></i> {{drawing() ? 'Anuluj rysowanie' : 'Narysuj granicę'}}
+      </button>
+      <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-surface bg-surface-0 px-3 py-1.5 shadow dark:bg-surface-900">
+        <input type="checkbox" [checked]="parcelLayer()" (change)="toggleParcelLayer()" /> Granice działek (od zbliżenia)
+      </label>
+    </div>
+    @if (drawing()) {
+      <div class="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-lg bg-primary px-3 py-1.5 text-sm text-primary-contrast shadow" role="status">
+        Klikaj kolejne rogi działki. Dwuklik lub kliknięcie ostatniego punktu kończy rysowanie.
+      </div>
+    }
     @if (!ready()) { <div class="absolute inset-0 grid place-items-center bg-surface-100 text-sm text-muted-color dark:bg-surface-800" role="status">Ładowanie mapy…</div> }
   `,
   host: {class: 'relative block h-full w-full'},
@@ -27,12 +43,18 @@ export class WodoMap implements OnDestroy {
   /** [lon, lat] najbliższej stałej wody. */
   readonly waterPoint = input<[number, number] | null>(null);
   readonly pointClicked = output<{lat: number; lon: number}>();
+  /** Granica narysowana przez użytkownika (WGS 84). */
+  readonly polygonDrawn = output<Geometry>();
 
   protected readonly basemaps: {id: Basemap; label: string}[] = [{id: 'osm', label: 'Mapa'}, {id: 'orto', label: 'Ortofoto'}];
   protected readonly basemap = signal<Basemap>('osm');
   protected readonly ready = signal(false);
+  protected readonly drawing = signal(false);
+  protected readonly parcelLayer = signal(true);
   private readonly container = viewChild.required<ElementRef<HTMLDivElement>>('container');
   private map?: MapLibreMap;
+  private draw_?: TerraDraw;
+  private ignoreClicksUntil = 0;
 
   constructor() {
     afterNextRender(() => void this.init());
@@ -43,6 +65,41 @@ export class WodoMap implements OnDestroy {
     this.basemap.set(id);
     this.map?.setLayoutProperty('osm', 'visibility', id === 'osm' ? 'visible' : 'none');
     this.map?.setLayoutProperty('orto', 'visibility', id === 'orto' ? 'visible' : 'none');
+  }
+
+  protected toggleParcelLayer() {
+    const visible = !this.parcelLayer();
+    this.parcelLayer.set(visible);
+    this.map?.setLayoutProperty('ewidencja', 'visibility', visible ? 'visible' : 'none');
+  }
+
+  protected async toggleDraw() {
+    if (this.drawing()) { this.stopDraw(); return; }
+    const map = this.map;
+    if (!map) return;
+    this.drawing.set(true);
+    const [{TerraDraw, TerraDrawPolygonMode}, {TerraDrawMapLibreGLAdapter}] = await Promise.all([
+      import('terra-draw'), import('terra-draw-maplibre-gl-adapter')]);
+    if (!this.drawing()) return; // anulowano w trakcie ładowania
+    const draw = new TerraDraw({adapter: new TerraDrawMapLibreGLAdapter({map}), modes: [new TerraDrawPolygonMode()]});
+    draw.start();
+    draw.setMode('polygon');
+    draw.on('finish', (id) => {
+      const feature = draw.getSnapshot().find((f) => f.id === id);
+      this.stopDraw();
+      if (feature && (feature.geometry.type === 'Polygon')) this.polygonDrawn.emit(feature.geometry as Geometry);
+    });
+    this.draw_ = draw;
+  }
+
+  private stopDraw() {
+    const draw = this.draw_;
+    this.draw_ = undefined;
+    this.ignoreClicksUntil = Date.now() + 500; // ostatnie kliknięcie rysowania nie jest wyborem działki
+    this.drawing.set(false);
+    if (!draw) return;
+    // Zatrzymanie w kolejnej turze: nie niszczymy rysunku w trakcie obsługi jego własnego zdarzenia.
+    setTimeout(() => { draw.clear(); draw.stop(); });
   }
 
   /** Wyśrodkowanie na działce lub na Polsce. */
@@ -64,7 +121,7 @@ export class WodoMap implements OnDestroy {
     map.addControl(new maplibregl.NavigationControl({showCompass: false}), 'top-right');
     map.addControl(new maplibregl.ScaleControl({unit: 'metric'}), 'bottom-left');
     map.getCanvas().style.cursor = 'crosshair';
-    map.on('click', (event) => this.pointClicked.emit({lat: event.lngLat.lat, lon: event.lngLat.lng}));
+    map.on('click', (event) => !this.drawing() && Date.now() > this.ignoreClicksUntil && this.pointClicked.emit({lat: event.lngLat.lat, lon: event.lngLat.lng}));
     map.on('load', () => {
       map.addSource('parcel', {type: 'geojson', data: EMPTY});
       map.addSource('water', {type: 'geojson', data: EMPTY});
@@ -99,5 +156,5 @@ export class WodoMap implements OnDestroy {
     this.map?.fitBounds(bounds, {padding: 56, maxZoom: 17, duration: reduced ? 0 : 600});
   }
 
-  ngOnDestroy() { this.map?.remove(); }
+  ngOnDestroy() { this.draw_?.stop(); this.map?.remove(); }
 }

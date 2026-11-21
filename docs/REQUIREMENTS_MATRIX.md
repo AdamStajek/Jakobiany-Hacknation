@@ -34,5 +34,5 @@ Podstawą oceny są [regulamin KOWR](https://mudnibfuppwadjkynscc.supabase.co/st
 | 5. FAO-56, Kc, TAW/RAW, bilans, rekomendacje i niepewność | Testy przykładów FAO, bilansu, braku danych, małych działek i nieużytku. | Bilans przesiewowy; brak kalibracji polowej i hydraulicznych zaleceń precyzyjnych. |
 | 6. Wyjaśnienia, scenariusz i priorytety | Dlaczego, okresy historyczne, mapa wody i porównanie z dodatkowym opadem. | Zrealizowane dla efektu dodatkowej wody. Scenariusze zmian materii organicznej i międzyplonów bez estymacji ilościowej. |
 | 8–12. Start, źródła, kontrola integralności, tempo, API i bezpieczeństwo | Compose, OpenAPI, scripts/check_live.py, scripts/cache_status.py, test zakresów i danych wejściowych. | Zrealizowane dla lokalnego prototypu. |
-| 13. Testy i walidacja | test_wodo.py, check_live.py, frontend/e2e.mjs oraz VERIFICATION.md. | Wyniki i braki sprzętowe w weryfikacji. |
+| 13. Testy i walidacja | test_wodo.py, check_live.py, frontend/e2e/smoke.mjs oraz VERIFICATION.md. | Wyniki i braki sprzętowe w weryfikacji. |
 | 14. Paczka zgłoszeniowa | Raporty, slajdy, wideo, skrypt, prywatne repo, README, manifest i instrukcja. | Materiały lokalne i repo. Zgłoszenie na koncie zespołu poza prototypem. |

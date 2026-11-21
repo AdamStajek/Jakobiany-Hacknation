@@ -50,7 +50,7 @@ type Item = {name: string; what: string; url: string};
 })
 export class MethodsPage {
   protected readonly sources: Item[] = [
-    {name: 'GUGiK / ULDK', what: 'Granice działek ewidencyjnych', url: 'https://uldk.gugik.gov.pl/opis.html'},
+    {name: 'GUGiK / EGiB', what: 'Granice działek ewidencyjnych (krajowy zbiór GeoParquet, odświeżany codziennie)', url: 'https://mapy.geoportal.gov.pl/wss/service/PZGIK/EGIB/WFS/UslugaZbiorcza'},
     {name: 'NASA POWER', what: 'Opad, temperatura, wiatr i promieniowanie', url: 'https://power.larc.nasa.gov/docs/services/api/temporal/daily/'},
     {name: 'IMGW-PIB', what: 'Stacje meteorologiczne i wodowskazy', url: 'https://danepubliczne.imgw.pl/pl/apiinfo'},
     {name: 'Sentinel-2 L2A', what: 'Obrazy satelitarne 20 m (Planetary Computer, Earth Search)', url: 'https://planetarycomputer.microsoft.com/docs/'},

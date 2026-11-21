@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { ThemeService } from '../core/theme/theme';
 
 @Component({
   selector: 'app-shell',
@@ -17,6 +18,10 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
           <a routerLink="/metody" routerLinkActive="bg-primary-50 text-primary dark:bg-primary-950"
              class="rounded-md px-3 py-2 hover:bg-surface-100 dark:hover:bg-surface-800">Jak to działa</a>
         </nav>
+        <button type="button" (click)="theme.cycle()" class="ml-auto rounded-md px-3 py-2 text-sm hover:bg-surface-100 dark:hover:bg-surface-800"
+          [attr.aria-label]="'Motyw: ' + label() + '. Kliknij, aby zmienić.'">
+          <i class="pi {{icon()}}" aria-hidden="true"></i><span class="ml-2 hidden sm:inline">{{label()}}</span>
+        </button>
       </div>
     </header>
     <main id="tresc" class="mx-auto w-full max-w-[1400px] flex-1 px-4 py-4"><ng-content /></main>
@@ -26,4 +31,8 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
   `,
   host: {class: 'flex min-h-screen flex-col'},
 })
-export class Shell {}
+export class Shell {
+  protected readonly theme = inject(ThemeService);
+  protected readonly label = computed(() => ({system: 'Motyw systemowy', light: 'Jasny', dark: 'Ciemny'})[this.theme.mode()]);
+  protected readonly icon = computed(() => ({system: 'pi-desktop', light: 'pi-sun', dark: 'pi-moon'})[this.theme.mode()]);
+}

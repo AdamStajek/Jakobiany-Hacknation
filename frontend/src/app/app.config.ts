@@ -17,7 +17,7 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(),
     provideRouter(routes, withComponentInputBinding(), withInMemoryScrolling({scrollPositionRestoration: 'enabled'})),
     provideAnimationsAsync(),
-    providePrimeNG({theme: {preset: AppPreset, options: {darkModeSelector: 'system', cssLayer: {name: 'primeng', order: 'theme, base, primeng'}}}}),
+    providePrimeNG({theme: {preset: AppPreset, options: {darkModeSelector: '.app-dark', cssLayer: {name: 'primeng', order: 'theme, base, primeng'}}}}),
     provideEchartsCore({echarts: () => import('./shared/charts/echarts-setup')}),
     {provide: LOCALE_ID, useValue: 'pl'},
   ],

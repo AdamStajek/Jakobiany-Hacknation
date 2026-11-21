@@ -23,8 +23,11 @@ export class AnalysisStore {
   readonly waterPoint = computed(() => this.report()?.sources.find((s) => s.key === 'land')?.nearest_water_point ?? null);
 
   constructor() {
-    // Zmiana działki unieważnia poprzedni raport.
-    effect(() => { this.parcels.parcel(); untracked(() => this.report.set(null)); });
+    // Zmiana działki unieważnia poprzedni raport (chyba że raport dotyczy tej samej działki).
+    effect(() => {
+      const parcel = this.parcels.parcel();
+      untracked(() => { if (this.report()?.parcel.id !== parcel?.id) this.report.set(null); });
+    });
   }
 
   async init() {
@@ -35,6 +38,22 @@ export class AnalysisStore {
       this.crops.set(crops);
     } catch (error) {
       this.error.set(errorMessage(error, 'Serwer analizy jest niedostępny. Spróbuj odświeżyć stronę.'));
+    }
+  }
+
+  /** Odtwarza zapisany raport z linku (/dzialka/:id/analiza/:analysisId). */
+  async load(analysisId: string) {
+    if (this.report()?.analysis_id === analysisId || this.running()) return;
+    this.error.set('');
+    this.progress.set('Wczytujemy zapisany raport…');
+    try {
+      const report = await this.api.report(analysisId);
+      this.parcels.select(report.parcel);
+      this.report.set(report);
+    } catch (error) {
+      this.error.set(errorMessage(error, 'Nie znaleziono raportu. Mógł wygasnąć po 14 dniach. Wykonaj analizę ponownie.'));
+    } finally {
+      this.progress.set('');
     }
   }
 

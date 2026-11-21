@@ -36,6 +36,27 @@ export class ParcelStore {
     await this.load(() => this.api.searchParcels(text));
   }
 
+  /** Ładuje działkę z linku, o ile nie jest już wybrana. */
+  async open(id: string) {
+    if (this.parcel()?.id === id) return;
+    await this.load(() => this.api.searchParcels(id));
+  }
+
+  /** Własna granica narysowana na mapie. */
+  async importGeometry(geometry: object) {
+    if (this.loading()) return;
+    this.error.set('');
+    this.loading.set(true);
+    try {
+      const geojson = {type: 'Feature', properties: {}, geometry};
+      this.select(await this.api.importParcel(geojson), geojson);
+    } catch (error) {
+      this.error.set(errorMessage(error, 'Nie udało się użyć narysowanej granicy.'));
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
   async searchPoint(lat: number, lon: number) {
     await this.load(() => this.api.parcelsByPoint(lat, lon));
   }
