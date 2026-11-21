@@ -2,7 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { catchError, of, Subscription } from 'rxjs';
 import { EvidenceApi } from './api/apis';
-import type { DocumentVersion, Evidence } from './api/types';
+import type { ApiError, DocumentVersion, Evidence } from './api/types';
 import { EvidenceRef } from './models';
 
 export interface EvidenceState {
@@ -79,7 +79,7 @@ export class EvidenceService {
       },
       error: (err: unknown) => {
         this.contentBusy.set(false);
-        this.contentError.set(err instanceof HttpErrorResponse && err.status === 404
+        this.contentError.set(statusOf(err) === 404
           ? 'Brak zachowanej kopii dokumentu.' : errorMessage(err, 'Nie udało się pobrać kopii dokumentu.'));
       },
     });
@@ -87,10 +87,16 @@ export class EvidenceService {
 }
 
 function errorMessage(e: unknown, fallback: string): string {
-  if (e instanceof HttpErrorResponse) {
-    if (e.status === 404) return 'Nie znaleziono dowodu.';
-    if (e.status === 403) return 'Brak uprawnień do tego dowodu.';
-    if (e.status === 0) return 'Brak połączenia z serwerem.';
-  }
+  const status = statusOf(e);
+  if (status === 404) return 'Nie znaleziono dowodu.';
+  if (status === 403) return 'Brak uprawnień do tego dowodu.';
+  if (status === 0) return 'Brak połączenia z serwerem.';
   return fallback;
+}
+
+/** Status z `ApiError` (po `errorInterceptor`) lub surowego `HttpErrorResponse`. */
+function statusOf(e: unknown): number | undefined {
+  if (e instanceof HttpErrorResponse) return e.status;
+  if (typeof e === 'object' && e !== null && 'status' in e) return Number((e as ApiError).status);
+  return undefined;
 }
