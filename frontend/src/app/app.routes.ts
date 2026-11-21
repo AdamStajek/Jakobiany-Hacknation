@@ -34,17 +34,7 @@ export const routes: Routes = [
       'Rejestr pobrań: adres, identyfikator, data, wersja',
     ],
   }, ['operator']),
-  page('ekspert', {
-    title: 'Expert Studio',
-    subtitle: 'Weryfikacja połączeń, zdarzeń i wzorców',
-    priority: 'P0',
-    scope: [
-      'Kolejka propozycji: dowód obok wniosku',
-      'Akceptuj / popraw / odrzuć / wymaga dowodów',
-      'Historia decyzji (kto, co, kiedy, stara i nowa wartość, powód)',
-      'Zatwierdzanie Risk DNA',
-    ],
-  }, ['expert']),
+  { path: 'ekspert', loadChildren: () => import('./features/ekspert/ekspert.routes').then((m) => m.EKSPERT_ROUTES) },
   { path: 'analiza', loadChildren: () => import('./features/analiza/analiza.routes').then((m) => m.ANALIZA_ROUTES) },
   page('chaos-lab', {
     title: 'Chaos Lab',

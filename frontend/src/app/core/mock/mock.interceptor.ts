@@ -5,6 +5,7 @@ import { environment } from '../environment';
 import { DETAIL_EXTRAS, EVIDENCE, FACTS, JOBS, PROJECTS, RISKS } from './fixtures/projects';
 import { EVIDENCE_EXTRA, DOCUMENT_VERSIONS, DOCUMENT_COPY } from './fixtures/evidence';
 import { SECTOR_RULES } from './fixtures/sector-rules';
+import { DECISIONS, REVIEW_ITEMS, decide } from './fixtures/expert';
 
 const page = (items: any[], url: URL) => {
   const limit = Number(url.searchParams.get('limit') ?? 25);
@@ -72,6 +73,39 @@ export const mockInterceptor: HttpInterceptorFn = (req, next) => {
   }
   if (m === 'POST' && (path === '/imports' || /\/enrich$/.test(path))) {
     return of(new HttpResponse({ status: 202, body: JOBS['job-partial'], headers: new HttpHeaders({ Location: '/api/v1/jobs/job-partial' }) })).pipe(delay(300));
+  }
+  if (m === 'GET' && path === '/expert/reviews') {
+    const st = url.searchParams.get('review_status');
+    const ty = url.searchParams.get('target_type');
+    const pr = url.searchParams.get('project_id');
+    return ok(page(REVIEW_ITEMS.filter((i) =>
+      (st ? i.review_status === st : ['proposed', 'needs_evidence'].includes(i.review_status)) &&
+      (!ty || i.target_type === ty) && (!pr || i.project_id === pr)), url));
+  }
+  if (m === 'GET' && path === '/expert/decisions') {
+    return ok(page(DECISIONS.filter((d) => d.target_type === url.searchParams.get('target_type') && d.target_id === url.searchParams.get('target_id')), url));
+  }
+  if (m === 'POST' && path === '/expert/decisions') {
+    const body = req.body as Parameters<typeof decide>[0];
+    if (!body.reason?.trim()) {
+      return throwError(() => new HttpErrorResponse({ status: 422, url: req.url, error: { code: 'validation_error', message: 'Niepoprawne dane żądania.', details: [{ field: 'reason', message: "'' should be non-empty" }] } }));
+    }
+    const d = decide(body);
+    return d ? ok(d, 201) : throwError(() => new HttpErrorResponse({
+      status: 409, url: req.url, error: { code: 'stale_revision', message: 'Rekord ma nowszą rewizję.' },
+    }));
+  }
+  if (m === 'POST' && path === '/expert/records') {
+    const b = req.body as { target_type: string; project_id: string; value: Record<string, unknown> };
+    const evidence_ids = (b.value['evidence_ids'] as string[] | undefined) ?? [];
+    if (!evidence_ids.length) {
+      return throwError(() => new HttpErrorResponse({ status: 422, url: req.url, error: { code: 'evidence_required', message: 'Podaj dowód dla propozycji.' } }));
+    }
+    const id = `${b.target_type}-m${REVIEW_ITEMS.length + 1}`;
+    const item = { target_type: b.target_type, target_id: id, project_id: b.project_id, revision: 1, review_status: 'proposed', evidence_ids,
+      value: { ...b.value, id, revision: 1, review_status: 'proposed' } };
+    REVIEW_ITEMS.push(item);
+    return ok(item, 201);
   }
   if (path === '/sector-rules') {
     if (m === 'GET') {
