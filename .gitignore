@@ -1,5 +1,8 @@
 bzp
 
+# Windows download metadata
+*:Zone.Identifier
+
 # Angular frontend
 node_modules/
 bower_components/
