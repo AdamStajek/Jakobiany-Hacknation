@@ -71,5 +71,10 @@ export const routes: Routes = [
     path: 'ustawienia',
     loadChildren: () => import('./features/ustawienia/ustawienia.routes').then((m) => m.USTAWIENIA_ROUTES),
   },
+  {
+    path: 'brak-dostepu',
+    title: 'Brak dostępu – Projekt Kompas',
+    loadComponent: () => import('./pages/access-denied.page').then((m) => m.AccessDeniedPage),
+  },
   { path: '**', redirectTo: 'projekty' },
 ];

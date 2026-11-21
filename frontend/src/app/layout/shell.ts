@@ -8,6 +8,7 @@ import { ROLES, Role } from '../core/permissions';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { EvidenceDrawer } from '../shared/evidence-drawer';
+import { OfflineBanner } from '../shared/offline-banner';
 
 function readInitialDark(): boolean {
   try {
@@ -22,7 +23,7 @@ interface NavGroup { title: string; items: NavItem[]; }
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ButtonModule, EvidenceDrawer, FormsModule, SelectButtonModule, ToastModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ButtonModule, EvidenceDrawer, FormsModule, SelectButtonModule, ToastModule, OfflineBanner],
   template: `
     <div class="min-h-screen flex">
       <aside class="w-64 shrink-0 flex flex-col gap-4 p-4 border-r border-surface bg-surface-0 dark:bg-surface-900">
@@ -57,7 +58,10 @@ interface NavGroup { title: string; items: NavItem[]; }
                   severity="secondary" [text]="true" (onClick)="toggleDark()" />
       </aside>
 
-      <main class="grow min-w-0 p-6 lg:p-8"><router-outlet /></main>
+      <div class="grow min-w-0 flex flex-col">
+        <app-offline-banner />
+        <main class="grow min-w-0 p-6 lg:p-8"><router-outlet /></main>
+      </div>
     </div>
     <app-evidence-drawer />
     <p-toast />
