@@ -17,6 +17,8 @@ export function errorMessage(error: unknown, fallback = 'Nie udało się pobrać
 export function authErrorMessage(error: unknown, fallback = 'Nie udało się wykonać operacji. Spróbuj ponownie.'): string {
   if (error instanceof HttpErrorResponse) {
     if (error.status === 401) return 'Nieprawidłowy login lub hasło.';
+    if (error.status === 403) return 'Obecne hasło jest nieprawidłowe albo brakuje uprawnień do tej operacji.';
+    if (error.status === 400) return 'Link jest nieprawidłowy lub wygasł. Poproś o nowy.';
     if (error.status === 409) return 'Konto z takim adresem e-mail lub nazwą już istnieje.';
     if (error.status === 429) return 'Zbyt wiele prób. Odczekaj chwilę i spróbuj ponownie.';
     if (error.status === 410) return 'Link wygasł lub został już użyty. Poproś o nowy.';

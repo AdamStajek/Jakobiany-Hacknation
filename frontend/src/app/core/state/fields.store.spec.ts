@@ -157,7 +157,7 @@ describe('FieldsStore dla zalogowanego', () => {
     TestBed.tick();
     await vi.waitFor(() => expect(store.fields()).toHaveLength(1));
     await store.recordReport(report('P1'));
-    expect(putLastReport).toHaveBeenCalledWith('s1', expect.objectContaining({risk: 'Podwyższone', dry_spell_days: 9, crop_balance_mm: -12}));
+    expect(putLastReport).toHaveBeenCalledWith('s1', {risk: 'Podwyższone', dry_spell_days: 9, crop_balance_mm: -12});
     expect(store.fields()[0].status?.risk).toBe('Podwyższone');
   });
 

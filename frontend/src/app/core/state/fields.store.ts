@@ -117,8 +117,10 @@ export class FieldsStore {
     }
     const targets = this.remote().filter(hit);
     this.remote.update((list) => list.map((f) => (hit(f) ? {...f, status} : f)));
+    const body = toServerLastReport(status);
+    if (!body) return;
     try {
-      await Promise.all(targets.map((f) => this.api.putLastReport(f.id, toServerLastReport(status))));
+      await Promise.all(targets.map((f) => this.api.putLastReport(f.id, body)));
     } catch (error) {
       this.error.set(errorMessage(error, 'Nie udało się zapisać raportu przy polu na koncie.'));
     }
@@ -133,7 +135,8 @@ export class FieldsStore {
       try {
         const body = {name: field.name, color: field.color, crop: field.crop, parcels: field.parcels.map(({id, geometry}) => ({id, geometry}))};
         const created = await this.api.createServerField(body);
-        if (field.status) await this.api.putLastReport(created.id, toServerLastReport(field.status));
+        const last = field.status ? toServerLastReport(field.status) : null;
+        if (last) await this.api.putLastReport(created.id, last);
         this.local.update((list) => list.filter((f) => f.id !== field.id));
         this.persist();
         result.moved++;

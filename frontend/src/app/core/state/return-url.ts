@@ -1,5 +1,5 @@
 /** Trasy, na które nie wracamy po zalogowaniu (zapętlenie albo ekrany jednorazowe). */
-const EXCLUDED = ['/zaloguj', '/rejestracja', '/potwierdz-email', '/zapomniane-haslo', '/reset-hasla'];
+const EXCLUDED = ['/zaloguj', '/rejestracja', '/zapomniane-haslo', '/konto/potwierdz', '/konto/reset'];
 // eslint-disable-next-line no-control-regex
 const CONTROL_CHARS = /[\u0000-\u001f]/;
 

@@ -10,10 +10,11 @@ export const routes: Routes = [
   {path: 'pola', title: 'Pole Widzenia · Moje pola', loadComponent: () => import('./features/fields/fields-page').then((m) => m.FieldsPage)},
   {path: 'zaloguj', title: 'Pole Widzenia · Logowanie', loadComponent: () => import('./features/auth/login-page').then((m) => m.LoginPage)},
   {path: 'rejestracja', title: 'Pole Widzenia · Rejestracja', loadComponent: () => import('./features/auth/register-page').then((m) => m.RegisterPage)},
-  {path: 'potwierdz-email', title: 'Pole Widzenia · Potwierdzenie e-maila',
+  // Linki z wiadomości e-mail (bez strażnika: otwierane także bez sesji).
+  {path: 'konto/potwierdz', title: 'Pole Widzenia · Potwierdzenie e-maila',
     loadComponent: () => import('./features/auth/verify-email-page').then((m) => m.VerifyEmailPage)},
+  {path: 'konto/reset', title: 'Pole Widzenia · Nowe hasło', loadComponent: () => import('./features/auth/reset-page').then((m) => m.ResetPage)},
   {path: 'zapomniane-haslo', title: 'Pole Widzenia · Odzyskiwanie hasła', loadComponent: () => import('./features/auth/forgot-page').then((m) => m.ForgotPage)},
-  {path: 'reset-hasla', title: 'Pole Widzenia · Nowe hasło', loadComponent: () => import('./features/auth/reset-page').then((m) => m.ResetPage)},
   {path: 'konto', title: 'Pole Widzenia · Konto', canActivate: [authGuard],
     loadComponent: () => import('./features/auth/account-page').then((m) => m.AccountPage)},
   {path: 'paszporty', title: 'Pole Widzenia · Paszporty pól',

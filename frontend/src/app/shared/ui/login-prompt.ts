@@ -29,6 +29,7 @@ import { RouterLink } from '@angular/router';
           class="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm text-muted-color hover:bg-surface-100 dark:hover:bg-surface-800">
           Kontynuuj bez konta
         </button>
+        <ng-content />
       </div>
     </section>
   `,

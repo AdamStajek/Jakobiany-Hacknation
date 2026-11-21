@@ -1,4 +1,4 @@
-import type { Geometry, Parcel, Report, ServerField, ServerLastReport } from '../api/types';
+import type { Geometry, LastReportInput, Parcel, Report, ServerField } from '../api/types';
 
 export const FIELD_COLORS = ['green', 'blue', 'amber', 'purple', 'teal', 'pink'] as const;
 export type FieldColor = (typeof FIELD_COLORS)[number];
@@ -66,9 +66,13 @@ export function statusFromReport(report: Report, now = new Date()): FieldStatus 
   };
 }
 
-/** Status w formacie serwera (PUT /api/fields/{id}/last-report). */
-export function toServerLastReport(status: FieldStatus): ServerLastReport {
-  return {saved_at: status.savedAt, risk: status.risk, dry_spell_days: status.dryDays, crop_balance_mm: status.balanceMm};
+/**
+ * Status w formacie serwera (PUT /api/fields/{id}/last-report). Serwer wymaga liczb,
+ * więc raport bez danych z ostatnich dni (null) nie jest zapisywany na koncie.
+ */
+export function toServerLastReport(status: FieldStatus): LastReportInput | null {
+  if (status.dryDays === null || status.balanceMm === null) return null;
+  return {risk: status.risk, dry_spell_days: status.dryDays, crop_balance_mm: status.balanceMm};
 }
 
 const colorOf = (value: unknown): FieldColor => FIELD_COLORS.find((c) => c === value) ?? 'green';

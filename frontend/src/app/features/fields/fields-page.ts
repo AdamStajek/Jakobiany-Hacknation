@@ -5,10 +5,13 @@ import { MessageModule } from 'primeng/message';
 import { SkeletonModule } from 'primeng/skeleton';
 import type { Geometry } from '../../core/api/types';
 import { AnalysisStore } from '../../core/state/analysis.store';
+import { AuthStore } from '../../core/state/auth.store';
 import { Field, FieldsStore } from '../../core/state/fields.store';
 import { ParcelStore } from '../../core/state/parcel.store';
+import { loginQuery } from '../../core/state/return-url';
 import { WodoMap } from '../../shared/map/wodo-map';
 import { EmptyState } from '../../shared/ui/empty-state';
+import { LoginPrompt } from '../../shared/ui/login-prompt';
 import { Panel } from '../../shared/ui/panel';
 import { Segmented, SegmentOption } from '../../shared/ui/segmented';
 import { FieldCard } from './field-card';
@@ -19,7 +22,7 @@ type View = 'list' | 'map';
 /** Pulpit „Moje pola”: karty pól, lista „wymaga uwagi” i mapa wszystkich pól (pola zapisane w przeglądarce). */
 @Component({
   selector: 'app-fields-page',
-  imports: [ButtonModule, MessageModule, SkeletonModule, WodoMap, EmptyState, Panel, Segmented, FieldCard, FieldForm],
+  imports: [ButtonModule, MessageModule, SkeletonModule, WodoMap, EmptyState, LoginPrompt, Panel, Segmented, FieldCard, FieldForm],
   host: {class: 'block'},
   template: `
     <div class="flex h-[calc(100dvh-var(--shell-top)-var(--shell-bottom))] flex-col">
@@ -35,9 +38,31 @@ type View = 'list' | 'map';
               <h1 class="mr-auto text-xl font-bold">Moje pola</h1>
               @if (!adding()) { <p-button label="Dodaj pole" icon="pi pi-plus" (onClick)="startAdd(false)" /> }
             </header>
-            <p class="text-xs text-muted-color">Pola są zapisane tylko w tej przeglądarce. Nie wymagają konta.</p>
+            @if (auth.loggedIn()) {
+              <p class="text-xs text-muted-color">Pola są zapisane na Twoim koncie.</p>
+            } @else {
+              <p class="text-xs text-muted-color">Pola są zapisane tylko w tej przeglądarce. Nie wymagają konta.</p>
+            }
 
-            @if (fields.error()) { <p-message severity="warn" role="alert">{{fields.error()}}</p-message> }
+            @if (offerMigration()) {
+              <section class="pw-card flex flex-col gap-3 p-3 text-sm" aria-label="Przenieś pola na konto">
+                <p class="flex items-start gap-2">
+                  <i class="pi pi-cloud-upload mt-0.5 text-primary" aria-hidden="true"></i>
+                  <span>W tej przeglądarce masz {{fields.localFields().length}} zapisanych pól. Przenieś je na konto, aby były dostępne wszędzie.</span>
+                </p>
+                <div class="flex flex-wrap gap-2">
+                  <p-button label="Przenieś pola na konto" icon="pi pi-cloud-upload" size="small" [loading]="fields.migrating()" [disabled]="fields.migrating()" (onClick)="migrate()" />
+                  <p-button label="Nie teraz" size="small" severity="secondary" [text]="true" [disabled]="fields.migrating()" (onClick)="migrationDismissed.set(true)" />
+                </div>
+              </section>
+            }
+
+            @if (fields.error()) {
+              <p-message severity="warn" role="alert">
+                <span>{{fields.error()}}</span>
+                @if (auth.loggedIn()) { <p-button label="Odśwież" size="small" severity="secondary" [text]="true" (onClick)="fields.load()" /> }
+              </p-message>
+            }
             @if (analysis.error()) {
               <p-message severity="error" role="alert">
                 <span>{{analysis.error()}}</span>
@@ -52,7 +77,7 @@ type View = 'list' | 'map';
               </div>
             }
 
-            @if (!ready()) {
+            @if (!ready() || fields.loading()) {
               <div class="space-y-3" role="status" aria-label="Wczytywanie pól">
                 <p-skeleton height="7rem" borderRadius="14px" /><p-skeleton height="7rem" borderRadius="14px" />
               </div>
@@ -63,6 +88,11 @@ type View = 'list' | 'map';
                 text="Dodaj pole z listy numerów działek albo zapisz działkę po analizie. Zobaczysz tu status z ostatniego raportu.">
                 <p-button label="Dodaj pierwsze pole" icon="pi pi-plus" (onClick)="startAdd(false)" />
               </app-empty-state>
+              @if (!auth.loggedIn() && auth.status() === 'guest' && !inviteDismissed()) {
+                <app-login-prompt title="Miej pola pod ręką na każdym urządzeniu"
+                  text="Zaloguj się, a pola zapiszemy na koncie. Możesz też dalej korzystać bez konta: pola zostaną w tej przeglądarce."
+                  [query]="loginQuery()" (dismissed)="inviteDismissed.set(true)" />
+              }
             } @else {
               @if (fields.attention().length) {
                 <app-panel heading="Wymaga uwagi" icon="pi-exclamation-triangle">
@@ -105,6 +135,7 @@ export class FieldsPage {
   protected readonly fields = inject(FieldsStore);
   protected readonly parcels = inject(ParcelStore);
   protected readonly analysis = inject(AnalysisStore);
+  protected readonly auth = inject(AuthStore);
   private readonly router = inject(Router);
 
   protected readonly views: SegmentOption<View>[] = [
@@ -116,6 +147,12 @@ export class FieldsPage {
   protected readonly adding = signal(false);
   protected readonly prefillCurrent = signal(false);
   protected readonly selectedId = signal<string | null>(null);
+  protected readonly inviteDismissed = signal(false);
+  protected readonly migrationDismissed = signal(false);
+  protected readonly loginQuery = () => loginQuery('/pola');
+  /** Po zalogowaniu proponujemy przeniesienie pól zapisanych w przeglądarce. */
+  protected readonly offerMigration = computed(() =>
+    this.auth.loggedIn() && this.fields.localFields().length > 0 && !this.migrationDismissed());
 
   protected readonly prefill = computed(() => (this.prefillCurrent() ? this.parcels.parcel() : null));
   protected readonly selected = computed(() => this.fields.fields().find((f) => f.id === this.selectedId()) ?? null);
@@ -132,12 +169,16 @@ export class FieldsPage {
     return polygons.length ? {type: 'MultiPolygon', coordinates: polygons} : null;
   });
 
-  constructor() { void this.init(); }
+  constructor() { void this.init(); void this.auth.init(); }
 
   protected async init() {
     this.ready.set(false);
     await this.analysis.init();
     this.ready.set(true);
+  }
+
+  protected async migrate() {
+    await this.fields.migrateLocal();
   }
 
   protected startAdd(current: boolean) {

@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
   AnalysisEvent, AnalysisProgress, AnalysisRequest, Crop, Health, LoginRequest, NotificationPrefs, Parcel, PasswordChange, RegisterRequest, Report,
-  ServerField, ServerFieldInput, ServerLastReport, User,
+  LastReportInput, ServerField, ServerFieldInput, User,
 } from './types';
 
 /** Nagłówek wymagany przez serwer przy żądaniach zmieniających stan (ochrona przed CSRF). */
@@ -40,7 +40,7 @@ export class ApiService {
     return firstValueFrom(this.http.post<unknown>('/api/auth/reset', {token, password}, STATE_CHANGING));
   }
   notificationPrefs() { return firstValueFrom(this.http.get<NotificationPrefs>('/api/me/notifications', READ)); }
-  setNotificationPrefs(body: NotificationPrefs) {
+  setNotificationPrefs(body: {email_enabled: boolean}) {
     return firstValueFrom(this.http.patch<NotificationPrefs>('/api/me/notifications', body, STATE_CHANGING));
   }
 
@@ -51,7 +51,7 @@ export class ApiService {
     return firstValueFrom(this.http.patch<ServerField>(`/api/fields/${encodeURIComponent(id)}`, body, STATE_CHANGING));
   }
   deleteServerField(id: string) { return firstValueFrom(this.http.delete<unknown>(`/api/fields/${encodeURIComponent(id)}`, STATE_CHANGING)); }
-  putLastReport(id: string, body: ServerLastReport) {
+  putLastReport(id: string, body: LastReportInput) {
     return firstValueFrom(this.http.put<ServerField>(`/api/fields/${encodeURIComponent(id)}/last-report`, body, STATE_CHANGING));
   }
 
