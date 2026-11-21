@@ -2,13 +2,15 @@ import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter, map } from 'rxjs';
+import { FieldsStore } from '../core/state/fields.store';
 import { ThemeService } from '../core/theme/theme';
 
-type Section = 'analiza' | 'paszport' | 'eksperymenty' | 'metody';
+type Section = 'analiza' | 'pola' | 'paszport' | 'eksperymenty' | 'metody';
 type NavItem = {id: Section; path: string; label: string; short: string; icon: string};
 
 const NAV: NavItem[] = [
   {id: 'analiza', path: '/', label: 'Analiza działki', short: 'Analiza', icon: 'pi-map'},
+  {id: 'pola', path: '/pola', label: 'Moje pola', short: 'Pola', icon: 'pi-th-large'},
   {id: 'paszport', path: '/paszporty', label: 'Paszporty pól', short: 'Paszport', icon: 'pi-id-card'},
   {id: 'eksperymenty', path: '/eksperymenty', label: 'Eksperymenty', short: 'Eksperymenty', icon: 'pi-list-check'},
   {id: 'metody', path: '/metody', label: 'Jak to działa', short: 'Metody', icon: 'pi-book'},
@@ -57,7 +59,7 @@ const NAV: NavItem[] = [
 
     <main id="tresc" class="lg:pl-60"><ng-content /></main>
 
-    <nav aria-label="Nawigacja główna" class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-surface bg-surface-0/95 pb-[env(safe-area-inset-bottom)] backdrop-blur print:hidden lg:hidden dark:bg-surface-900/95">
+    <nav aria-label="Nawigacja główna" class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-surface bg-surface-0/95 pb-[env(safe-area-inset-bottom)] backdrop-blur print:hidden lg:hidden dark:bg-surface-900/95">
       @for (item of nav; track item.path) {
         <a [routerLink]="item.path" [attr.aria-current]="section() === item.id ? 'page' : null"
            class="flex h-16 flex-col items-center justify-center gap-1 text-xs"
@@ -70,6 +72,8 @@ const NAV: NavItem[] = [
 })
 export class Shell {
   protected readonly theme = inject(ThemeService);
+  /** Tworzony od startu, aby każdy raport z analizy odświeżał status zapisanych pól. */
+  private readonly fields = inject(FieldsStore);
   protected readonly nav = NAV;
   protected readonly label = computed(() => ({system: 'Motyw systemowy', light: 'Motyw jasny', dark: 'Motyw ciemny'})[this.theme.mode()]);
   protected readonly icon = computed(() => ({system: 'pi-desktop', light: 'pi-sun', dark: 'pi-moon'})[this.theme.mode()]);
@@ -81,6 +85,7 @@ export class Shell {
     const url = this.url().split(/[?#]/)[0];
     if (url.startsWith('/eksperymenty')) return 'eksperymenty';
     if (url.startsWith('/metody')) return 'metody';
+    if (url.startsWith('/pola')) return 'pola';
     return url.startsWith('/paszporty') || url.endsWith('/paszport') ? 'paszport' : 'analiza';
   });
 }
