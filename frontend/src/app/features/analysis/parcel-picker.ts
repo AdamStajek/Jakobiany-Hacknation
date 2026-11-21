@@ -66,7 +66,7 @@ import { ParcelStore } from '../../core/state/parcel.store';
         </div>
       }
 
-      @if (store.error()) { <p-message severity="error" role="alert">{{store.error()}}</p-message> }
+      @if (store.error()) { <p-message severity="error" icon="pi pi-exclamation-circle" role="alert">{{store.error()}}</p-message> }
     </section>
   `,
 })

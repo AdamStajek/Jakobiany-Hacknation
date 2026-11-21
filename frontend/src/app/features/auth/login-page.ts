@@ -17,7 +17,7 @@ import { AuthField } from './auth-field';
       <form class="flex flex-col gap-4" (submit)="$event.preventDefault(); submit()">
         <app-auth-field id="login-identifier" label="E-mail lub nazwa użytkownika" autocomplete="username" [(value)]="identifier" />
         <app-auth-field id="login-password" label="Hasło" type="password" autocomplete="current-password" [(value)]="password" />
-        @if (error()) { <p-message severity="error" role="alert">{{error()}}</p-message> }
+        @if (error()) { <p-message severity="error" icon="pi pi-exclamation-circle" role="alert">{{error()}}</p-message> }
         <p-button type="submit" label="Zaloguj się" icon="pi pi-sign-in" styleClass="w-full" [loading]="busy()" [disabled]="busy() || !identifier() || !password()" />
         <a routerLink="/zapomniane-haslo" class="text-sm text-primary underline">Nie pamiętam hasła</a>
       </form>

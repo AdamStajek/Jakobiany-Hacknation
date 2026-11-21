@@ -80,7 +80,7 @@ type Pane = 'map' | 'report';
                     <p-skeleton height="14rem" borderRadius="14px" />
                   </div>
                 } @else {
-                  @if (analysis.error()) { <p-message severity="error" role="alert">{{analysis.error()}}</p-message> }
+                  @if (analysis.error()) { <p-message severity="error" icon="pi pi-exclamation-circle" role="alert">{{analysis.error()}}</p-message> }
                   <app-empty-state icon="pi-chart-line" title="Raport pojawi się tutaj"
                     text="Wybierz działkę na mapie, podaj uprawę i datę, a potem uruchom analizę.">
                     <p-button label="Wybierz działkę" icon="pi pi-map" severity="secondary" [outlined]="true" (onClick)="view.set('map')" />

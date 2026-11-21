@@ -64,7 +64,7 @@ type View = 'list' | 'map';
               </p-message>
             }
             @if (analysis.error()) {
-              <p-message severity="error" role="alert">
+              <p-message severity="error" icon="pi pi-exclamation-circle" role="alert">
                 <span>{{analysis.error()}}</span>
                 <p-button label="Spróbuj ponownie" size="small" severity="secondary" [text]="true" (onClick)="init()" />
               </p-message>
