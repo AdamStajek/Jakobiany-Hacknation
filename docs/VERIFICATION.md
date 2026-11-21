@@ -16,7 +16,7 @@ NASA POWER, IMGW, SoilGrids, Sentinel-2, EU-DEM, WorldCover i hydrologia został
 
 - Pytest: 11 zaliczonych. Zakres obejmuje pole powierzchni i osie, WKT/WKB, FAO-56, spójność bilansu, pokrycie przeszłości, maskę chmur, reguły, małą działkę, brak usług, sprawdzanie hydraulicznego progu i kontrolę źródeł. TestClient zgłasza ostrzeżenie o planowanej migracji transportu.
 - Playwright: Chromium, Firefox i WebKit, rzeczywisty serwer, wyszukanie pełnym ID, geometria, historyczna i bieżąca data, historia, rozwinięcie rekomendacji, pobranie prawdziwego PDF, walidacja i szerokość 390 px. WebKit uruchomiono po rozpakowaniu brakujących bibliotek systemowych w katalogu tymczasowym. Safari jako osobna aplikacja, Windows oraz markowe kompilacje Edge i Opera pozostają bez bezpośredniej weryfikacji.
-- Kontrola kodu: Ruff i kompilacja Angular zakończyły się pomyślnie. Leaflet generuje ostrzeżenie CommonJS. npm audit --omit=dev zgłosił 0 podatności runtime. Pełny audyt instalacji deweloperskiej zgłosił 16 pozycji o średnim priorytecie.
+- Kontrola kodu: Ruff i kompilacja Angular zakończyły się pomyślnie. npm audit --omit=dev zgłosił 0 podatności runtime. Pełny audyt instalacji deweloperskiej zgłosił 16 pozycji o średnim priorytecie.
 - FAO-56, przykład 18: ET₀ dla Uccle 3,9 mm/d i tolerancja 0,15 mm/d. Przykład z Lyonu dla Hargreavesa: 5,0 mm/d i tolerancja 0,12. Przykład 36: TAW 36 mm i RAW 10,8 mm. Tolerancje odnoszą się do odtwarzania obliczeń, a dokładność w polu zależy od wejść.
 - Obraz Docker działa z natywną zależnością Expat niezbędną dla dostarczonego koła Rasterio. Frontend i backend uruchamiają się w jednym kontenerze. Polecenia podano w README.
 

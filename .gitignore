@@ -38,3 +38,10 @@ build/
 # WodoStrażnik runtime cache and browser output
 .wodo-cache/
 submission/.capture/
+
+# Parcel data (GeoParquet download, index, metadata) - never commit
+data/parcels/
+*.parquet
+*.part
+*.duckdb
+*.duckdb.wal

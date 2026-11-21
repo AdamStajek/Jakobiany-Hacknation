@@ -38,3 +38,8 @@
 .wodo-cache
 submission
 data
+
+**/*.parquet
+**/*.part
+**/*.duckdb
+**/*.duckdb.wal

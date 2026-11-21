@@ -1,0 +1,230 @@
+    <section class="intro" aria-labelledby="passport-title">
+      <h1 id="passport-title">Paszporty pól</h1>
+      <p>Wybierz działkę, uzupełnij informacje o polu i otwórz paszport.</p>
+    </section>
+  <section class="workspace" aria-label="Przygotuj paszport pola">
+    <div class="card setup">
+      <div class="section-head"><span class="step">1</span><div><h2>Wybierz działkę</h2><p>Wpisz identyfikator lub kliknij na mapie.</p></div></div>
+      <form class="search" (ngSubmit)="find()">
+        <label for="parcel-id">Identyfikator działki</label>
+        <div class="search-row"><input id="parcel-id" name="parcel" [(ngModel)]="query" placeholder="np. 301103_2.0001.121" maxlength="90" autocomplete="off">
+          <button type="submit" class="secondary" [disabled]="loadingParcel()">{{loadingParcel() ? 'Szukam…' : 'Szukaj'}}</button></div>
+      </form>
+      @if (choices().length) {
+        <div class="matches"><p>Znaleziono kilka działek. Wybierz właściwą.</p>
+          @for (item of choices(); track item.id) {
+            <button type="button" class="secondary" (click)="select(item)">{{item.id}} · {{item.commune}}</button>
+          }
+        </div>
+      }
+      @if (parcel(); as selected) {
+        <div class="selected">
+          <span class="selected-dot" aria-hidden="true">✓</span>
+          <div><strong>{{selected.id}}</strong><br><small>{{selected.area_ha | number:'1.0-4'}} ha @if (selected.commune) { · gmina {{selected.commune}} } @if (selected.region) { · obręb {{selected.region}} }</small></div>
+        </div>
+      }
+      @if (parcel(); as selected) {
+        <button type="button" class="secondary" (click)="downloadParcelGeoJson(selected)">Pobierz granicę działki (GeoJSON)</button>
+      }
+      <label class="upload"><input type="file" accept=".geojson,.json,application/geo+json,application/json"
+        (change)="importFile($event)" [disabled]="loadingParcel()"><span>Wczytaj granicę z GeoJSON</span></label>
+
+      <div class="section-head second"><span class="step">2</span><div><h2>Podaj uprawę i datę</h2><p>Wybierz dziś lub dzień z ostatnich 10 lat.</p></div></div>
+      <form (ngSubmit)="openPassport()" class="analysis-form">
+        <div class="form-grid">
+          <label for="crop">Rodzaj uprawy<select id="crop" name="crop" [(ngModel)]="crop">
+            @for (item of crops(); track item.id) { <option [value]="item.id">{{item.label}}</option> }
+          </select></label>
+          <label for="day">Data analizy<input id="day" type="date" name="day" [(ngModel)]="day"
+            [min]="dateRange().analysis_date_min" [max]="dateRange().analysis_date_max" required></label>
+        </div>
+        <details class="advanced">
+          <summary>Dodaj informacje o polu</summary>
+          <div class="form-grid">
+            <label for="stage">Faza uprawy<select id="stage" name="stage" [(ngModel)]="stage">
+              <option [ngValue]="null">Z kalendarza</option>
+              @for (item of stages; track item; let index = $index) { <option [ngValue]="index">{{item}}</option> }
+            </select></label>
+            <label for="sowing">Siew lub wznowienie wegetacji<input id="sowing" type="date" name="sowing" [(ngModel)]="sowing" [max]="day"></label>
+            <label class="check wide"><input type="checkbox" name="irrigation" [(ngModel)]="irrigation"> Mam możliwość nawadniania</label>
+            @if (irrigation) {
+              <label class="wide" for="irrigation-mm">Woda z nawadniania, która dotarła do gleby w dniu analizy [mm]
+                <input id="irrigation-mm" type="number" min="0" max="150" step="0.1" name="irrigationMm" [(ngModel)]="irrigationMm"></label>
+            }
+          </div>
+        </details>
+        @if (parcel() && questions().length) {
+          <fieldset>
+            <legend>Dane rolnika do paszportu pola</legend>
+            <div class="form-grid">
+              @for (item of questions(); track item.field) {
+                @switch (item.field) {
+                  @case ('problem_zones') {
+                    <div class="wide" role="group" [attr.aria-label]="item.label">
+                      <p>{{item.question}}</p>
+                      <button type="button" class="secondary" (click)="markingZone = !markingZone">
+                        {{markingZone ? 'Anuluj zaznaczanie' : 'Zaznacz punkt na mapie'}}
+                      </button>
+                      @if (markingZone) { <p role="status">Kliknij wewnątrz granicy wybranej działki.</p> }
+                      @for (zone of zones; track zone; let i = $index) {
+                        <div class="form-grid">
+                          <label>Typ strefy<select [name]="'zone-type-' + i" [(ngModel)]="zone.type">
+                            <option value="">Wybierz typ</option>
+                            @for (type of ['Przesuszenie', 'Zastoiska', 'Erozja', 'Słaby plon', 'Inne']; track type) {
+                              <option [value]="type">{{type}}</option>
+                            }
+                          </select></label>
+                          <label>Data obserwacji<input type="date" [name]="'zone-date-' + i" [(ngModel)]="zone.date"></label>
+                          <label>Opis strefy (opcjonalnie)<input [name]="'zone-description-' + i" [(ngModel)]="zone.description"></label>
+                          <button type="button" class="secondary" (click)="zones.splice(i, 1); refreshZoneMarkers()">Usuń punkt</button>
+                        </div>
+                      }
+                    </div>
+                  }
+                  @case ('irrigation_events') {
+                    <div class="wide">
+                      <label>{{item.question}}<select name="irrigationHistory" [(ngModel)]="irrigationHistory">
+                        <option value="">Wybierz odpowiedź</option><option value="none">Brak nawadniania</option>
+                        <option value="unknown">Nie wiem</option><option value="events">Podam zdarzenia</option>
+                      </select></label>
+                      @if (irrigationHistory === 'events') {
+                        @for (event of watering; track event; let i = $index) {
+                          <div class="form-grid">
+                            <label>Data nawadniania<input type="date" [name]="'water-date-' + i" [(ngModel)]="event.date" [max]="day"></label>
+                            <label>Dawka [mm] (opcjonalnie)<input type="number" min="0" step="any" [name]="'water-dose-' + i" [(ngModel)]="event.dose_mm"></label>
+                            <button type="button" class="secondary" (click)="watering.splice(i, 1)">Usuń zdarzenie</button>
+                          </div>
+                        }
+                        <button type="button" class="secondary" (click)="watering.push({date: '', dose_mm: null})">Dodaj nawadnianie</button>
+                      }
+                    </div>
+                  }
+                  @case ('irrigation_water_source') {
+                    <label>{{item.question}}<select multiple [name]="item.field" [(ngModel)]="waterSources">
+                      @for (option of item.format.replace(' (wielokrotny wybór)', '').split('; '); track option) {
+                        <option [value]="option">{{option}}</option>
+                      }
+                    </select></label>
+                  }
+                  @default {
+                    <label>{{item.question}}
+                      @if (item.format.includes(';') && !['current_crop', 'previous_crop', 'sowing_date'].includes(item.field)) {
+                        <select [name]="item.field" [(ngModel)]="answers[item.field]">
+                          <option value="">Wybierz odpowiedź</option>
+                          @for (option of item.format.split('; '); track option) {
+                            <option [value]="option">{{option}}</option>
+                          }
+                        </select>
+                      } @else {
+                        <input [name]="item.field" [(ngModel)]="answers[item.field]" maxlength="150" [attr.aria-describedby]="'hint-' + item.field">
+                        <small [id]="'hint-' + item.field">{{item.format}}</small>
+                      }
+                    </label>
+                  }
+                }
+              }
+            </div>
+          </fieldset>
+        }
+          <button type="submit" class="primary"
+            [disabled]="!parcel() || !questions().length || !day || loadingParcel() || loadingPassport()">Pokaż paszport pola</button>
+          @if (loadingPassport()) { <p role="status" class="progress">Pobieramy dane paszportu…</p> }
+        @if (error()) { <p role="alert" class="error">{{error()}}</p> }
+      </form>
+    </div>
+
+    <div class="card map-card">
+      <div class="map-head"><div><h2>Mapa działek</h2><p>Kliknij na mapie, żeby wyszukać granicę.</p></div>
+        <button type="button" class="secondary map-reset" (click)="resetMap()" aria-label="Wyśrodkuj mapę">Wyśrodkuj</button></div>
+      <div #map class="map" aria-label="Interaktywna mapa do wskazania działki. Możesz też wyszukać działkę po identyfikatorze."></div>
+      <div class="map-footer"><span class="legend-mark"></span> Granica działki</div>
+    </div>
+  </section>
+
+  @if (passport(); as data) {
+    <section class="card field-passport" aria-labelledby="passport-summary">
+      <h2 id="passport-summary" tabindex="-1">Paszport pola</h2>
+      <p>Działka <strong>{{data.parcel_id}}</strong>
+        @if (parcel()?.commune; as commune) { · gmina {{commune}} }
+      </p>
+      <p>Stan na {{data.analysis_as_of | date:'dd.MM.yyyy'}}</p>
+
+      @if (data.farmer_report; as plan) {
+        <section class="farmer-plan" aria-labelledby="field-actions">
+          <h3 id="field-actions">Co zrobić na tym polu?</h3>
+          <p>{{plan.situation}}</p>
+          @if (plan.next_check) { <p>{{plan.next_check}}</p> }
+          @for (step of plan.steps; track step.action) {
+            <h4>{{step.when}}</h4>
+            <p>{{step.action}}</p>
+            <p>{{step.why}} {{step.condition}}</p>
+          }
+          <button type="button" class="secondary" (click)="print()">Drukuj raport</button>
+        </section>
+      }
+
+      @if (passportOverview().length) {
+        <dl class="passport-overview">
+          @for (item of passportOverview(); track item.key) {
+            <div>
+              <dt>{{item.label}}</dt>
+              <dd><strong>{{passportValue(item.value)}}</strong> {{item.unit}}</dd>
+              @if (item.hint) { <dd>{{item.hint}}</dd> }
+            </div>
+          }
+        </dl>
+      }
+
+      @if (farmerDeclarations().length) {
+        <h3>Co podajesz o swoim polu</h3>
+        <dl>
+          @for (field of farmerDeclarations(); track field.field) {
+            <div>
+              <dt>{{field.label}}</dt>
+              @for (line of declarationLines(field); track $index) { <dd>{{line}}</dd> }
+            </div>
+          }
+        </dl>
+      }
+
+      <ng-template #passportEntry let-value>
+        @if (structuredPassportValue(value); as entries) {
+          @if ((entries | keyvalue).length) {
+            <ul>
+              @for (entry of entries | keyvalue: null; track entry.key) {
+                <li><strong>{{entry.key}}</strong> <ng-container *ngTemplateOutlet="passportEntry; context: {$implicit: entry.value}" /></li>
+              }
+            </ul>
+          } @else { Brak wpisów }
+        } @else { {{passportValue(value)}} }
+      </ng-template>
+      @if (availablePassportFields().length) {
+      <details>
+        <summary>Wszystkie dane i ich źródła</summary>
+        <dl>
+          @for (field of availablePassportFields(); track field.source + '/' + field.field) {
+            <div>
+              <dt>{{field.label}}</dt>
+              <dd>
+                @if (field.provenance && 'declared_at' in field.provenance) {
+                  @for (line of declarationLines(field); track $index) { <div>{{line}}</div> }
+                } @else if (structuredPassportValue(field.value)) {
+                  <details #valueDetails (toggle)="valueDetails.open"><summary>Pokaż dane {{field.unit}}</summary>
+                    @if (valueDetails.open) { <ng-container *ngTemplateOutlet="passportEntry; context: {$implicit: field.value}" /> }
+                  </details>
+                } @else {
+                  {{passportValue(field.value)}} {{field.unit}}
+                }
+                <details class="passport-source"><summary>Źródło danych</summary>
+                  <p>{{field.provenance?.source_id ?? field.source}}</p>
+                  @if (field.provenance) { <pre>{{field.provenance | json}}</pre> }
+                </details>
+              </dd>
+            </div>
+          }
+        </dl>
+      </details>
+      }
+      <button type="button" class="secondary" (click)="downloadPassport()">Zapisz paszport (JSON)</button>
+    </section>
+  }

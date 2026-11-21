@@ -24,6 +24,12 @@ npm --prefix frontend ci
 
 Do wdrożenia zewnętrznego uruchom obraz za reverse proxy HTTPS i użyj wolumenu dla /var/lib/wodo. Obraz nasłuchuje na 8000, a Compose udostępnia go lokalnie na 8080. Hosting zewnętrzny wymaga konta i konfiguracji dostępu dla jury.
 
+## Dane działek
+
+Geometrię działek wyszukuje własny indeks zbudowany z krajowego pliku GeoParquet GUGiK / EGiB (4,59 GB, 38,9 mln działek). Usługa `parcels-updater` pobiera plik i buduje indeks w tle po `docker compose up --build`. API startuje od razu, a `/api/parcels/*` zwraca 503, dopóki dane nie są gotowe. Pierwsze pobranie i budowa trwają ok. 35–40 min, potrzeba co najmniej 40 GB wolnego miejsca na wolumenie i 6 GB RAM dla Dockera (w WSL2 trzymaj repozytorium w systemie plików Linuksa). Postęp: `docker compose logs -f parcels-updater` oraz blok `parcels` w `curl localhost:8080/api/health`.
+
+ULDK pozostaje tylko opcją (`WODO_PARCEL_SOURCE=uldk`), bo w sieci hackathonu usługa przekierowuje zapytania na adres pułapki. Znany problem: nakładka WMS z granicami działek na mapie jest przekierowywana tak samo i nie działa. Szczegóły, polecenia operacyjne i pomiary: [Dane działek](docs/PARCELS_DATA.md).
+
 ## Funkcje
 
 - Wyszukiwanie pełnym identyfikatorem, z mapy lub przez nazwę i numer obrębu. Import Polygon lub MultiPolygon GeoJSON w WGS 84.
@@ -33,7 +39,7 @@ Do wdrożenia zewnętrznego uruchom obraz za reverse proxy HTTPS i użyj wolumen
 
 ## Architektura i dane
 
-Angular i Leaflet renderują formularz oraz mapę. FastAPI udostępnia API i serwuje zbudowaną aplikację z tej samej domeny. Klienci źródeł działają równolegle. Moduł science.py liczy ET₀ FAO-56, ETc, scenariusze stanu początkowego i porównania historyczne. Moduł analysis.py wybiera reguły na podstawie obliczeń, a ReportLab generuje dokument z obiektu raportu.
+Angular, PrimeNG i ECharts renderują formularz, wykresy i raport, a MapLibre GL mapę z darmowymi podkładami (OpenStreetMap, ortofotomapa GUGiK; nakładka granic działek GUGiK jest chwilowo niedostępna). FastAPI udostępnia API i serwuje zbudowaną aplikację z tej samej domeny. Klienci źródeł działają równolegle. Moduł science.py liczy ET₀ FAO-56, ETc, scenariusze stanu początkowego i porównania historyczne. Moduł analysis.py wybiera reguły na podstawie obliczeń, a ReportLab generuje dokument z obiektu raportu.
 
 | API | Działanie |
 |---|---|
@@ -44,8 +50,9 @@ Angular i Leaflet renderują formularz oraz mapę. FastAPI udostępnia API i ser
 | GET /api/analysis/{id}/provenance, /api/analysis/{id}/report | Metadane oraz eksport PDF lub JSON |
 | GET /api/data-sources/status | Dostępność źródeł w ostatniej analizie |
 
-Geometria pochodzi z GUGiK. NASA POWER i IMGW dostarczają meteorologię, Sentinel-2 obserwacje powierzchni, SoilGrids charakterystyki retencji, ESA WorldCover informację o pokryciu i wodach, a Copernicus modele powierzchni. IMGW hydro uzupełnia bieżący raport o najbliższy przydatny wodowskaz. Źródła są pobierane na żądanie według ważności cache. SQLite przechowuje metadane, serie i pochodne z sumą SHA-256. Identyfikator raportu jest losowy i wygasa najpóźniej po 14 dniach. Raporty i zalecenia są obliczane po każdym uruchomieniu analizy. Pełne zbiory dostawców pozostają poza repozytorium.
+Geometria pochodzi z krajowego zbioru EGiB GUGiK (GeoParquet, lokalny indeks). NASA POWER i IMGW dostarczają meteorologię, Sentinel-2 obserwacje powierzchni, SoilGrids charakterystyki retencji, ESA WorldCover informację o pokryciu i wodach, a Copernicus modele powierzchni. IMGW hydro uzupełnia bieżący raport o najbliższy przydatny wodowskaz. Źródła są pobierane na żądanie według ważności cache. SQLite przechowuje metadane, serie i pochodne z sumą SHA-256. Identyfikator raportu jest losowy i wygasa najpóźniej po 14 dniach. Raporty i zalecenia są obliczane po każdym uruchomieniu analizy. Pełne zbiory dostawców pozostają poza repozytorium.
 
+- [Dane działek: pobieranie, indeks, operacje](docs/PARCELS_DATA.md)
 - [Źródła i zakres](docs/DATA_SOURCES.md)
 - [Licencje i komponenty](docs/DATA_LICENSES.md)
 - [Metoda i ograniczenia](docs/DATA_LIMITATIONS.md)
@@ -81,4 +88,4 @@ Test ET₀ sprawdza dobowy przykład 18 FAO-56 (3,9 mm/d ±0,15), a test retencj
 
 Aplikacja nie wymaga kont rolników. Backend ogranicza źródła sieciowe, rozmiar wejść, czasy odpowiedzi, tempo i liczbę jednoczesnych analiz. Komunikat dla użytkownika nie zawiera szczegółów wyjątku. Operator powinien trzymać cache poza webrootem i włączyć TLS przy publikacji. Dostawcy otrzymują identyfikatory lub położenia konieczne do pobrania danych.
 
-Uruchomienie lokalne nie wymaga opłat za dane ani AI. Szacunek dla małego wdrożenia to jedna instancja 2 vCPU, 2–4 GB RAM i kilka GB trwałego wolumenu. Przykładowa cena małej instancji 2 vCPU z 4 GB RAM to 5,49 EUR miesięcznie netto bez publicznego IPv4. Domena, kopie i większy ruch mogą zwiększyć koszt. [Cennik Hetzner](https://docs.hetzner.com/general/infrastructure-and-availability/price-adjustment/). Przy większej skali potrzebne byłyby współdzielony cache, własne kafelki i DEM, monitoring limitów i uzgodnione budżety zapytań. Open-Meteo ma odrębne warunki dla dostępu komercyjnego.
+Uruchomienie lokalne nie wymaga opłat za dane ani AI. Szacunek dla małego wdrożenia to jedna instancja 2 vCPU, 2–4 GB RAM i kilka GB trwałego wolumenu na cache oraz ok. 40 GB na dane działek. Przykładowa cena małej instancji 2 vCPU z 4 GB RAM to 5,49 EUR miesięcznie netto bez publicznego IPv4. Domena, kopie i większy ruch mogą zwiększyć koszt. [Cennik Hetzner](https://docs.hetzner.com/general/infrastructure-and-availability/price-adjustment/). Przy większej skali potrzebne byłyby współdzielony cache, własne kafelki i DEM, monitoring limitów i uzgodnione budżety zapytań. Open-Meteo ma odrębne warunki dla dostępu komercyjnego.

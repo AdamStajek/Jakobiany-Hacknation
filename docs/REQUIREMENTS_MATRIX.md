@@ -5,7 +5,7 @@ Podstawą oceny są [regulamin KOWR](https://mudnibfuppwadjkynscc.supabase.co/st
 | Źródło | Wymaganie i dowód docelowy | Weryfikacja |
 |---|---|---|
 | Opis 3.1–3.2, 5.4 | Polski interfejs w zwykłej przeglądarce bez opłat, instalacji i GIS. Test przeglądarkowy, formularze i mapa. Mobilność jako atut. | Zrealizowane. Chromium, Firefox i WebKit na Linux. Viewport 390 px. Windows, Safari oraz markowe kompilacje Edge i Opera bez osobnego testu. |
-| Opis 3.2–3.3 | Dowolny identyfikator lub wskazanie na mapie, granice i wybór uprawy. Test ULDK i E2E. | Zrealizowane. Test punktu, pełnego ID i niepełnej nazwy w check_live.py. Geometria i wyświetlenie E2E. JSON i geometria w testach. |
+| Opis 3.2–3.3 | Dowolny identyfikator lub wskazanie na mapie, granice i wybór uprawy. Test indeksu GeoParquet GUGiK / EGiB i E2E. | Zrealizowane. Test punktu, pełnego ID i niepełnej nazwy w check_live.py oraz backend/tests/test_parcels.py. Pomiar: wyszukiwanie 6–190 ms. Nakładka WMS z granicami działek na mapie nie działa (przekierowanie usługi GUGiK). Geometria i wyświetlenie E2E. JSON i geometria w testach. |
 | Opis 3.2–3.3, 6 | Dzień bieżący i dowolna data z ostatnich 10 lat, ocena bieżąca i wieloletnia. Testy braku przyszłych obserwacji i pokrycia. | Zrealizowane. Dwa lata historyczne, dzień bieżący i test daty granicznej. Dziesięć zestawów porównawczych na działkę. Bieżąca doba może być niepełna. |
 | Opis 3.2–3.3 | Meteorologia, obserwacje satelitarne z kontekstem uprawy, gleba, hydrologia, lokalizacja/granice, pokrycie i rzeźba terenu. Testy integracyjne dostawców. | Zrealizowane na działkach raportowych. Rzeczywiste Sentinel-2, SoilGrids, NASA/IMGW, WorldCover i Copernicus EU-DEM. Bieżący wodowskaz IMGW testowano na Warmii. |
 | Opis 3.2–3.3 | Ocena i przyczyny przed rekomendacjami, zalecenia retencyjne i agrotechniczne, opcjonalne nawadnianie. Weryfikacja reguł i przykładowe raporty. | Zrealizowane. Ocena, bilans i rekomendacje z dowodami w działającym raporcie. Nawadnianie warunkowe, bez precyzyjnej dawki. |
@@ -24,8 +24,8 @@ Podstawą oceny są [regulamin KOWR](https://mudnibfuppwadjkynscc.supabase.co/st
 
 | Punkt | Implementacja i test | Status |
 |---|---|---|
-| 2, 7. Formularz, mapa, import, postęp i dostępność | Angular, Leaflet, pola oznaczone etykietami, błędy statusowe, responsywność, test E2E. | Działa w uruchomionych przeglądarkach. |
-| 3.1. Pełne ID, numer i obręb, punkt, WKT/WKB | geo.py, testy geometrii i check_live.py. WFS oraz GeoParquet sprawdzono jako alternatywy. | Zrealizowane. WFS obsługiwany pośrednio przez ULDK. |
+| 2, 7. Formularz, mapa, import, postęp i dostępność | Angular, MapLibre GL, pola oznaczone etykietami, błędy statusowe, responsywność, test E2E. | Działa w uruchomionych przeglądarkach. |
+| 3.1. Pełne ID, numer i obręb, punkt, WKT/WKB | geo.py, testy geometrii i check_live.py. Krajowy GeoParquet GUGiK / EGiB z lokalnym indeksem DuckDB (parcels_data.py, parcels_index.py). ULDK i WFS jako opcje. | Zrealizowane na GeoParquet. ULDK dostępny za flagą WODO_PARCEL_SOURCE=uldk. Szczegóły w PARCELS_DATA.md. |
 | 3.2–3.3. IMGW, odniesienie historyczne i licencja Open-Meteo | weather.py, żądania synop/meteo/hydro i archiwum stacji. NASA POWER stanowi główne źródło. | Zrealizowane dla pogody. Prognoza jest poza bieżącym raportem. |
 | 3.4. STAC, COG, SCL i sezonowe porównania | spatial.py, Earth Search i Planetary Computer, źródła pasm w manifeście. | Zrealizowane. Zasięg scen zależy od daty i zachmurzenia. |
 | 3.5. Gleba bez zależności od REST SoilGrids | WCS, predykcja retencji przy 33/1500 kPa, warstwy, testy braku danych. | Zrealizowane dla pojemności. Tekstury i węgla organicznego nie modelujemy. |
@@ -34,5 +34,5 @@ Podstawą oceny są [regulamin KOWR](https://mudnibfuppwadjkynscc.supabase.co/st
 | 5. FAO-56, Kc, TAW/RAW, bilans, rekomendacje i niepewność | Testy przykładów FAO, bilansu, braku danych, małych działek i nieużytku. | Bilans przesiewowy; brak kalibracji polowej i hydraulicznych zaleceń precyzyjnych. |
 | 6. Wyjaśnienia, scenariusz i priorytety | Dlaczego, okresy historyczne, mapa wody i porównanie z dodatkowym opadem. | Zrealizowane dla efektu dodatkowej wody. Scenariusze zmian materii organicznej i międzyplonów bez estymacji ilościowej. |
 | 8–12. Start, źródła, kontrola integralności, tempo, API i bezpieczeństwo | Compose, OpenAPI, scripts/check_live.py, scripts/cache_status.py, test zakresów i danych wejściowych. | Zrealizowane dla lokalnego prototypu. |
-| 13. Testy i walidacja | test_wodo.py, check_live.py, frontend/e2e.mjs oraz VERIFICATION.md. | Wyniki i braki sprzętowe w weryfikacji. |
+| 13. Testy i walidacja | test_wodo.py, check_live.py, frontend/e2e/smoke.mjs oraz VERIFICATION.md. | Wyniki i braki sprzętowe w weryfikacji. |
 | 14. Paczka zgłoszeniowa | Raporty, slajdy, wideo, skrypt, prywatne repo, README, manifest i instrukcja. | Materiały lokalne i repo. Zgłoszenie na koncie zespołu poza prototypem. |
