@@ -15,7 +15,7 @@ import { colorStyle } from './field-colors';
         <div class="min-w-0 flex-1">
           <h3 [id]="'field-' + field().id" class="truncate text-base font-semibold">{{field().name}}</h3>
           <p class="text-xs text-muted-color">
-            {{area() | number:'1.0-2'}} ha · {{field().parcels.length}} dz.@if (cropLabel()) { · {{cropLabel()}} }
+            @if (area() !== null) { {{area() | number:'1.0-2'}} ha · }{{field().parcels.length}} dz.@if (cropLabel()) { · {{cropLabel()}} }
           </p>
         </div>
         <button type="button" (click)="removed.emit(field().id)" [attr.aria-label]="'Usuń pole ' + field().name"
@@ -67,7 +67,11 @@ export class FieldCard {
 
   protected readonly staleDays = STALE_AFTER_DAYS;
   protected readonly dot = computed(() => colorStyle(this.field().color).dot);
-  protected readonly area = computed(() => this.field().parcels.reduce((sum, p) => sum + p.area_ha, 0));
+  /** Powierzchnia znana tylko, gdy każda część ma `area_ha` (pola z serwera jej nie zwracają). */
+  protected readonly area = computed(() => {
+    const parcels = this.field().parcels;
+    return parcels.every((p) => p.area_ha != null) ? parcels.reduce((sum, p) => sum + (p.area_ha ?? 0), 0) : null;
+  });
   protected readonly stale = computed(() => {
     const status = this.field().status;
     return !!status && isStale(status);

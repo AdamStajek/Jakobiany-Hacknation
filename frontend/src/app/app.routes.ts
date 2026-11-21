@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './core/state/auth.guard';
 
 const analysis = () => import('./features/analysis/analysis-page').then((m) => m.AnalysisPage);
 
@@ -7,6 +8,14 @@ export const routes: Routes = [
   {path: 'dzialka/:id', title: 'Pole Widzenia · Działka', loadComponent: analysis},
   {path: 'dzialka/:id/analiza/:analysisId', title: 'Pole Widzenia · Raport', loadComponent: analysis},
   {path: 'pola', title: 'Pole Widzenia · Moje pola', loadComponent: () => import('./features/fields/fields-page').then((m) => m.FieldsPage)},
+  {path: 'zaloguj', title: 'Pole Widzenia · Logowanie', loadComponent: () => import('./features/auth/login-page').then((m) => m.LoginPage)},
+  {path: 'rejestracja', title: 'Pole Widzenia · Rejestracja', loadComponent: () => import('./features/auth/register-page').then((m) => m.RegisterPage)},
+  {path: 'potwierdz-email', title: 'Pole Widzenia · Potwierdzenie e-maila',
+    loadComponent: () => import('./features/auth/verify-email-page').then((m) => m.VerifyEmailPage)},
+  {path: 'zapomniane-haslo', title: 'Pole Widzenia · Odzyskiwanie hasła', loadComponent: () => import('./features/auth/forgot-page').then((m) => m.ForgotPage)},
+  {path: 'reset-hasla', title: 'Pole Widzenia · Nowe hasło', loadComponent: () => import('./features/auth/reset-page').then((m) => m.ResetPage)},
+  {path: 'konto', title: 'Pole Widzenia · Konto', canActivate: [authGuard],
+    loadComponent: () => import('./features/auth/account-page').then((m) => m.AccountPage)},
   {path: 'paszporty', title: 'Pole Widzenia · Paszporty pól',
     loadComponent: () => import('./features/passport/passport-page').then((m) => m.PassportPage)},
   {path: 'dzialka/:id/paszport', title: 'Pole Widzenia · Paszport działki',

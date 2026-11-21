@@ -2,133 +2,154 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { ApiService } from '../api/api.service';
 import { errorMessage } from '../api/errors';
-import type { Geometry, Parcel, Report } from '../api/types';
+import type { Report } from '../api/types';
 import { AnalysisStore } from './analysis.store';
+import { AuthStore } from './auth.store';
+import { Field, NewField, Resolution, STORAGE_KEY, attentionReasons, fieldFromServer, readField, statusFromReport, toServerLastReport } from './fields.model';
 
-export const FIELD_COLORS = ['green', 'blue', 'amber', 'purple', 'teal', 'pink'] as const;
-export type FieldColor = (typeof FIELD_COLORS)[number];
+export * from './fields.model';
 
-export type FieldParcel = {id: string; area_ha: number; geometry: Geometry};
+export type FieldsSource = 'server' | 'local';
+export type MigrationResult = {moved: number; failed: number};
 
-/** Skrót ostatniego zapisanego raportu pola (same sygnały z backendu, bez przeliczeń). */
-export type FieldStatus = {
-  risk: string;
-  /** Data analizy z raportu (RRRR-MM-DD). */
-  date: string;
-  /** Kiedy raport zapisano w tej przeglądarce (ISO). Od tego liczymy aktualność. */
-  savedAt: string;
-  analysisId: string;
-  parcelId: string;
-  dryDays: number | null;
-  balanceMm: number | null;
-};
-
-export type Field = {
-  id: string;
-  name: string;
-  color: FieldColor;
-  crop: string | null;
-  parcels: FieldParcel[];
-  status: FieldStatus | null;
-};
-
-export type NewField = Pick<Field, 'name' | 'color' | 'crop' | 'parcels'>;
-
-export type Resolution =
-  | {state: 'recognized'; parcel: Parcel}
-  | {state: 'ambiguous'; candidates: Parcel[]}
-  | {state: 'unrecognized'}
-  | {state: 'error'; message: string};
-
-export const STORAGE_KEY = 'pw.fields.v1';
-/** Raport po tylu dniach uznajemy za nieaktualny (tyle backend trzyma zapisane raporty). */
-export const STALE_AFTER_DAYS = 14;
-const DAY_MS = 86_400_000;
-/** Próg listy „wymaga uwagi”: to filtr po sygnałach raportu, nie nowa ocena ryzyka. */
-export const ATTENTION_DRY_DAYS = 7;
-const ELEVATED_RISK = new Set(['Podwyższone', 'Sygnał niedoboru']);
-
-export function isStale(status: FieldStatus, now = Date.now()): boolean {
-  const saved = Date.parse(status.savedAt);
-  return Number.isNaN(saved) || now - saved > STALE_AFTER_DAYS * DAY_MS;
-}
-
-/** Powody, dla których pole trafia na listę „wymaga uwagi” (puste = nie trafia). */
-export function attentionReasons(status: FieldStatus | null): string[] {
-  if (!status) return [];
-  const reasons: string[] = [];
-  if (ELEVATED_RISK.has(status.risk)) reasons.push(`Ryzyko: ${status.risk}`);
-  if (status.dryDays != null && status.dryDays >= ATTENTION_DRY_DAYS) reasons.push(`${status.dryDays} dni bez istotnego opadu`);
-  if (status.balanceMm != null && status.balanceMm < 0) reasons.push('Ujemny bilans wody uprawy');
-  return reasons;
-}
-
-export function statusFromReport(report: Report, now = new Date()): FieldStatus {
-  return {
-    risk: report.metrics.risk, date: report.date, savedAt: now.toISOString(), analysisId: report.analysis_id, parcelId: report.parcel.id,
-    dryDays: report.metrics.recent?.dry_spell_days ?? null, balanceMm: report.metrics.recent?.crop_balance_mm ?? null,
-  };
-}
-
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
-
-function readStatus(value: unknown): FieldStatus | null {
-  if (!isRecord(value) || typeof value['risk'] !== 'string' || typeof value['savedAt'] !== 'string') return null;
-  const num = (v: unknown) => (typeof v === 'number' ? v : null);
-  return {
-    risk: value['risk'], savedAt: value['savedAt'], date: String(value['date'] ?? ''), analysisId: String(value['analysisId'] ?? ''),
-    parcelId: String(value['parcelId'] ?? ''), dryDays: num(value['dryDays']), balanceMm: num(value['balanceMm']),
-  };
-}
-
-function readField(value: unknown): Field | null {
-  if (!isRecord(value) || typeof value['id'] !== 'string' || typeof value['name'] !== 'string' || !Array.isArray(value['parcels'])) return null;
-  const parcels = value['parcels'].filter((p): p is FieldParcel => isRecord(p) && typeof p['id'] === 'string' && isRecord(p['geometry']));
-  const color = FIELD_COLORS.find((c) => c === value['color']) ?? 'green';
-  return {id: value['id'], name: value['name'], color, crop: typeof value['crop'] === 'string' ? value['crop'] : null, parcels,
-    status: readStatus(value['status'])};
-}
-
-/** Pola użytkownika zapisane wyłącznie w tej przeglądarce (bez kont i serwera). */
+/**
+ * Pola użytkownika. Zalogowany: źródłem jest serwer. Gość: localStorage tej przeglądarki.
+ * Komponenty widzą jedną powierzchnię (`fields`, `add`, `remove`, `recordReport`) niezależnie od źródła.
+ */
 @Injectable({providedIn: 'root'})
 export class FieldsStore {
   private readonly api = inject(ApiService);
   private readonly analysis = inject(AnalysisStore);
+  private readonly auth = inject(AuthStore);
 
-  readonly fields = signal<Field[]>([]);
-  /** Komunikat o problemie z pamięcią przeglądarki (odczyt/zapis). */
+  /** Skąd pochodzą pola widoczne w aplikacji. */
+  readonly source = computed<FieldsSource>(() => (this.auth.loggedIn() ? 'server' : 'local'));
+  private readonly local = signal<Field[]>([]);
+  private readonly remote = signal<Field[]>([]);
+  readonly fields = computed(() => (this.source() === 'server' ? this.remote() : this.local()));
+  /** Pola zapisane w tej przeglądarce (do przeniesienia na konto po zalogowaniu). */
+  readonly localFields = this.local.asReadonly();
+  /** Trwa pobieranie pól z serwera. */
+  readonly loading = signal(false);
+  readonly migrating = signal(false);
+  /** Komunikat o problemie z zapisem lub odczytem pól (przeglądarka albo serwer). */
   readonly error = signal('');
   readonly attention = computed(() => this.fields()
     .map((field) => ({field, reasons: attentionReasons(field.status)}))
     .filter((item) => item.reasons.length > 0));
 
   constructor() {
-    this.fields.set(this.read());
+    this.local.set(this.read());
+    effect(() => {
+      const user = this.auth.user();
+      untracked(() => { if (user) void this.load(); else this.remote.set([]); });
+    });
     // Każdy nowy raport odświeża status pól, które zawierają jego działkę.
     effect(() => {
       const report = this.analysis.report();
-      if (report) untracked(() => this.recordReport(report));
+      if (report) untracked(() => void this.recordReport(report));
     });
   }
 
-  add(input: NewField): Field {
-    const field: Field = {...input, name: input.name.trim(), id: crypto.randomUUID(), status: null};
-    this.fields.update((list) => [...list, field]);
+  /** Pobiera pola z serwera (tylko dla zalogowanego). */
+  async load() {
+    if (!this.auth.loggedIn()) return;
+    this.loading.set(true);
+    try {
+      this.remote.set((await this.api.serverFields()).map(fieldFromServer));
+      this.error.set('');
+    } catch (error) {
+      this.error.set(errorMessage(error, 'Nie udało się pobrać pól z konta. Spróbuj ponownie.'));
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  /** Dodaje pole w aktywnym źródle; przy błędzie ustawia `error` i zwraca null. */
+  async add(input: NewField): Promise<Field | null> {
+    const clean = {...input, name: input.name.trim()};
+    let field: Field;
+    if (this.source() === 'server') {
+      try {
+        const body = {name: clean.name, color: clean.color, crop: clean.crop, parcels: clean.parcels.map(({id, geometry}) => ({id, geometry}))};
+        field = {...fieldFromServer(await this.api.createServerField(body)), parcels: clean.parcels};
+      } catch (error) {
+        this.error.set(errorMessage(error, 'Nie udało się zapisać pola na koncie. Spróbuj ponownie.'));
+        return null;
+      }
+      this.error.set('');
+      this.remote.update((list) => [...list, field]);
+    } else {
+      field = {...clean, id: crypto.randomUUID(), status: null};
+      this.local.update((list) => [...list, field]);
+      this.persist();
+    }
     const report = this.analysis.report();
-    if (report) this.recordReport(report);
-    this.persist();
+    if (report) await this.recordReport(report);
     return this.fields().find((f) => f.id === field.id) ?? field;
   }
 
-  remove(id: string) {
-    this.fields.update((list) => list.filter((f) => f.id !== id));
-    this.persist();
+  async remove(id: string) {
+    if (this.source() === 'server') {
+      try {
+        await this.api.deleteServerField(id);
+        this.error.set('');
+      } catch (error) {
+        this.error.set(errorMessage(error, 'Nie udało się usunąć pola z konta. Spróbuj ponownie.'));
+        return;
+      }
+      this.remote.update((list) => list.filter((f) => f.id !== id));
+    } else {
+      this.local.update((list) => list.filter((f) => f.id !== id));
+      this.persist();
+    }
   }
 
-  recordReport(report: Report) {
-    if (!this.fields().some((f) => f.parcels.some((p) => p.id === report.parcel.id))) return;
+  /** Zapisuje status z raportu w polach zawierających jego działkę (lokalnie albo przez PUT last-report). */
+  async recordReport(report: Report) {
+    const hit = (f: Field) => f.parcels.some((p) => p.id === report.parcel.id);
+    if (!this.fields().some(hit)) return;
     const status = statusFromReport(report);
-    this.fields.update((list) => list.map((f) => (f.parcels.some((p) => p.id === report.parcel.id) ? {...f, status} : f)));
+    if (this.source() === 'local') {
+      this.local.update((list) => list.map((f) => (hit(f) ? {...f, status} : f)));
+      this.persist();
+      return;
+    }
+    const targets = this.remote().filter(hit);
+    this.remote.update((list) => list.map((f) => (hit(f) ? {...f, status} : f)));
+    try {
+      await Promise.all(targets.map((f) => this.api.putLastReport(f.id, toServerLastReport(status))));
+    } catch (error) {
+      this.error.set(errorMessage(error, 'Nie udało się zapisać raportu przy polu na koncie.'));
+    }
+  }
+
+  /** Przenosi pola z przeglądarki na konto. Przeniesione znikają z localStorage, nieprzeniesione zostają. */
+  async migrateLocal(): Promise<MigrationResult> {
+    const result: MigrationResult = {moved: 0, failed: 0};
+    if (!this.auth.loggedIn() || this.migrating()) return result;
+    this.migrating.set(true);
+    for (const field of this.local()) {
+      try {
+        const body = {name: field.name, color: field.color, crop: field.crop, parcels: field.parcels.map(({id, geometry}) => ({id, geometry}))};
+        const created = await this.api.createServerField(body);
+        if (field.status) await this.api.putLastReport(created.id, toServerLastReport(field.status));
+        this.local.update((list) => list.filter((f) => f.id !== field.id));
+        this.persist();
+        result.moved++;
+      } catch {
+        result.failed++;
+      }
+    }
+    this.migrating.set(false);
+    await this.load();
+    if (result.failed) this.error.set(`Nie udało się przenieść ${result.failed} pól. Zostały w tej przeglądarce, spróbuj ponownie.`);
+    return result;
+  }
+
+  /** Usuwa kopię pól zapisaną w tej przeglądarce (np. gdy użytkownik nie chce ich przenosić). */
+  discardLocal() {
+    this.local.set([]);
     this.persist();
   }
 
@@ -158,8 +179,8 @@ export class FieldsStore {
 
   private persist() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.fields()));
-      this.error.set('');
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.local()));
+      if (this.source() === 'local') this.error.set('');
     } catch {
       this.error.set('Nie udało się zapisać pól w przeglądarce (brak miejsca lub zablokowany zapis). Zmiany znikną po odświeżeniu.');
     }

@@ -12,3 +12,14 @@ export function errorMessage(error: unknown, fallback = 'Nie udało się pobrać
   if (error instanceof HttpErrorResponse && error.status === 429) return 'Trwają inne analizy. Spróbuj ponownie za chwilę.';
   return fallback;
 }
+
+/** Komunikaty dla ekranów konta: status HTTP ma pierwszeństwo, bo serwer nie ujawnia, czy login istnieje. */
+export function authErrorMessage(error: unknown, fallback = 'Nie udało się wykonać operacji. Spróbuj ponownie.'): string {
+  if (error instanceof HttpErrorResponse) {
+    if (error.status === 401) return 'Nieprawidłowy login lub hasło.';
+    if (error.status === 409) return 'Konto z takim adresem e-mail lub nazwą już istnieje.';
+    if (error.status === 429) return 'Zbyt wiele prób. Odczekaj chwilę i spróbuj ponownie.';
+    if (error.status === 410) return 'Link wygasł lub został już użyty. Poproś o nowy.';
+  }
+  return errorMessage(error, fallback);
+}

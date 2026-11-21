@@ -99,7 +99,7 @@ const toFieldParcel = (p: Parcel): FieldParcel => ({id: p.id, area_ha: p.area_ha
         @if (needsCheck()) {
           <p-button type="button" label="Sprawdź numery" icon="pi pi-search" [loading]="checking()" [disabled]="!parsed().tokens.length" (onClick)="check()" />
         } @else {
-          <p-button type="submit" label="Zapisz pole" icon="pi pi-check" [disabled]="!canSave()" />
+          <p-button type="submit" label="Zapisz pole" icon="pi pi-check" [loading]="saving()" [disabled]="!canSave() || saving()" />
         }
         <p-button type="button" label="Anuluj" severity="secondary" [outlined]="true" (onClick)="cancelled.emit()" />
       </div>
@@ -123,6 +123,7 @@ export class FieldForm {
   protected readonly text = signal('');
   protected readonly entries = signal<Record<string, Entry>>({});
   protected readonly choices = signal<Record<string, Parcel>>({});
+  protected readonly saving = signal(false);
   protected readonly checking = computed(() => Object.values(this.entries()).some((e) => e.state === 'pending'));
 
   protected readonly parsed = computed(() => parseParcelList(this.text()));
@@ -179,10 +180,13 @@ export class FieldForm {
     await Promise.all(Array.from({length: Math.min(CONCURRENCY, todo.length)}, worker));
   }
 
-  protected submit() {
-    if (!this.canSave()) return;
+  protected async submit() {
+    if (!this.canSave() || this.saving()) return;
     const unique = new Map<string, FieldParcel>();
     for (const row of this.rows()) if (row.parcel) unique.set(row.parcel.id, toFieldParcel(row.parcel));
-    this.saved.emit(this.store.add({name: this.name(), color: this.color(), crop: this.crop() || null, parcels: [...unique.values()]}));
+    this.saving.set(true);
+    const field = await this.store.add({name: this.name(), color: this.color(), crop: this.crop() || null, parcels: [...unique.values()]});
+    this.saving.set(false);
+    if (field) this.saved.emit(field);
   }
 }
