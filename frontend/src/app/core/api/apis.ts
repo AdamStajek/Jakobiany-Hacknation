@@ -63,6 +63,10 @@ export class EvidenceApi {
   documentVersion(documentId: string, versionId: string) {
     return this.api.get<DocumentVersion>(`/documents/${documentId}/versions/${versionId}`);
   }
+  /** Kopia dokumentu wymaga tokena, więc pobieramy blob (fetch), a nie otwieramy linku. */
+  documentContent(documentId: string, versionId: string) {
+    return this.api.blob(`/documents/${documentId}/versions/${versionId}/content`);
+  }
 }
 
 @Injectable({ providedIn: 'root' })

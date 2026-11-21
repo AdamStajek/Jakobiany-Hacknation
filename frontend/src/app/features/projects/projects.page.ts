@@ -191,8 +191,9 @@ export class ProjectsPage {
     const value = this.identifier.trim();
     this.api.list({ q: value, limit: 25 }).subscribe({
       next: (r) => {
+        const flat = (v: string) => v.replace(/\s+/g, '').toLowerCase();
         const hits = r.items.filter((p) => p.external_ids.some((e) => e.scheme === this.scheme &&
-          e.value.replace(/\s+/g, '').toLowerCase() === value.replace(/\s+/g, '').toLowerCase()));
+          [e.value, e.normalized ?? ''].some((v) => flat(v) === flat(value))));
         if (hits.length === 1) void this.router.navigate(['/projekty', hits[0].id]);
         else if (hits.length > 1) this.nav({ q: value, offset: null, nf: null });
         else this.nav({ q: null, offset: null, nf: `${this.scheme.toUpperCase()} ${value}` });

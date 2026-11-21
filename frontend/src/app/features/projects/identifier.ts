@@ -1,11 +1,11 @@
 export type IdScheme = 'bzp' | 'kpo';
 
 export const ID_SCHEMES: { value: IdScheme; label: string; hint: string }[] = [
-  { value: 'bzp', label: 'BZP', hint: 'np. 2023/BZP 00123456' },
-  { value: 'kpo', label: 'KPO', hint: 'np. A2.1.1-0042' },
+  { value: 'bzp', label: 'BZP', hint: 'np. 2022/BZP 00058537/01' },
+  { value: 'kpo', label: 'KPO', hint: 'np. KPOD.03.15-IW.13-0004/25' },
 ];
 
-// Formaty wstępne – do potwierdzenia z backendem (frontend-braki.md §12).
+// Formaty na podstawie danych z backendu (arkusz konkursowy); BZP ma opcjonalny sufiks /NN.
 const PATTERNS: Record<IdScheme, RegExp> = {
   bzp: /^\d{4}\/BZP\s?\d{8}(\/\d{2})?$/i,
   kpo: /^[A-Z0-9][A-Z0-9.\-/]{2,}$/i,

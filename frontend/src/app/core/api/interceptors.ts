@@ -1,14 +1,16 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
+import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
+import { AuthService } from '../auth.service';
 import { environment } from '../environment';
 import { ApiError, Problem } from './types';
 
 const isApi = (url: string) => url.startsWith(environment.apiBase) || url.startsWith('/api/');
 
-/** Token tylko dla własnego API. */
+/** Token (zależny od wybranej roli demo) tylko dla własnego API. */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  if (environment.token && isApi(req.url)) {
-    req = req.clone({ setHeaders: { Authorization: `Bearer ${environment.token}` } });
+  if (isApi(req.url)) {
+    req = req.clone({ setHeaders: { Authorization: `Bearer ${inject(AuthService).token()}` } });
   }
   return next(req);
 };

@@ -1,7 +1,12 @@
-/** Konfiguracja czasu wykonania. `useMock` – dane z fixtures zamiast backendu. */
+/** Konfiguracja czasu wykonania. */
 export const environment = {
   apiBase: '/api/v1',
-  useMock: true,
-  /** Jeden token do własnego API; do czasu logowania pusty. */
-  token: '',
+  /** true → dane z fixtures (bez backendu); false → prawdziwe API przez proxy /api. */
+  useMock: false,
+  /** Tokeny demo backendu (docs/implementation/backend.md §6), po jednym na rolę. */
+  roleTokens: {
+    analyst: 'demo-analyst',
+    expert: 'demo-expert',
+    operator: 'demo-operator',
+  },
 };

@@ -1,4 +1,5 @@
 import { Injectable, computed, effect, signal } from '@angular/core';
+import { environment } from './environment';
 import { Action, PERMISSIONS, ROLES, Role } from './permissions';
 
 function readRole(): Role {
@@ -13,6 +14,8 @@ function readRole(): Role {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   readonly role = signal<Role>(readRole());
+  /** Token demo dla roli; po dodaniu logowania podmieniamy tylko to źródło. */
+  readonly token = computed(() => environment.roleTokens[this.role()]);
   readonly home = computed(() => ROLES.find((r) => r.value === this.role())!.home);
 
   constructor() {
