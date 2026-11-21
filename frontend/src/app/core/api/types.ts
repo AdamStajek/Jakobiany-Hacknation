@@ -30,6 +30,19 @@ export type InformationCheck = S['InformationCheck'];
 export type InformationState = S['InformationState'];
 export type DocumentVersion = S['DocumentVersion'];
 export type Amount = S['Amount'];
+export type Procedure = S['Procedure'];
+export type ProcedurePart = S['ProcedurePart'];
+export type Notice = S['Notice'];
+export type Contract = S['Contract'];
+export type ContractChange = S['ContractChange'];
+export type ProjectDocument = S['Document'];
+export type RecordLink = S['RecordLink'];
+export type GeoSignal = S['GeoSignal'];
+/** Generator openapi-typescript sprowadza Source (oneOf z `unknown`) do `unknown`, więc kształt opisujemy ręcznie wg openapi.yaml. */
+export interface Source {
+  id: string; provider: string; identifier?: string; original_url?: string; retrieved_at: string; version?: string; name?: string;
+}
+export const asSource = (v: unknown): Source => v as Source;
 export type Schemas = S;
 
 /** Błąd API po normalizacji z `Problem` (RFC 7807). */

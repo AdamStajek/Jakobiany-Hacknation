@@ -2,7 +2,7 @@ import { HttpHeaders, HttpInterceptorFn, HttpResponse } from '@angular/common/ht
 import { of, delay, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { environment } from '../environment';
-import { EVIDENCE, JOBS, PROJECTS } from './fixtures/projects';
+import { DETAIL_EXTRAS, EVIDENCE, FACTS, JOBS, PROJECTS, RISKS } from './fixtures/projects';
 
 const page = (items: any[], url: URL) => {
   const limit = Number(url.searchParams.get('limit') ?? 25);
@@ -37,7 +37,22 @@ export const mockInterceptor: HttpInterceptorFn = (req, next) => {
   if (m === 'GET' && path === '/projects') return ok(page(filterProjects(url), url));
   if (m === 'GET' && (r = path.match(/^\/projects\/([^/]+)$/))) {
     const p = PROJECTS.find((x) => x.id === r![1]);
-    return p ? ok({ ...p, procedures: [], documents: [], links: [], timeline: [], amounts: [], milestones: [] }) : notFound(req.url);
+    return p ? ok({ procedures: [], documents: [], links: [], timeline: [], amounts: [], milestones: [], ...p, ...DETAIL_EXTRAS[p.id] }) : notFound(req.url);
+  }
+  if (m === 'GET' && (r = path.match(/^\/projects\/([^/]+)\/(risks|evidence)$/))) {
+    const items = (r[2] === 'risks' ? RISKS : FACTS)[r[1]] ?? [];
+    return PROJECTS.some((x) => x.id === r![1]) ? ok(page(items, url)) : notFound(req.url);
+  }
+  if (m === 'GET' && (r = path.match(/^\/projects\/([^/]+)\/export$/))) {
+    const p = PROJECTS.find((x) => x.id === r![1]);
+    if (!p) return notFound(req.url);
+    const fmt = url.searchParams.get('format') === 'csv' ? 'csv' : 'json';
+    const body = fmt === 'csv' ? `record_type,record_id,data_json\nproject,${p.id},"${JSON.stringify(p).replace(/"/g, '""')}"\n`
+      : JSON.stringify({ project: p, risks: RISKS[p.id] ?? [], facts: FACTS[p.id] ?? [] }, null, 2);
+    return of(new HttpResponse({
+      status: 200, body: new Blob([body], { type: fmt === 'csv' ? 'text/csv' : 'application/json' }),
+      headers: new HttpHeaders({ 'Content-Disposition': `attachment; filename="risk-miner-project.${fmt}"` }),
+    })).pipe(delay(200));
   }
   if (m === 'GET' && (r = path.match(/^\/jobs\/([^/]+)$/))) {
     const j = JOBS[r[1]] ?? JOBS['job-partial'];

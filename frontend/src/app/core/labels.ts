@@ -54,3 +54,57 @@ export const EVENT_KIND = {
 export const STATUS_MAPS = {
   job: JOB_STATUS, match: MATCH_STATUS, review: REVIEW_STATUS, project: PROJECT_STATUS, info: INFO_STATE,
 };
+
+/* Karta projektu (1B) */
+export const EXTRACTION_STATUS: Record<Schemas['DocumentVersion']['extraction_status'], StatusMeta> = {
+  queued: { label: 'W kolejce', icon: 'pi pi-clock', tone: 'secondary' },
+  running: { label: 'Ekstrakcja w toku', icon: 'pi pi-spin pi-spinner', tone: 'info' },
+  ready: { label: 'Gotowe', icon: 'pi pi-check-circle', tone: 'success' },
+  failed: { label: 'Błąd ekstrakcji', icon: 'pi pi-times-circle', tone: 'danger' },
+};
+
+export const PROCEDURE_STATUS: Record<string, string> = {
+  open: 'Otwarte', awarded: 'Rozstrzygnięte', unawarded: 'Nierozstrzygnięte', cancelled: 'Unieważnione', unknown: 'Nieznany',
+};
+export const NOTICE_KIND: Record<string, string> = {
+  procurement: 'Ogłoszenie o zamówieniu', correction: 'Sprostowanie', award: 'Wynik postępowania',
+  contract_change: 'Zmiana umowy', contract_execution: 'Wykonanie umowy', other: 'Inne',
+};
+export const CONTRACT_BASIS: Record<string, string> = {
+  signed: 'Podpisana', reconstructed_terms: 'Warunki odtworzone', notice_only: 'Tylko z ogłoszenia',
+};
+export const CHANGE_DIMENSION: Record<string, string> = {
+  cost: 'koszt', schedule: 'termin', scope: 'zakres', contractor: 'wykonawca', other: 'inne',
+};
+export const MILESTONE_KIND: Record<string, string> = {
+  signed: 'Podpisanie', planned_start: 'Planowany start', actual_start: 'Faktyczny start',
+  baseline_finish: 'Planowane zakończenie', revised_finish: 'Zakończenie po zmianach',
+  actual_finish: 'Faktyczne zakończenie', accepted: 'Odbiór', other: 'Inne',
+};
+export const LINK_METHOD: Record<string, string> = {
+  verified_identifier: 'Zweryfikowany identyfikator', explicit_source: 'Jawne wskazanie w źródle',
+  ranked: 'Ranking podobieństwa', expert: 'Decyzja eksperta',
+};
+export const SIGNAL_DIRECTION: Record<string, { label: string; tone: Tone }> = {
+  supports: { label: 'potwierdza', tone: 'success' },
+  contradicts: { label: 'przeczy', tone: 'danger' },
+  missing: { label: 'brak danych', tone: 'warn' },
+};
+export const CONFIDENCE_LEVEL: Record<string, string> = {
+  low: 'niska', moderate: 'umiarkowana', high: 'wysoka', insufficient_evidence: 'niewystarczające dowody',
+};
+export const ID_SCHEME_LABEL: Record<string, string> = {
+  rm: 'Risk Miner', bzp: 'BZP', ted: 'TED', cst: 'CST', kpo: 'KPO', ocid: 'OCID', nip: 'NIP', regon: 'REGON', url: 'URL', other: 'Inny',
+};
+export const RESOURCE_TYPE: Record<string, string> = {
+  project: 'projekt', procedure: 'postępowanie', part: 'część', notice: 'ogłoszenie', contract: 'umowa',
+  contract_change: 'zmiana umowy', document: 'dokument', evidence: 'dowód', fact: 'fakt', risk: 'ryzyko',
+};
+/** Dostawca danych → etykieta grupy źródeł; `mock` oznaczamy jako dane demonstracyjne. */
+export const PROVIDER_LABEL: Record<string, string> = {
+  bzp: 'BZP (e-Zamówienia)', ted: 'TED', bip: 'BIP', contest_xlsx: 'Arkusz konkursowy', uploaded_file: 'Wgrany dokument',
+  user_description: 'Opis użytkownika', sector_rules: 'Reguły sektorowe', mock: 'Dane demonstracyjne',
+};
+export const GEO_METRIC: Record<string, string> = { population_density: 'Gęstość zaludnienia' };
+export const GEO_UNIT: Record<string, string> = { people_per_km2: 'osób/km²' };
+export const GEO_LEVEL: Record<string, string> = { municipality: 'gmina', county: 'powiat', voivodeship: 'województwo' };

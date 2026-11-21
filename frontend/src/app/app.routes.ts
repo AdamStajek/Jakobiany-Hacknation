@@ -18,16 +18,11 @@ export const routes: Routes = [
     title: 'Projekty – Projekt Kompas',
     loadComponent: () => import('./features/projects/projects.page').then((m) => m.ProjectsPage),
   },
-  page('projekty/:id', {
-    title: 'Karta projektu',
-    subtitle: 'Postępowania, ogłoszenia, umowy, zmiany i zdarzenia',
-    priority: 'P0',
-    scope: [
-      'Drzewo: projekt → postępowanie → część → ogłoszenie → umowa → zmiana',
-      'Oś czasu i tabela zdarzeń/ryzyk R01–R15',
-      'Kwoty z oznaczeniem netto/brutto, daty, źródła (Evidence Lens)',
-    ],
-  }),
+  {
+    path: 'projekty/:id',
+    title: 'Karta projektu – Projekt Kompas',
+    loadComponent: () => import('./features/projects/project-detail/project-detail.page').then((m) => m.ProjectDetailPage),
+  },
   page('import', {
     title: 'Import i źródła',
     subtitle: 'Wgrywanie danych i automatyczne wzbogacanie z publicznych źródeł',
