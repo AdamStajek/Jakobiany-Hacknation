@@ -1,0 +1,1766 @@
+openapi: 3.1.0
+info:
+  title: Risk Miner 2.0 API
+  version: 0.1.0
+  description: |
+    Projekt kontraktu REST dla frontendu i backendu Risk Miner. Wersja 0.1.0 opisuje
+    docelowe zachowanie. W szkielecie aplikacji działa obecnie GET /api/hello.
+    P0 obejmuje historię inwestycji i analizę nowego projektu. P1 obejmuje Risk DNA,
+    Chaos Lab, graf, Epidemic Radar i porównanie kolejnych analiz. P2 obejmuje dane
+    przestrzenne, wpływ społeczny i monitoring projektów w toku.
+
+    **Historia (P0):** POST /imports → GET /jobs/{job_id} → GET /projects/{project_id}
+    → GET /projects/{project_id}/risks → GET /evidence/{evidence_id}
+    → POST /expert/decisions → GET /projects/{project_id}/export.
+    Import automatycznie uruchamia wzbogacanie i ekstrakcję. POST /projects/{project_id}/enrich
+    ponawia ten sam proces dla pojedynczego projektu.
+
+    **Nowa inwestycja (P0):** POST /projects → opcjonalnie POST /projects/{project_id}/documents
+    i odczyt zadań → POST /assessments → GET /jobs/{job_id} → odczyt analizy, bliźniaków,
+    braków, rekomendacji i eksportu. Po dodaniu dokumentu kolejna analiza tworzy osobną migawkę.
+
+    **Wiedza ekspercka (P1):** zatwierdzone zdarzenie historyczne → propozycja Risk DNA
+    → decyzja eksperta → test Chaos Lab z przypiętą wersją wzorca.
+
+    Identyfikatory są tekstowe i trwałe. Identyfikatory źródłowe zachowują typ i oryginalną
+    wartość. Czas operacji jest zapisywany w UTC. Daty bez czasu używają formatu YYYY-MM-DD.
+    Puste listy oznaczają brak wyników w danym zbiorze. Wartości nieustalone są pomijane
+    lub reprezentowane jako null tam, gdzie przewiduje to schemat.
+
+    Zadania asynchroniczne zwracają 202 i nagłówek Location wskazujący zasób zadania.
+    Klucz Idempotency-Key obowiązuje w obrębie tożsamości wywołującego, metody i ścieżki.
+    Powtórzenie z tym samym kluczem i danymi zwraca pierwotną odpowiedź. Zmiana danych
+    pod tym samym kluczem zwraca 409. Ponowienie zakończonego zadania wymaga nowego klucza.
+    Deduplikacja rekordów i wersji działa również bez klucza.
+
+    Dostęp jest sprawdzany dla każdego zasobu, dowodu, pliku i eksportu. Analityk zarządza
+    dostępnymi mu projektami planowanymi i analizami. Ekspert zarządza danymi i wiedzą
+    ekspercką. Operator uruchamia import i odświeżanie oraz przegląda log zadań.
+    Region przetwarzania, dostawcę, model i adaptery ustala konfiguracja wdrożenia.
+    Importy, pobrania, zmiany i decyzje pozostawiają ślad audytowy bez sekretów.
+    Limity rozmiaru plików ustala wdrożenie. Backend sprawdza ich typ i zawartość
+    przed przetworzeniem. Linki do importu są obsługiwane przez skonfigurowane adaptery.
+
+    Materiały repozytorium:
+    [zadanie MFiPR](./MFiPR_-_Pena_tre_zadania_konkursowego.md),
+    [plan projektu](./Risk_Miner_2_0_Plan_Projektu.md),
+    [fazy, dokumenty i ryzyka](./Risk_Miner_material_porady_fazy_dokumenty_ryzyka_ciekawostki.md),
+    [checklista inwestycji wodociągowej](./Risk_Miner_material_ekspercki_przygotowanie_inw_wodociagowej.md),
+    [arkusz projektów i opis kolumn](./Risk_Miner_dane_projekty.xlsx).
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Import
+  - name: Projekty
+  - name: Dowody
+  - name: Ekspert
+  - name: Analizy
+  - name: Eksport
+  - name: Rozszerzenia
+paths:
+  /imports:
+    post:
+      tags: [Import]
+      operationId: createImport
+      summary: Importuj projekty i uruchom wzbogacanie (P0, operator)
+      description: |
+        Przyjmuje XLSX lub CSV UTF-8 z nagłówkami arkusza Projekty. Waliduje co najmniej
+        Identyfikator rekordu, Nazwę przedsięwzięcia oraz parę rodzaju i wartości
+        identyfikatora publicznego. Zachowuje oryginalne wartości i pozycję wiersza.
+        Upsert po Identyfikatorze rekordu zachowuje poprzednie wersje i decyzje eksperta.
+        Wiersze poprawne są przetwarzane mimo błędów innych wierszy. Raport zadania
+        wskazuje wiersz, etap, wynik i błąd. Dane konkursowe mają 22 rekordy i 23 kolumny,
+        15 identyfikatorów BZP, 7 KPO oraz 2 rekordy na poziomie części postępowania.
+        Identyfikator KPO służy do poszukiwania powiązanych postępowań.
+      parameters:
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: {type: string, format: binary}
+      responses:
+        '202': {$ref: '#/components/responses/Accepted'}
+        '413': {$ref: '#/components/responses/Error'}
+        '415': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+  /jobs/{job_id}:
+    parameters:
+      - {name: job_id, in: path, required: true, schema: {$ref: '#/components/schemas/Id'}}
+    get:
+      tags: [Import]
+      operationId: getJob
+      summary: Odczytaj stan zadania i raport wykonania (P0)
+      description: |
+        succeeded oznacza zakończenie przetwarzania, także przy braku dopasowań.
+        partial oznacza zapis użytecznych wyników przy błędzie części etapów lub
+        rekordów. failed oznacza brak użytecznego wyniku. Kandydaci wymagający
+        sprawdzenia mają osobny status w raporcie. Dopóki zadanie trwa, raport może
+        być niepełny. Po zakończeniu wynik wskazuje utrwalone zasoby.
+      responses:
+        '200':
+          description: Stan zadania.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Job'}
+        default: {$ref: '#/components/responses/Error'}
+  /projects:
+    get:
+      tags: [Projekty]
+      operationId: listProjects
+      summary: Przeglądaj repozytorium inwestycji (P0)
+      parameters:
+        - {$ref: '#/components/parameters/Limit'}
+        - {$ref: '#/components/parameters/Offset'}
+        - {name: q, in: query, description: Tytuł lub identyfikator projektu., schema: {type: string}}
+        - {name: kind, in: query, schema: {$ref: '#/components/schemas/ProjectKind'}}
+        - {name: status, in: query, schema: {$ref: '#/components/schemas/ProjectStatus'}}
+        - {name: subsector, in: query, schema: {type: string}}
+        - {name: enrichment_status, in: query, schema: {$ref: '#/components/schemas/MatchStatus'}}
+      responses:
+        '200':
+          description: Projekty uporządkowane rosnąco po identyfikatorze.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - {$ref: '#/components/schemas/Page'}
+                  - properties:
+                      items: {type: array, items: {$ref: '#/components/schemas/Project'}}
+        default: {$ref: '#/components/responses/Error'}
+    post:
+      tags: [Projekty]
+      operationId: createProject
+      summary: Zapisz inwestycję planowaną (P0, analityk)
+      description: Opis można podać teraz. Dokumenty można przypiąć do utworzonego projektu.
+      parameters:
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ProjectInput'}
+            example:
+              title: Przykładowa rozbudowa wodociągu
+              description: Planowana rozbudowa sieci o około 2 km dla istniejącej zabudowy.
+              phase: planning
+              primary_subsector_codes: [water_network]
+              work_type: construction_or_extension
+      responses:
+        '201':
+          description: Zapisany projekt kind=planned i status=planned.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Project'}
+        default: {$ref: '#/components/responses/Error'}
+  /projects/{project_id}:
+    parameters:
+      - {$ref: '#/components/parameters/ProjectId'}
+    get:
+      tags: [Projekty]
+      operationId: getProject
+      summary: Pobierz kartę inwestycji i chronologię (P0)
+      description: |
+        Zwraca kartę, powiązane postępowania, części, ogłoszenia, umowy i zmiany,
+        listę dokumentów oraz oś czasu z datami znanymi ze źródeł. Relacje
+        oczekujące weryfikacji są dostępne osobno w links wraz z uzasadnieniem.
+      responses:
+        '200':
+          description: Karta inwestycji.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ProjectDetail'}
+        default: {$ref: '#/components/responses/Error'}
+    put:
+      tags: [Projekty]
+      operationId: updatePlannedProject
+      summary: Uaktualnij dane projektu planowanego (P0, analityk)
+      description: Zastępuje dane wejściowe projektu planowanego, zachowuje dokumenty i zapisane analizy. Korekty danych historycznych przechodzą przez Expert Studio.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expected_revision, project]
+              properties:
+                expected_revision: {$ref: '#/components/schemas/Revision'}
+                project: {$ref: '#/components/schemas/ProjectInput'}
+      responses:
+        '200':
+          description: Zapisana rewizja projektu.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Project'}
+        '409': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+  /projects/{project_id}/enrich:
+    parameters:
+      - {$ref: '#/components/parameters/ProjectId'}
+    post:
+      tags: [Import]
+      operationId: enrichProject
+      summary: Odśwież źródła, relacje i ekstrakcję (P0, operator)
+      description: |
+        Korzysta z BZP/e-Zamówień oraz co najmniej jednego dodatkowego publicznego
+        źródła skonfigurowanego we wdrożeniu. Adres BZP może wskazywać kopię
+        hackathonową według konfiguracji backendu. Dane źródłowe i wersje są
+        rejestrowane przed ekstrakcją. Dopasowanie identyfikatora wymaga zgodności
+        kontekstu, np. podmiotu i przedmiotu zamówienia. Przy braku klucza zapisuje
+        przesłanki za i przeciw na podstawie nazwy, zamawiającego, miejsca, CPV,
+        wartości i dat. Niejednoznaczny wynik trafia do kolejki eksperta.
+      parameters:
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                references:
+                  type: array
+                  description: Dodatkowe identyfikatory i linki do źródeł obsługiwanych przez adaptery.
+                  items: {$ref: '#/components/schemas/ExternalId'}
+      responses:
+        '202': {$ref: '#/components/responses/Accepted'}
+        default: {$ref: '#/components/responses/Error'}
+  /projects/{project_id}/documents:
+    parameters:
+      - {$ref: '#/components/parameters/ProjectId'}
+    post:
+      tags: [Dowody]
+      operationId: uploadDocument
+      summary: Dodaj dokument lub nową wersję (P0)
+      description: |
+        Przyjmuje DOCX lub PDF z warstwą tekstową. Ten sam dokument i hash pliku
+        zwracają istniejącą wersję. document_id pozwala dołączyć kolejną wersję do
+        dokumentu danego projektu. Zapisuje typ, wersję, hierarchię i pochodzenie.
+        Uruchamia ekstrakcję oraz aktualizację zależnych faktów i zdarzeń. Wyniki
+        wcześniejszych analiz pozostają dostępne w ich migawkach.
+      parameters:
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: {type: string, format: binary}
+                document_id: {$ref: '#/components/schemas/Id'}
+                document_type: {type: string, examples: [SWZ, PFU, OPZ, STWIORB, PPU, SWU, signed_contract, annex, acceptance_report, operator_statement]}
+      responses:
+        '202': {$ref: '#/components/responses/Accepted'}
+        '413': {$ref: '#/components/responses/Error'}
+        '415': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+  /documents/{document_id}/versions/{version_id}:
+    parameters:
+      - {name: document_id, in: path, required: true, schema: {$ref: '#/components/schemas/Id'}}
+      - {name: version_id, in: path, required: true, schema: {$ref: '#/components/schemas/Id'}}
+    get:
+      tags: [Dowody]
+      operationId: getDocumentVersion
+      summary: Pobierz metadane konkretnej wersji (P0)
+      description: content_url jest podawany tylko przy dostępnej kopii i prawie odczytu.
+      responses:
+        '200':
+          description: Metadane wersji dokumentu.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DocumentVersion'}
+        default: {$ref: '#/components/responses/Error'}
+  /projects/{project_id}/evidence:
+    parameters:
+      - {$ref: '#/components/parameters/ProjectId'}
+    get:
+      tags: [Dowody]
+      operationId: listProjectFacts
+      summary: Pobierz fakty, obliczenia i wnioski o cechach projektu (P0)
+      parameters:
+        - {$ref: '#/components/parameters/ReviewStatus'}
+        - {$ref: '#/components/parameters/Limit'}
+        - {$ref: '#/components/parameters/Offset'}
+      responses:
+        '200':
+          description: Twierdzenia i odwołania do dowodów, rosnąco po identyfikatorze.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - {$ref: '#/components/schemas/Page'}
+                  - properties: {items: {type: array, items: {$ref: '#/components/schemas/Fact'}}}
+        default: {$ref: '#/components/responses/Error'}
+  /evidence/{evidence_id}:
+    parameters:
+      - {name: evidence_id, in: path, required: true, schema: {$ref: '#/components/schemas/Id'}}
+    get:
+      tags: [Dowody]
+      operationId: getEvidence
+      summary: Otwórz fragment i jego źródło w Evidence Lens (P0)
+      responses:
+        '200':
+          description: Pochodzenie, wersja i lokalizacja odczytu.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Evidence'}
+        default: {$ref: '#/components/responses/Error'}
+  /projects/{project_id}/risks:
+    parameters:
+      - {$ref: '#/components/parameters/ProjectId'}
+    get:
+      tags: [Projekty]
+      operationId: listProjectRisks
+      summary: Pobierz zdarzenia i ryzyka projektu (P0)
+      parameters:
+        - {$ref: '#/components/parameters/ReviewStatus'}
+        - {name: risk_code, in: query, schema: {$ref: '#/components/schemas/RiskCode'}}
+        - {name: kind, in: query, schema: {$ref: '#/components/schemas/RiskKind'}}
+        - {$ref: '#/components/parameters/Limit'}
+        - {$ref: '#/components/parameters/Offset'}
+      responses:
+        '200':
+          description: Rekordy uporządkowane rosnąco po identyfikatorze.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - {$ref: '#/components/schemas/Page'}
+                  - properties: {items: {type: array, items: {$ref: '#/components/schemas/Risk'}}}
+        default: {$ref: '#/components/responses/Error'}
+  /expert/reviews:
+    get:
+      tags: [Ekspert]
+      operationId: listReviews
+      summary: Odczytaj kolejkę weryfikacji (P0, ekspert)
+      parameters:
+        - {name: project_id, in: query, schema: {$ref: '#/components/schemas/Id'}}
+        - {name: target_type, in: query, schema: {$ref: '#/components/schemas/ReviewTargetType'}}
+        - {$ref: '#/components/parameters/ReviewStatus'}
+        - {$ref: '#/components/parameters/Limit'}
+        - {$ref: '#/components/parameters/Offset'}
+      responses:
+        '200':
+          description: Pozycje kolejki rosnąco po identyfikatorze. Domyślnie proposed i needs_evidence.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - {$ref: '#/components/schemas/Page'}
+                  - properties: {items: {type: array, items: {$ref: '#/components/schemas/ReviewItem'}}}
+        default: {$ref: '#/components/responses/Error'}
+  /expert/decisions:
+    post:
+      tags: [Ekspert]
+      operationId: createDecision
+      summary: Zapisz decyzję z audytem i ochroną przed nadpisaniem (P0, ekspert)
+      description: |
+        Weryfikuje expected_revision. Zapisuje autora z uwierzytelnionej sesji,
+        powód, poprzednią i nową wartość. approved oraz corrected oznaczają
+        dopuszczenie wersji do dalszej analizy. rejected i needs_evidence wykluczają
+        ją z zatwierdzonej wiedzy. Późniejszy dowód może otworzyć nową rewizję do
+        weryfikacji albo zastąpić dotychczasową. Dane źródłowe pozostają zachowane.
+        Zdarzenie bez weryfikowalnego dowodu pozostaje poza zatwierdzoną wiedzą.
+      parameters:
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DecisionInput'}
+            example:
+              target_type: link
+              target_id: link_01
+              expected_revision: 1
+              action: approve
+              reason: Identyfikator postępowania i zamawiający są zgodni w obu źródłach.
+      responses:
+        '201':
+          description: Decyzja i nowa rewizja rekordu.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Decision'}
+        '409': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+    get:
+      tags: [Ekspert]
+      operationId: listDecisions
+      summary: Odczytaj historię decyzji (P0)
+      parameters:
+        - {name: target_type, in: query, required: true, schema: {$ref: '#/components/schemas/ReviewTargetType'}}
+        - {name: target_id, in: query, required: true, schema: {$ref: '#/components/schemas/Id'}}
+        - {$ref: '#/components/parameters/Limit'}
+        - {$ref: '#/components/parameters/Offset'}
+      responses:
+        '200':
+          description: Decyzje w kolejności od najnowszej rewizji.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - {$ref: '#/components/schemas/Page'}
+                  - properties: {items: {type: array, items: {$ref: '#/components/schemas/Decision'}}}
+        default: {$ref: '#/components/responses/Error'}
+  /expert/records:
+    post:
+      tags: [Ekspert]
+      operationId: createExpertRecord
+      summary: Dodaj własny fakt, zdarzenie, powiązanie lub rekomendację (P0, ekspert)
+      description: |
+        Tworzy propozycję z dowodami z dostępnych źródeł. Do zatwierdzenia służy
+        POST /expert/decisions. value zawiera edytowalne pola schematu wskazanego
+        przez target_type. Serwer nadaje identyfikator, status i rewizję.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [target_type, project_id, value]
+              properties:
+                target_type: {type: string, enum: [fact, link, risk, recommendation]}
+                project_id: {$ref: '#/components/schemas/Id'}
+                value: {type: object}
+      responses:
+        '201':
+          description: Utworzona propozycja.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ReviewItem'}
+        default: {$ref: '#/components/responses/Error'}
+  /sector-rules:
+    get:
+      tags: [Ekspert]
+      operationId: listSectorRules
+      summary: Pobierz katalog i obowiązujące ustawienia analizy (P0)
+      parameters:
+        - {name: sector_code, in: query, schema: {type: string, default: water_and_sewerage}}
+        - {name: include_proposals, in: query, description: Dostępne ekspertowi., schema: {type: boolean, default: false}}
+      responses:
+        '200':
+          description: Zatwierdzone wersje katalogów, checklist, reguł i wag. Ekspert może dołączyć propozycje.
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: '#/components/schemas/SectorRules'}}
+        default: {$ref: '#/components/responses/Error'}
+    post:
+      tags: [Ekspert]
+      operationId: proposeSectorRules
+      summary: Zgłoś nową wersję wiedzy sektorowej (P0, ekspert)
+      description: Zmienia opis, tabele wyboru, kategorie, checklisty, reguły lub wagi. Aktywacja następuje przez decyzję eksperta. Zatwierdzenie nieaktualnej wersji bazowej zwraca 409.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SectorRulesInput'}
+      responses:
+        '201':
+          description: Propozycja wersji wiedzy sektorowej.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SectorRules'}
+        default: {$ref: '#/components/responses/Error'}
+  /assessments:
+    get:
+      tags: [Analizy]
+      operationId: listAssessments
+      summary: Przeglądaj zapisane analizy projektu (P0)
+      parameters:
+        - {name: project_id, in: query, required: true, schema: {$ref: '#/components/schemas/Id'}}
+        - {$ref: '#/components/parameters/Limit'}
+        - {$ref: '#/components/parameters/Offset'}
+      responses:
+        '200':
+          description: Dostępne analizy, od najnowszej z rozstrzyganiem remisów po identyfikatorze.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - {$ref: '#/components/schemas/Page'}
+                  - properties: {items: {type: array, items: {$ref: '#/components/schemas/Assessment'}}}
+        default: {$ref: '#/components/responses/Error'}
+    post:
+      tags: [Analizy]
+      operationId: createAssessment
+      summary: Przeanalizuj projekt planowany (P0, analityk)
+      description: |
+        Wymaga powiązanego projektu planowanego oraz niepustego opisu lub co najmniej
+        jednego gotowego dokumentu z tekstem. Brak wejścia zwraca 422 z listą
+        informacji do podania. Treść uboga w dane może dać jakościowy wynik z lukami.
+        Analiza przypina dane wejściowe, wersje źródeł, reguły, wersję metody i stan
+        zatwierdzonej wiedzy. System może pokazać nowe hipotezy do weryfikacji.
+        Opis użytkownika jest źródłem wskazującym pole description w danej rewizji projektu.
+        Porównania historyczne korzystają z udokumentowanych danych i zatwierdzonych
+        wniosków. Nowe analizy mogą użyć uzupełnionych dokumentów lub ustawień.
+      parameters:
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AssessmentInput'}
+      responses:
+        '202': {$ref: '#/components/responses/Accepted'}
+        '409': {$ref: '#/components/responses/Error'}
+        '422': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+  /assessments/{assessment_id}:
+    parameters:
+      - {$ref: '#/components/parameters/AssessmentId'}
+    get:
+      tags: [Analizy]
+      operationId: getAssessment
+      summary: Pobierz kokpit analizy (P0)
+      responses:
+        '200':
+          description: Ocena zagrożenia, kompletność, ryzyka, rekomendacje i odchylenia.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Assessment'}
+        '409': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+  /assessments/{assessment_id}/twins:
+    parameters:
+      - {$ref: '#/components/parameters/AssessmentId'}
+    get:
+      tags: [Analizy]
+      operationId: listTwins
+      summary: Pobierz ranking podobnych zakończonych inwestycji (P0)
+      description: |
+        Dopasowanie zestawia cechy strukturalne oraz treść opisów i dokumentów.
+        Brakujące cechy są pomijane przy liczeniu podobieństwa i raportowane
+        wraz z zakresem porównania. Score jest miarą podobieństwa.
+      responses:
+        '200':
+          description: Bliźniaki w kolejności rankingu.
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: '#/components/schemas/Twin'}}
+        default: {$ref: '#/components/responses/Error'}
+  /assessments/{assessment_id}/gaps:
+    parameters:
+      - {$ref: '#/components/parameters/AssessmentId'}
+    get:
+      tags: [Analizy]
+      operationId: listGaps
+      summary: Pobierz checklistę pokrycia informacji (P0)
+      parameters:
+        - {name: state, in: query, schema: {$ref: '#/components/schemas/InformationState'}}
+      responses:
+        '200':
+          description: Stany informacji z adekwatnej checklisty wraz z działaniami.
+          content:
+            application/json:
+              schema: {type: array, items: {$ref: '#/components/schemas/InformationCheck'}}
+        default: {$ref: '#/components/responses/Error'}
+  /projects/{project_id}/export:
+    parameters:
+      - {$ref: '#/components/parameters/ProjectId'}
+    get:
+      tags: [Eksport]
+      operationId: exportProject
+      summary: Wyeksportuj historię inwestycji (P0)
+      parameters:
+        - {$ref: '#/components/parameters/ExportFormat'}
+      responses:
+        '200': {$ref: '#/components/responses/Export'}
+        default: {$ref: '#/components/responses/Error'}
+  /assessments/{assessment_id}/export:
+    parameters:
+      - {$ref: '#/components/parameters/AssessmentId'}
+    get:
+      tags: [Eksport]
+      operationId: exportAssessment
+      summary: Wyeksportuj zapisaną analizę (P0)
+      parameters:
+        - {$ref: '#/components/parameters/ExportFormat'}
+      responses:
+        '200': {$ref: '#/components/responses/Export'}
+        default: {$ref: '#/components/responses/Error'}
+  /assessments/{assessment_id}/graph:
+    parameters:
+      - {$ref: '#/components/parameters/AssessmentId'}
+    get:
+      tags: [Rozszerzenia]
+      operationId: getRiskGraph
+      summary: Pobierz graf ryzyk i dowodów (P1)
+      responses:
+        '200':
+          description: Graf najważniejszych zależności dla analizy.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RiskGraph'}
+        default: {$ref: '#/components/responses/Error'}
+  /assessments/{assessment_id}/diff:
+    parameters:
+      - {$ref: '#/components/parameters/AssessmentId'}
+    get:
+      tags: [Rozszerzenia]
+      operationId: compareAssessments
+      summary: Porównaj analizę z wcześniejszym wynikiem po uzupełnieniu materiałów (P1)
+      parameters:
+        - {name: baseline_id, in: query, required: true, schema: {$ref: '#/components/schemas/Id'}}
+      responses:
+        '200':
+          description: Zmiany względem wcześniejszej analizy tego samego projektu.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AssessmentDiff'}
+        default: {$ref: '#/components/responses/Error'}
+  /risk-dna:
+    get:
+      tags: [Rozszerzenia]
+      operationId: listRiskDna
+      summary: Przeglądaj wzorce doświadczenia (P1)
+      parameters:
+        - {name: risk_code, in: query, schema: {$ref: '#/components/schemas/RiskCode'}}
+        - {$ref: '#/components/parameters/ReviewStatus'}
+        - {$ref: '#/components/parameters/Limit'}
+        - {$ref: '#/components/parameters/Offset'}
+      responses:
+        '200':
+          description: Wzorce rosnąco po identyfikatorze. Domyślnie wersje zatwierdzone, pozostałe są sugestiami.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - {$ref: '#/components/schemas/Page'}
+                  - properties: {items: {type: array, items: {$ref: '#/components/schemas/RiskDna'}}}
+        default: {$ref: '#/components/responses/Error'}
+    post:
+      tags: [Rozszerzenia]
+      operationId: proposeRiskDna
+      summary: Zgłoś wzorzec na podstawie zatwierdzonych przypadków (P1, ekspert)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RiskDnaInput'}
+      responses:
+        '201':
+          description: Propozycja do zatwierdzenia w Expert Studio.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RiskDna'}
+        default: {$ref: '#/components/responses/Error'}
+  /assessments/{assessment_id}/chaos:
+    parameters:
+      - {$ref: '#/components/parameters/AssessmentId'}
+    post:
+      tags: [Rozszerzenia]
+      operationId: runChaosTest
+      summary: Uruchom test odporności z zatwierdzonego Risk DNA (P1)
+      description: |
+        Backend dobiera stosowalne wzorce albo używa wskazanych. Przypina zatwierdzoną
+        rewizję wzorca, dokumenty analizy i parametry użytkownika. Niezatwierdzony
+        wzorzec zwraca 409. Jeśli po automatycznym doborze brak stosowalnych
+        wzorców, zwracany jest 422 z wyjaśnieniem. Parametry takie jak 90 dni
+        opóźnienia dostępu do działki są założeniami testu.
+      parameters:
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ChaosInput'}
+      responses:
+        '202': {$ref: '#/components/responses/Accepted'}
+        default: {$ref: '#/components/responses/Error'}
+    get:
+      tags: [Rozszerzenia]
+      operationId: listChaosTests
+      summary: Odczytaj zapisane wyniki testów (P1)
+      parameters:
+        - {$ref: '#/components/parameters/Limit'}
+        - {$ref: '#/components/parameters/Offset'}
+      responses:
+        '200':
+          description: Testy uporządkowane rosnąco po identyfikatorze.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - {$ref: '#/components/schemas/Page'}
+                  - properties: {items: {type: array, items: {$ref: '#/components/schemas/ChaosResult'}}}
+        default: {$ref: '#/components/responses/Error'}
+  /assessments/{assessment_id}/chaos/{run_id}:
+    parameters:
+      - {$ref: '#/components/parameters/AssessmentId'}
+      - {name: run_id, in: path, required: true, schema: {$ref: '#/components/schemas/Id'}}
+    get:
+      tags: [Rozszerzenia]
+      operationId: getChaosTest
+      summary: Pobierz wskazany wynik testu odporności (P1)
+      responses:
+        '200':
+          description: Zapisany wynik z założeniami, dowodami i wersją Risk DNA.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ChaosResult'}
+        default: {$ref: '#/components/responses/Error'}
+  /epidemic-radar:
+    get:
+      tags: [Rozszerzenia]
+      operationId: listPatternCandidates
+      summary: Wskaż kandydatów na powtarzalne wzorce ryzyka (P1)
+      description: Wynik opisuje próbę i dostępność dokumentów. Hipotezy przyczyn podlegają weryfikacji eksperta.
+      parameters:
+        - {name: risk_code, in: query, schema: {$ref: '#/components/schemas/RiskCode'}}
+        - {name: subsector, in: query, schema: {type: string}}
+      responses:
+        '200':
+          description: Kandydaci z kontekstem próby albo informacja o ograniczeniach danych.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PatternSearch'}
+        default: {$ref: '#/components/responses/Error'}
+  /projects/{project_id}/monitoring:
+    parameters:
+      - {$ref: '#/components/parameters/ProjectId'}
+    put:
+      tags: [Rozszerzenia]
+      operationId: configureMonitoring
+      summary: Włącz lub wyłącz monitoring projektu w toku (P2, operator)
+      description: Nowa wersja publicznego źródła uruchamia ten sam proces wzbogacania. Istotne zmiany trafiają do raportu zadania i kolejki eksperta.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Monitoring'}
+      responses:
+        '200':
+          description: Zapisany stan monitoringu.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Monitoring'}
+        default: {$ref: '#/components/responses/Error'}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Token dostępu wydany w danym wdrożeniu. Role i identyfikator autora wynikają z uwierzytelnionej tożsamości.
+  parameters:
+    ProjectId: {name: project_id, in: path, required: true, schema: {$ref: '#/components/schemas/Id'}}
+    AssessmentId: {name: assessment_id, in: path, required: true, schema: {$ref: '#/components/schemas/Id'}}
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      schema: {type: string, minLength: 1, maxLength: 128}
+    Limit: {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 200, default: 50}}
+    Offset: {name: offset, in: query, schema: {type: integer, minimum: 0, default: 0}}
+    ReviewStatus: {name: review_status, in: query, schema: {$ref: '#/components/schemas/ReviewStatus'}}
+    ExportFormat: {name: format, in: query, schema: {type: string, enum: [json, csv], default: json}}
+  responses:
+    Accepted:
+      description: Zlecenie przyjęte. Wynik odczytuje się po zakończeniu zadania.
+      headers:
+        Location:
+          required: true
+          schema: {type: string, format: uri-reference}
+          example: /api/v1/jobs/job_01
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Job'}
+          example:
+            id: job_01
+            type: import
+            status: queued
+            created_at: '2026-11-21T12:00:00Z'
+            results: []
+            report: []
+    Error:
+      description: |
+        Wspólny format błędu. 400 oznacza niepoprawne żądanie, 401 brak
+        uwierzytelnienia, 403 brak uprawnień do operacji, 404 brak zasobu
+        widocznego dla użytkownika, 409 konflikt stanu lub rewizji, 413
+        przekroczenie limitu pliku, 415 nieobsługiwany format, 422 błąd danych
+        lub brak wymaganego wejścia, 429 limit wywołań, 503 niedostępność usługi.
+        Błąd źródła po przyjęciu zadania trafia do raportu zadania.
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Problem'}
+    Export:
+      description: |
+        Eksport zawiera udostępnione rekordy oraz ich dowody, źródła i statusy
+        weryfikacji. Eksport projektu obejmuje kartę, relacje, chronologię,
+        fakty, ryzyka i historię decyzji. Eksport analizy obejmuje migawkę,
+        bliźniaki, stany informacji, rekomendacje i dostępne testy. CSV UTF-8
+        ma nagłówek record_type,record_id,data_json i zapisuje jeden rekord
+        na wiersz. Pierwszy wiersz danych ma typ export_metadata i zawiera
+        metadane obiektu Export bez tablicy records. Zagnieżdżone wartości
+        zapisuje jako JSON w kolumnie data_json, z cytowaniem CSV.
+      headers:
+        Content-Disposition:
+          schema: {type: string}
+          example: attachment; filename="risk-miner.csv"
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Export'}
+        text/csv:
+          schema: {type: string}
+  schemas:
+    Id: {type: string, minLength: 1, maxLength: 128}
+    Revision: {type: integer, minimum: 1}
+    Timestamp: {type: string, format: date-time}
+    Score: {type: number, minimum: 0, maximum: 1}
+    Count: {type: integer, minimum: 0}
+    EvidenceIds:
+      type: array
+      uniqueItems: true
+      items: {$ref: '#/components/schemas/Id'}
+    Page:
+      type: object
+      required: [items, limit, offset, total]
+      properties:
+        items: {type: array}
+        limit: {type: integer, minimum: 1, maximum: 200}
+        offset: {$ref: '#/components/schemas/Count'}
+        total:
+          $ref: '#/components/schemas/Count'
+          description: Liczba dostępnych pozycji po zastosowaniu filtrów, przed paginacją.
+    Problem:
+      type: object
+      required: [code, message]
+      properties:
+        code: {type: string, examples: [validation_error, stale_revision, assessment_not_ready, insufficient_input, unsupported_document_type]}
+        message: {type: string}
+        details:
+          type: array
+          items:
+            type: object
+            required: [message]
+            properties:
+              field: {type: string}
+              message: {type: string}
+        request_id: {$ref: '#/components/schemas/Id'}
+    MatchStatus:
+      type: string
+      enum: [found, matched, needs_review, unmatched, error]
+      description: found potwierdza odnalezienie materiału, matched oznacza ustaloną relację, needs_review wskazuje kandydata do decyzji.
+    Job:
+      type: object
+      required: [id, type, status, created_at, results, report]
+      properties:
+        id: {$ref: '#/components/schemas/Id'}
+        type: {type: string, enum: [import, enrichment, document_extraction, assessment, chaos]}
+        status: {type: string, enum: [queued, running, succeeded, partial, failed]}
+        created_at: {$ref: '#/components/schemas/Timestamp'}
+        finished_at: {$ref: '#/components/schemas/Timestamp'}
+        results:
+          type: array
+          items:
+            type: object
+            required: [resource_type, resource_id, href]
+            properties:
+              resource_type: {type: string, enum: [project, document_version, assessment, chaos_run]}
+              resource_id: {$ref: '#/components/schemas/Id'}
+              href: {type: string, format: uri-reference}
+        report:
+          type: array
+          description: Raport wierszy i etapów. Obejmuje także udane dopasowania i pobrania.
+          items:
+            type: object
+            required: [stage, status]
+            properties:
+              stage: {type: string, enum: [validation, import, fetch, link, extraction, assessment, chaos]}
+              status: {$ref: '#/components/schemas/MatchStatus'}
+              row: {type: integer, minimum: 2, description: Numer wiersza razem z nagłówkiem.}
+              project_id: {$ref: '#/components/schemas/Id'}
+              external_id: {$ref: '#/components/schemas/ExternalId'}
+              source_id: {$ref: '#/components/schemas/Id'}
+              attempted_at: {$ref: '#/components/schemas/Timestamp'}
+              attempted_url: {type: string, format: uri}
+              error: {$ref: '#/components/schemas/Problem'}
+              message: {type: string}
+    ExternalId:
+      type: object
+      required: [scheme, value]
+      properties:
+        scheme: {type: string, enum: [rm, bzp, ted, cst, kpo, ocid, nip, regon, url, other]}
+        value: {type: string, minLength: 1}
+        normalized: {type: string, readOnly: true}
+    ProjectKind: {type: string, enum: [historical, planned]}
+    ProjectStatus: {type: string, enum: [planned, in_progress, completed, cancelled, unknown]}
+    Phase:
+      type: string
+      enum: [planning, preparation, procurement, contract_start, post_contract_design, execution, commissioning, closeout_and_warranty]
+    ProjectInput:
+      type: object
+      required: [title]
+      properties:
+        title: {type: string, minLength: 1}
+        description: {type: string}
+        phase: {$ref: '#/components/schemas/Phase'}
+        sector_code: {type: string, default: water_and_sewerage}
+        primary_subsector_codes:
+          type: array
+          uniqueItems: true
+          items: {type: string}
+          description: Jeden główny podsektor lub kilka równorzędnych.
+        secondary_subsector_codes: {type: array, uniqueItems: true, items: {type: string}}
+        work_type: {type: string, enum: [construction_or_extension, reconstruction_or_renovation, mixed]}
+    Project:
+      allOf:
+        - {$ref: '#/components/schemas/ProjectInput'}
+        - type: object
+          required: [id, revision, kind, status, external_ids, evidence_ids, counts]
+          properties:
+            id:
+              $ref: '#/components/schemas/Id'
+              description: Dla importu konkursowego wartość kolumny Identyfikator rekordu.
+            revision: {$ref: '#/components/schemas/Revision'}
+            kind: {$ref: '#/components/schemas/ProjectKind'}
+            status: {$ref: '#/components/schemas/ProjectStatus'}
+            external_ids: {type: array, items: {$ref: '#/components/schemas/ExternalId'}}
+            seed_scope:
+              type: object
+              description: Zakres rekordu importu na poziomie postępowania.
+              required: [level]
+              properties:
+                level: {type: string, enum: [procedure, part]}
+                part_number: {type: string}
+            beneficiary: {$ref: '#/components/schemas/Organization'}
+            works_location:
+              $ref: '#/components/schemas/Location'
+              description: Lokalizacja robót z dowodem identyfikacji. Siedziba beneficjenta pozostaje odrębnym polem.
+            enrichment_status: {$ref: '#/components/schemas/MatchStatus'}
+            evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+            counts:
+              type: object
+              required: [procedures, risks, links]
+              properties:
+                procedures: {$ref: '#/components/schemas/Count'}
+                risks: {$ref: '#/components/schemas/Count'}
+                links: {$ref: '#/components/schemas/Count'}
+    Location:
+      type: object
+      properties:
+        country: {type: string}
+        region: {type: string}
+        region_code: {type: string, examples: ['04']}
+        locality: {type: string}
+        area_code: {type: string}
+        evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+    Organization:
+      type: object
+      required: [name]
+      properties:
+        name: {type: string}
+        type: {type: string}
+        identifiers: {type: array, items: {$ref: '#/components/schemas/ExternalId'}}
+        seat: {$ref: '#/components/schemas/Location'}
+    ProjectDetail:
+      allOf:
+        - {$ref: '#/components/schemas/Project'}
+        - type: object
+          required: [procedures, documents, links, timeline, amounts, milestones]
+          properties:
+            procedures: {type: array, items: {$ref: '#/components/schemas/Procedure'}}
+            documents: {type: array, items: {$ref: '#/components/schemas/Document'}}
+            links: {type: array, items: {$ref: '#/components/schemas/RecordLink'}}
+            timeline:
+              type: array
+              description: Chronologia zdarzeń o znanej dacie, rosnąco po dacie i identyfikatorze.
+              items:
+                type: object
+                required: [date, target, label, evidence_ids]
+                properties:
+                  date: {type: string, format: date}
+                  target: {$ref: '#/components/schemas/ResourceRef'}
+                  label: {type: string}
+                  evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+            amounts: {type: array, items: {$ref: '#/components/schemas/Amount'}}
+            milestones: {type: array, items: {$ref: '#/components/schemas/Milestone'}}
+            geo_signals:
+              type: array
+              description: P2. Wyłącznie dla odrębnie udokumentowanego miejsca robót.
+              items: {$ref: '#/components/schemas/GeoSignal'}
+    Procedure:
+      type: object
+      required: [id, title, parts, notices, contracts, evidence_ids]
+      properties:
+        id: {$ref: '#/components/schemas/Id'}
+        title: {type: string}
+        identifiers: {type: array, items: {$ref: '#/components/schemas/ExternalId'}}
+        buyer: {$ref: '#/components/schemas/Organization'}
+        cpv_codes: {type: array, items: {type: string}}
+        procurement_type: {type: string}
+        legal_regime: {type: string}
+        status: {type: string, enum: [open, awarded, unawarded, cancelled, unknown]}
+        repeated_from_id: {$ref: '#/components/schemas/Id'}
+        parts: {type: array, items: {$ref: '#/components/schemas/ProcedurePart'}}
+        notices: {type: array, items: {$ref: '#/components/schemas/Notice'}}
+        contracts: {type: array, items: {$ref: '#/components/schemas/Contract'}}
+        amounts: {type: array, items: {$ref: '#/components/schemas/Amount'}}
+        milestones: {type: array, items: {$ref: '#/components/schemas/Milestone'}}
+        evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+    ProcedurePart:
+      type: object
+      required: [id, number, evidence_ids]
+      properties:
+        id: {$ref: '#/components/schemas/Id'}
+        number: {type: string}
+        title: {type: string}
+        outcome: {type: string, enum: [awarded, unawarded, cancelled, unknown]}
+        evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+    Notice:
+      type: object
+      required: [id, identifier, kind, source, evidence_ids]
+      properties:
+        id: {$ref: '#/components/schemas/Id'}
+        identifier: {$ref: '#/components/schemas/ExternalId'}
+        kind: {type: string, enum: [procurement, correction, award, contract_change, contract_execution, other]}
+        published_at: {$ref: '#/components/schemas/Timestamp'}
+        part_ids: {type: array, items: {$ref: '#/components/schemas/Id'}}
+        source: {$ref: '#/components/schemas/Source'}
+        evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+    Contract:
+      type: object
+      required: [id, basis, amounts, milestones, changes, evidence_ids]
+      properties:
+        id: {$ref: '#/components/schemas/Id'}
+        part_ids: {type: array, items: {$ref: '#/components/schemas/Id'}}
+        contractor: {$ref: '#/components/schemas/Organization'}
+        basis:
+          type: string
+          enum: [signed, reconstructed_terms, notice_only]
+          description: |
+            reconstructed_terms wymaga PPU lub SWU w obowiązującej wersji oraz
+            potwierdzonych wykonawcy, ceny, terminu i identyfikatora postępowania.
+            Oznacza warunki odtworzone przy braku podpisanego egzemplarza.
+        amounts: {type: array, items: {$ref: '#/components/schemas/Amount'}}
+        milestones: {type: array, items: {$ref: '#/components/schemas/Milestone'}}
+        changes: {type: array, items: {$ref: '#/components/schemas/ContractChange'}}
+        evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+    ContractChange:
+      type: object
+      required: [id, description, dimensions, evidence_ids]
+      properties:
+        id: {$ref: '#/components/schemas/Id'}
+        effective_on: {type: string, format: date}
+        description: {type: string}
+        dimensions:
+          type: array
+          items: {type: string, enum: [cost, schedule, scope, contractor, other]}
+        legal_basis: {type: string, description: Podstawa prawna zmiany ma odrębne znaczenie od przyczyny zdarzenia.}
+        amounts: {type: array, items: {$ref: '#/components/schemas/Amount'}}
+        milestones: {type: array, items: {$ref: '#/components/schemas/Milestone'}}
+        evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+    Decimal:
+      type: string
+      pattern: '^-?[0-9]+(\.[0-9]+)?$'
+      examples: ['1200000.50']
+    Amount:
+      type: object
+      required: [kind, value, currency, vat, evidence_ids]
+      properties:
+        kind: {type: string, enum: [project_value, financing, procurement_estimate, buyer_budget, offer, contract_initial, contract_change, contract_revised, final_payment]}
+        value: {$ref: '#/components/schemas/Decimal'}
+        currency: {type: string, pattern: '^[A-Z]{3}$', examples: [PLN]}
+        vat: {type: string, enum: [net, gross, unknown]}
+        as_of: {type: string, format: date}
+        evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+    Milestone:
+      type: object
+      required: [kind, date, evidence_ids]
+      properties:
+        kind: {type: string, enum: [signed, planned_start, actual_start, baseline_finish, revised_finish, actual_finish, accepted, other]}
+        date: {type: string, format: date}
+        evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+    Document:
+      type: object
+      required: [id, document_type, versions]
+      properties:
+        id: {$ref: '#/components/schemas/Id'}
+        document_type: {type: string}
+        current_version_id: {$ref: '#/components/schemas/Id'}
+        related_to: {type: array, items: {$ref: '#/components/schemas/ResourceRef'}}
+        versions: {type: array, items: {$ref: '#/components/schemas/DocumentVersion'}}
+    DocumentVersion:
+      type: object
+      required: [id, document_id, revision, media_type, sha256, source, extraction_status]
+      properties:
+        id: {$ref: '#/components/schemas/Id'}
+        document_id: {$ref: '#/components/schemas/Id'}
+        revision: {$ref: '#/components/schemas/Revision'}
+        media_type: {type: string}
+        sha256: {type: string, pattern: '^[a-f0-9]{64}$'}
+        source: {$ref: '#/components/schemas/Source'}
+        issued_on: {type: string, format: date}
+        phase: {$ref: '#/components/schemas/Phase'}
+        supersedes_version_ids: {type: array, items: {$ref: '#/components/schemas/Id'}}
+        extraction_status: {type: string, enum: [queued, running, ready, failed]}
+        content_url: {type: string, format: uri-reference}
+    Source:
+      type: object
+      required: [id, provider, retrieved_at]
+      properties:
+        id: {$ref: '#/components/schemas/Id'}
+        provider: {type: string, examples: [uploaded_file, user_description, sector_rules, contest_xlsx, bzp, ted, bip]}
+        identifier: {type: string}
+        original_url: {type: string, format: uri}
+        retrieved_at: {$ref: '#/components/schemas/Timestamp'}
+        version: {type: string}
+        name: {type: string}
+      anyOf:
+        - required: [identifier]
+        - required: [original_url]
+    Evidence:
+      type: object
+      required: [id, source, locator]
+      examples:
+        - id: evidence_rm_001_bzp
+          source:
+            id: source_contest_workbook
+            provider: contest_xlsx
+            identifier: Risk_Miner_dane_projekty.xlsx
+            retrieved_at: '2026-11-21T12:00:00Z'
+          locator: {kind: table, sheet: Projekty, row: 2, column: 'N'}
+          quote: 2022/BZP 00058537/01
+      properties:
+        id: {$ref: '#/components/schemas/Id'}
+        source: {$ref: '#/components/schemas/Source'}
+        document_id: {$ref: '#/components/schemas/Id'}
+        document_version_id: {$ref: '#/components/schemas/Id'}
+        quote:
+          type: string
+          description: Dosłowny fragment z oznaczonej wersji źródła. Pomijany przy braku sprawdzalnego cytatu.
+        locator:
+          oneOf:
+            - type: object
+              required: [kind, page]
+              properties:
+                kind: {const: pdf}
+                page: {type: integer, minimum: 1}
+            - type: object
+              required: [kind, paragraph]
+              properties:
+                kind: {const: docx}
+                paragraph: {type: string, description: Stabilny identyfikator akapitu w danej wersji.}
+            - type: object
+              required: [kind, row]
+              properties:
+                kind: {const: table}
+                sheet: {type: string}
+                row: {type: integer, minimum: 1}
+                column: {type: string}
+            - type: object
+              required: [kind, field]
+              properties:
+                kind: {const: record_field}
+                field: {type: string}
+        char_offsets:
+          type: object
+          required: [start, end]
+          description: Zakres znaków w tekście wskazanej strony lub akapitu, od zera, bez końca.
+          properties:
+            start: {$ref: '#/components/schemas/Count'}
+            end: {$ref: '#/components/schemas/Count'}
+      dependentRequired:
+        document_version_id: [document_id]
+        document_id: [document_version_id]
+      allOf:
+        - if:
+            properties:
+              locator:
+                properties:
+                  kind: {enum: [pdf, docx]}
+          then:
+            required: [document_id, document_version_id]
+    ResourceRef:
+      type: object
+      required: [type, id]
+      properties:
+        type: {type: string, examples: [project, procedure, part, notice, contract, contract_change, document, evidence, fact, risk, gap, recommendation, risk_dna]}
+        id: {$ref: '#/components/schemas/Id'}
+    ReviewStatus: {type: string, enum: [proposed, approved, corrected, rejected, needs_evidence, superseded]}
+    ReviewTargetType:
+      type: string
+      enum: [project, procedure, part, notice, contract, contract_change, document, fact, link, risk, recommendation, sector_rules, risk_dna, pattern_candidate]
+    Reviewable:
+      type: object
+      required: [id, revision, review_status]
+      properties:
+        id: {$ref: '#/components/schemas/Id'}
+        revision: {$ref: '#/components/schemas/Revision'}
+        review_status: {$ref: '#/components/schemas/ReviewStatus'}
+        latest_decision_id: {$ref: '#/components/schemas/Id'}
+    Confidence:
+      type: object
+      required: [level, rationale]
+      properties:
+        level: {type: string, enum: [low, moderate, high, insufficient_evidence]}
+        rationale: {type: string}
+    Claim:
+      allOf:
+        - {$ref: '#/components/schemas/Reviewable'}
+        - type: object
+          required: [claim_type, evidence_ids, confidence]
+          properties:
+            claim_type:
+              type: string
+              enum: [SOURCE_FACT, CALCULATED, MODEL_INFERENCE]
+            evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+            confidence: {$ref: '#/components/schemas/Confidence'}
+            calculation:
+              type: object
+              required: [method, input_fact_ids]
+              properties:
+                method: {type: string}
+                input_fact_ids: {type: array, minItems: 1, items: {$ref: '#/components/schemas/Id'}}
+          allOf:
+            - if: {properties: {claim_type: {const: CALCULATED}}}
+              then: {required: [calculation]}
+            - if: {properties: {claim_type: {const: SOURCE_FACT}}}
+              then: {properties: {evidence_ids: {minItems: 1}}}
+    Fact:
+      allOf:
+        - {$ref: '#/components/schemas/Claim'}
+        - type: object
+          required: [subject, key, value]
+          properties:
+            subject: {$ref: '#/components/schemas/ResourceRef'}
+            key: {type: string, examples: [network_length_m, customer_count, operator_statement]}
+            value: {}
+            unit: {type: string}
+    RecordLink:
+      allOf:
+        - {$ref: '#/components/schemas/Reviewable'}
+        - type: object
+          required: [from, to, relation, method, confidence, rationale, evidence_ids, signals]
+          properties:
+            from: {$ref: '#/components/schemas/ResourceRef'}
+            to: {$ref: '#/components/schemas/ResourceRef'}
+            relation: {type: string, examples: [project_has_procedure, procedure_has_notice, contract_has_change]}
+            method: {type: string, enum: [verified_identifier, explicit_source, ranked, expert]}
+            confidence: {$ref: '#/components/schemas/Confidence'}
+            rationale: {type: string}
+            evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+            signals:
+              type: array
+              items:
+                type: object
+                required: [feature, direction, explanation]
+                properties:
+                  feature: {type: string}
+                  direction: {type: string, enum: [supports, contradicts, missing]}
+                  explanation: {type: string}
+    RiskCode:
+      type: string
+      minLength: 1
+      description: |
+        Kod z katalogu sektorowego. Wbudowane kategorie MFiPR:
+        R01 niepełny lub niespójny zakres, R02 niedostateczne rozpoznanie stanu
+        istniejącego, R03 kolizje, dostęp i prawa do nieruchomości, R04 decyzje,
+        pozwolenia i uzgodnienia zależne od stron trzecich, R05 podział
+        odpowiedzialności, R06 harmonogram i zależności, R07 zmiany i roboty
+        dodatkowe, R08 model wynagrodzenia, R09 wymagania techniczne, R10 próby,
+        rozruch i odbiory, R11 odwołania i konkurencja, R12 wykonawca i dostawy,
+        R13 finansowanie i płatności, R14 eksploatacja i utrzymanie, R15 efekt
+        technologiczny, użytkowy lub środowiskowy. Dodatkowe kody wymagają decyzji eksperta.
+      examples: [R03, R06]
+    RiskKind: {type: string, enum: [OBSERVED_EVENT, POTENTIAL_RISK]}
+    Risk:
+      allOf:
+        - {$ref: '#/components/schemas/Claim'}
+        - type: object
+          required: [project_id, kind, risk_code, title, signal, event, causes, impacts, measures]
+          properties:
+            project_id: {$ref: '#/components/schemas/Id'}
+            kind: {$ref: '#/components/schemas/RiskKind'}
+            risk_code: {$ref: '#/components/schemas/RiskCode'}
+            title: {type: string}
+            signal: {type: string}
+            event: {type: string}
+            occurred_on: {type: string, format: date, description: Data udokumentowanego zdarzenia.}
+            related_to: {type: array, items: {$ref: '#/components/schemas/ResourceRef'}}
+            causes: {type: array, items: {$ref: '#/components/schemas/Cause'}}
+            impacts: {type: array, items: {$ref: '#/components/schemas/Impact'}}
+            measures: {type: array, items: {$ref: '#/components/schemas/Measure'}}
+            threat: {$ref: '#/components/schemas/Threat'}
+          allOf:
+            - if: {properties: {kind: {const: OBSERVED_EVENT}}}
+              then: {properties: {evidence_ids: {minItems: 1}}}
+    Cause:
+      type: object
+      required: [status, description, evidence_ids]
+      properties:
+        status: {type: string, enum: [confirmed, hypothesized]}
+        description: {type: string}
+        evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+      if: {properties: {status: {const: confirmed}}}
+      then: {properties: {evidence_ids: {minItems: 1}}}
+    Impact:
+      type: object
+      required: [dimension, kind, description, evidence_ids]
+      properties:
+        dimension: {type: string, enum: [cost, time, scope, quality, environment, service_availability, seasonality]}
+        kind: {type: string, enum: [observed, potential]}
+        description: {type: string}
+        value: {$ref: '#/components/schemas/Decimal'}
+        unit: {type: string, examples: [PLN, days, households]}
+        evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+      dependentRequired:
+        value: [unit]
+    Measure:
+      type: object
+      required: [kind, description, evidence_ids]
+      properties:
+        kind: {type: string, enum: [applied, suggested]}
+        description: {type: string}
+        effectiveness: {type: string, enum: [effective, partly_effective, ineffective, unknown]}
+        evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+    ReviewItem:
+      type: object
+      required: [target_type, target_id, revision, review_status, value, evidence_ids]
+      properties:
+        target_type: {$ref: '#/components/schemas/ReviewTargetType'}
+        target_id: {$ref: '#/components/schemas/Id'}
+        project_id: {$ref: '#/components/schemas/Id'}
+        revision: {$ref: '#/components/schemas/Revision'}
+        review_status: {$ref: '#/components/schemas/ReviewStatus'}
+        value: {type: object, description: Bieżąca reprezentacja zasobu danego typu.}
+        evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+    DecisionInput:
+      type: object
+      additionalProperties: false
+      required: [target_type, target_id, expected_revision, action, reason]
+      properties:
+        target_type: {$ref: '#/components/schemas/ReviewTargetType'}
+        target_id: {$ref: '#/components/schemas/Id'}
+        expected_revision: {$ref: '#/components/schemas/Revision'}
+        action: {type: string, enum: [approve, correct, reject, request_evidence]}
+        reason: {type: string, minLength: 1}
+        changes:
+          type: object
+          minProperties: 1
+          description: |
+            Zastępuje wskazane pola edytowalne w obrębie danej rewizji. Tablice
+            i obiekty są zastępowane w całości. Serwer waliduje wynik według typu
+            zasobu oraz sprawdza relacje i źródła. Identyfikator, wersja i pola audytu
+            są nadawane przez serwer. Dozwolone np. risk_code, causes, impacts,
+            measures, evidence_ids dla risk, a from, to, rationale dla link.
+      if: {properties: {action: {const: correct}}}
+      then: {required: [changes]}
+      else: {not: {required: [changes]}}
+    Decision:
+      type: object
+      required: [id, target_type, target_id, action, reason, actor_id, created_at, before, after]
+      properties:
+        id: {$ref: '#/components/schemas/Id'}
+        target_type: {$ref: '#/components/schemas/ReviewTargetType'}
+        target_id: {$ref: '#/components/schemas/Id'}
+        action: {type: string, enum: [approve, correct, reject, request_evidence]}
+        reason: {type: string}
+        actor_id: {$ref: '#/components/schemas/Id'}
+        created_at: {$ref: '#/components/schemas/Timestamp'}
+        before: {$ref: '#/components/schemas/ReviewItem'}
+        after: {$ref: '#/components/schemas/ReviewItem'}
+    SectorRulesInput:
+      type: object
+      required: [sector_code, description, subsectors, risk_categories, checklists, comparison_weights, rules]
+      properties:
+        sector_code: {type: string}
+        based_on_id:
+          $ref: '#/components/schemas/Id'
+          description: Identyfikator aktualnie zatwierdzonej wersji, wymagany przy aktualizacji sektora.
+        description: {type: string}
+        subsectors:
+          type: array
+          description: |
+            W pilotażu water_network (sieć wodociągowa), sanitary_sewer (kanalizacja
+            sanitarna), wastewater_treatment (oczyszczalnia ścieków), water_supply_treatment
+            (uzdatnianie i zaopatrzenie w wodę), stormwater_retention (kanalizacja deszczowa
+            i retencja) oraz other_water_and_sewerage (inne obiekty wod-kan).
+          items:
+            type: object
+            required: [code, label]
+            properties:
+              code: {type: string}
+              label: {type: string}
+        risk_categories:
+          type: array
+          items:
+            type: object
+            required: [code, label, description]
+            properties:
+              code: {$ref: '#/components/schemas/RiskCode'}
+              label: {type: string}
+              description: {type: string}
+        checklists:
+          type: array
+          items:
+            type: object
+            required: [subsector_code, phase, requirements]
+            properties:
+              subsector_code: {type: string}
+              phase: {$ref: '#/components/schemas/Phase'}
+              requirements: {type: array, items: {$ref: '#/components/schemas/Requirement'}}
+        comparison_weights:
+          type: object
+          description: Wagi cech, np. subsector, work_type, function, technical, organization, cost, schedule, location i text. Co najmniej jedna waga dodatnia.
+          minProperties: 1
+          additionalProperties: {type: number, minimum: 0}
+        rules:
+          type: array
+          items:
+            type: object
+            required: [id, risk_codes, condition, consequence]
+            properties:
+              id: {$ref: '#/components/schemas/Id'}
+              risk_codes: {type: array, items: {$ref: '#/components/schemas/RiskCode'}}
+              condition: {type: string}
+              consequence: {type: string}
+              suggested_action: {type: string}
+    SectorRules:
+      allOf:
+        - {$ref: '#/components/schemas/SectorRulesInput'}
+        - {$ref: '#/components/schemas/Reviewable'}
+    Requirement:
+      type: object
+      required: [code, question, rationale, weight, risk_codes]
+      properties:
+        code:
+          type: string
+          description: |
+            Pozycje startowe dla wczesnej koncepcji sieci wodociągowej:
+            need_and_outcome (problem i oczekiwany efekt), service_area_and_users
+            (obszar, liczba i rodzaj odbiorców), uptake (odbiorcy początkowi i dalsze
+            przyłączenia), network_scope (przebieg, długość i przyłącza), supply
+            (miejsce zasilania i stanowisko operatora), land_access (trasa, własność
+            i dostęp do gruntów), dependencies (przeszkody i zależności od innych
+            inwestycji), environment (decyzja środowiskowa i ochrona przyrody),
+            responsibilities (przygotowanie, projekt, nieruchomości, decyzje i eksploatacja).
+        question: {type: string}
+        rationale: {type: string}
+        weight: {type: number, exclusiveMinimum: 0}
+        risk_codes: {type: array, items: {$ref: '#/components/schemas/RiskCode'}}
+        expected_evidence: {type: array, items: {type: string}}
+    AssessmentInput:
+      type: object
+      additionalProperties: false
+      required: [project_id]
+      properties:
+        project_id: {$ref: '#/components/schemas/Id'}
+        document_version_ids:
+          type: array
+          uniqueItems: true
+          items: {$ref: '#/components/schemas/Id'}
+          description: Gotowe wersje dokumentów tego projektu do analizy. Pominięcie pola wybiera aktualne wersje, pusta lista wybiera sam opis. Niedostępna do ekstrakcji wersja zwraca 409.
+    Assessment:
+      type: object
+      required: [id, project_id, created_at, snapshot, threat, completeness, risks, recommendations, deviations, limitations]
+      properties:
+        id: {$ref: '#/components/schemas/Id'}
+        project_id: {$ref: '#/components/schemas/Id'}
+        created_at: {$ref: '#/components/schemas/Timestamp'}
+        snapshot:
+          type: object
+          required: [project_revision, document_version_ids, sector_rules_id, sector_rules_revision, method_version, knowledge_as_of]
+          description: Punkt odniesienia dla wszystkich wyników oraz eksportu. Późniejsze decyzje są dostępne w historii i uwzględniane w następnych analizach.
+          properties:
+            project_revision: {$ref: '#/components/schemas/Revision'}
+            document_version_ids: {type: array, items: {$ref: '#/components/schemas/Id'}}
+            sector_rules_id: {$ref: '#/components/schemas/Id'}
+            sector_rules_revision: {$ref: '#/components/schemas/Revision'}
+            method_version: {type: string}
+            knowledge_as_of: {$ref: '#/components/schemas/Timestamp'}
+        threat: {$ref: '#/components/schemas/Threat'}
+        completeness: {$ref: '#/components/schemas/Completeness'}
+        risks: {type: array, items: {$ref: '#/components/schemas/Risk'}}
+        recommendations: {type: array, items: {$ref: '#/components/schemas/Recommendation'}}
+        deviations:
+          type: object
+          required: [cost, time]
+          properties:
+            cost: {$ref: '#/components/schemas/Deviation'}
+            time: {$ref: '#/components/schemas/Deviation'}
+        limitations: {type: array, items: {type: string}}
+    Threat:
+      type: object
+      required: [level, rationale]
+      properties:
+        level: {type: string, enum: [low, moderate, high, critical, insufficient_evidence]}
+        rationale: {type: string}
+        likelihood: {type: string, enum: [low, moderate, high, insufficient_evidence]}
+        severity: {type: string, enum: [low, moderate, high, critical, insufficient_evidence]}
+    Completeness:
+      type: object
+      required: [score, applicable_count]
+      properties:
+        score:
+          type: [number, 'null']
+          minimum: 0
+          maximum: 1
+          description: Suma iloczynów weight i coverage podzielona przez sumę wag pozycji mających zastosowanie. null przy braku takich pozycji.
+        applicable_count: {$ref: '#/components/schemas/Count'}
+    InformationState:
+      type: string
+      enum: [confirmed, partially_confirmed, missing_from_package, not_addressed, conflicting_sources, not_applicable, confirmed_not_done]
+      description: |
+        missing_from_package oznacza brak materiału w paczce, not_addressed brak
+        omówienia w dostępnym materiale. confirmed_not_done wymaga dowodu
+        niewykonania i dokumentuje stan informacji o danej czynności.
+    InformationCheck:
+      type: object
+      required: [id, requirement, state, coverage, explanation, evidence_ids]
+      properties:
+        id: {$ref: '#/components/schemas/Id'}
+        requirement: {$ref: '#/components/schemas/Requirement'}
+        state: {$ref: '#/components/schemas/InformationState'}
+        coverage:
+          enum: [0, 0.5, 1, null]
+          description: 1 dla confirmed i confirmed_not_done, 0.5 dla partially_confirmed, 0 dla pozostałych pozycji z wyjątkiem not_applicable (null).
+        explanation: {type: string}
+        requested_information: {type: string, description: Konkretne wyjaśnienie, dane lub dokument potrzebny do uzupełnienia.}
+        potential_completeness_gain: {$ref: '#/components/schemas/Score'}
+        evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+      if: {properties: {state: {const: confirmed_not_done}}}
+      then: {properties: {evidence_ids: {minItems: 1}}}
+    Twin:
+      type: object
+      required: [project_id, score, explanation, compared_features, missing_features, related_event_ids, evidence_ids]
+      properties:
+        project_id: {$ref: '#/components/schemas/Id'}
+        score: {$ref: '#/components/schemas/Score'}
+        explanation: {type: string}
+        compared_features:
+          type: array
+          items:
+            type: object
+            required: [feature, direction, explanation, evidence_ids]
+            properties:
+              feature: {type: string}
+              direction: {type: string, enum: [similar, different]}
+              explanation: {type: string}
+              evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+        missing_features: {type: array, items: {type: string}}
+        related_event_ids: {type: array, items: {$ref: '#/components/schemas/Id'}}
+        comparable_amounts: {type: array, items: {$ref: '#/components/schemas/Amount'}}
+        comparable_milestones: {type: array, items: {$ref: '#/components/schemas/Milestone'}}
+        evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+    Recommendation:
+      allOf:
+        - {$ref: '#/components/schemas/Claim'}
+        - type: object
+          required: [kind, action, rationale, related_to]
+          properties:
+            kind: {type: string, enum: [investigate, provide_information, mitigate, proposed_clause]}
+            action: {type: string}
+            rationale: {type: string}
+            evidence_ids: {$ref: '#/components/schemas/EvidenceIds', minItems: 1}
+            proposed_clause: {type: string}
+            related_to:
+              type: array
+              minItems: 1
+              description: Powiązane luki, ryzyka, fakty lub udokumentowane przypadki. Dla luki źródłem uzasadnienia może być wersja checklisty i wskazanie sprawdzonej paczki.
+              items: {$ref: '#/components/schemas/ResourceRef'}
+    Deviation:
+      type: object
+      required: [status, sample_size, missing_data_fraction, confidence, evidence_ids]
+      properties:
+        status: {type: string, enum: [estimated, insufficient_evidence]}
+        sample_size:
+          $ref: '#/components/schemas/Count'
+          description: Liczba porównywalnych projektów z wiarygodną wartością bazową i końcową dla danej miary.
+        missing_data_fraction:
+          type: [number, 'null']
+          minimum: 0
+          maximum: 1
+          description: Ułamek kandydatów z brakami dla danej miary. null przy braku kandydatów.
+        confidence: {$ref: '#/components/schemas/Confidence'}
+        evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+        interval:
+          type: object
+          required: [lower, upper, unit, methodology]
+          description: |
+            Odchylenie od wartości bazowej, z lower ≤ upper. Porównanie kosztów
+            wymaga porównywalnych kwot bazowych i końcowych, zgodnego rozliczenia
+            VAT i waluty lub udokumentowanych przeliczeń. Metodyka opisuje również
+            porównywalność nominalnych wartości z różnych lat i kryterium
+            wystarczającej próby. Jeśli próba jest zbyt mała lub dane
+            nieporównywalne, wynik ma status insufficient_evidence.
+          properties:
+            lower: {$ref: '#/components/schemas/Decimal'}
+            upper: {$ref: '#/components/schemas/Decimal'}
+            unit: {type: string, examples: [days, percent, PLN]}
+            methodology: {type: string}
+      if: {properties: {status: {const: estimated}}}
+      then:
+        required: [interval]
+        properties:
+          sample_size: {minimum: 1}
+          evidence_ids: {minItems: 1}
+      else: {not: {required: [interval]}}
+    RiskDnaInput:
+      type: object
+      required: [risk_code, title, historical_event_ids, signal, checkpoint, applicability, expected_evidence]
+      properties:
+        risk_code: {$ref: '#/components/schemas/RiskCode'}
+        title: {type: string}
+        historical_event_ids:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          description: Identyfikatory zatwierdzonych, udokumentowanych zdarzeń historycznych.
+          items: {$ref: '#/components/schemas/Id'}
+        signal: {type: string}
+        causes: {type: array, items: {$ref: '#/components/schemas/Cause'}}
+        impacts: {type: array, items: {$ref: '#/components/schemas/Impact'}}
+        measures: {type: array, items: {$ref: '#/components/schemas/Measure'}}
+        applicability: {type: string}
+        checkpoint: {type: string}
+        expected_evidence: {type: array, minItems: 1, items: {type: string}}
+    RiskDna:
+      allOf:
+        - {$ref: '#/components/schemas/RiskDnaInput'}
+        - {$ref: '#/components/schemas/Reviewable'}
+        - type: object
+          required: [evidence_ids]
+          properties:
+            evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+            approved_at: {$ref: '#/components/schemas/Timestamp'}
+    ChaosInput:
+      type: object
+      additionalProperties: false
+      properties:
+        risk_dna_ids: {type: array, minItems: 1, uniqueItems: true, items: {$ref: '#/components/schemas/Id'}}
+        parameters:
+          type: object
+          description: Dozwolone klucze, wartości i jednostki zależą od scenariusza. Dni opóźnienia są liczbą całkowitą nieujemną.
+          additionalProperties:
+            type: [number, string, boolean]
+          examples:
+            - {land_access_delay_days: 90}
+    ChaosResult:
+      type: object
+      required: [id, assessment_id, risk_dna_id, risk_dna_revision, scenario, parameters, status, explanation, checks, recommendations, evidence_ids]
+      properties:
+        id: {$ref: '#/components/schemas/Id'}
+        assessment_id: {$ref: '#/components/schemas/Id'}
+        risk_dna_id: {$ref: '#/components/schemas/Id'}
+        risk_dna_revision: {$ref: '#/components/schemas/Revision'}
+        scenario: {type: string}
+        parameters: {type: object, additionalProperties: {type: [number, string, boolean]}}
+        status: {type: string, enum: [resilient, partially_protected, undocumented_protection, critical_gap]}
+        explanation: {type: string}
+        checks: {type: array, items: {$ref: '#/components/schemas/InformationCheck'}}
+        recommendations: {type: array, items: {$ref: '#/components/schemas/Recommendation'}}
+        evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+        quantitative_impacts:
+          type: array
+          description: Dostępne przy porównywalnych danych historycznych i zdefiniowanej metodyce obliczeń.
+          items: {$ref: '#/components/schemas/Deviation'}
+    RiskGraph:
+      type: object
+      required: [nodes, edges]
+      properties:
+        nodes:
+          type: array
+          items:
+            type: object
+            required: [id, label, target, evidence_ids]
+            properties:
+              id: {$ref: '#/components/schemas/Id'}
+              label: {type: string}
+              target: {$ref: '#/components/schemas/ResourceRef'}
+              evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+        edges:
+          type: array
+          items:
+            type: object
+            required: [from, to, relation, explanation, evidence_ids]
+            properties:
+              from: {$ref: '#/components/schemas/Id'}
+              to: {$ref: '#/components/schemas/Id'}
+              relation:
+                type: string
+                enum: [EVIDENCED_BY, MAY_CAUSE, OBSERVED_IN, MITIGATED_BY, TESTED_BY, SIMILAR_TO]
+                description: MAY_CAUSE wyraża hipotezę zależności.
+              explanation: {type: string}
+              evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+    AssessmentDiff:
+      type: object
+      required: [baseline_id, assessment_id, completeness_before, completeness_after, changes]
+      properties:
+        baseline_id: {$ref: '#/components/schemas/Id'}
+        assessment_id: {$ref: '#/components/schemas/Id'}
+        completeness_before: {$ref: '#/components/schemas/Completeness'}
+        completeness_after: {$ref: '#/components/schemas/Completeness'}
+        changes:
+          type: array
+          items:
+            type: object
+            required: [kind, explanation, evidence_ids]
+            properties:
+              kind: {type: string, enum: [added, confirmed, changed, resolved]}
+              previous: {$ref: '#/components/schemas/ResourceRef'}
+              current: {$ref: '#/components/schemas/ResourceRef'}
+              explanation: {type: string}
+              evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+    PatternSearch:
+      type: object
+      required: [status, analyzed_project_count, documented_project_count, candidates, limitations]
+      properties:
+        status: {type: string, enum: [candidates_found, no_candidates, insufficient_evidence]}
+        analyzed_project_count: {$ref: '#/components/schemas/Count'}
+        documented_project_count: {$ref: '#/components/schemas/Count'}
+        limitations: {type: array, items: {type: string}}
+        candidates:
+          type: array
+          items: {$ref: '#/components/schemas/PatternCandidate'}
+    PatternCandidate:
+      allOf:
+        - {$ref: '#/components/schemas/Reviewable'}
+        - type: object
+          required: [risk_codes, event_ids, project_ids, common_features, differences, sequence, evidence_ids]
+          properties:
+            risk_codes: {type: array, items: {$ref: '#/components/schemas/RiskCode'}}
+            event_ids: {type: array, items: {$ref: '#/components/schemas/Id'}}
+            project_ids: {type: array, uniqueItems: true, items: {$ref: '#/components/schemas/Id'}}
+            common_features: {type: array, items: {type: string}}
+            differences: {type: array, items: {type: string}}
+            sequence: {type: array, items: {type: string}, description: Porównywalna sekwencja sygnałów i skutków.}
+            hypothesis: {type: string}
+            evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
+    GeoSignal:
+      type: object
+      required: [metric, value, unit, year, geographic_level, evidence_ids]
+      properties:
+        metric: {type: string, examples: [population_density]}
+        value: {$ref: '#/components/schemas/Decimal'}
+        unit: {type: string, examples: [people_per_km2]}
+        year: {type: integer, minimum: 1900}
+        geographic_level: {type: string, examples: [municipality]}
+        evidence_ids: {$ref: '#/components/schemas/EvidenceIds', minItems: 1}
+    Monitoring:
+      type: object
+      required: [enabled]
+      properties:
+        enabled: {type: boolean}
+    Export:
+      type: object
+      required: [schema_version, scope, resource_id, generated_at, records]
+      properties:
+        schema_version: {type: string, const: '1'}
+        scope: {type: string, enum: [project, assessment]}
+        resource_id: {$ref: '#/components/schemas/Id'}
+        generated_at: {$ref: '#/components/schemas/Timestamp'}
+        records:
+          type: array
+          items:
+            type: object
+            required: [record_type, record_id, data]
+            properties:
+              record_type: {type: string, examples: [project, assessment, evidence, risk, decision]}
+              record_id: {$ref: '#/components/schemas/Id'}
+              data: {type: object, description: Rekord w schemacie wskazanym przez record_type.}
