@@ -5,6 +5,8 @@ import type { TerraDraw } from 'terra-draw';
 import { Geometry } from '../../core/api/types';
 import { Basemap, MAP_STYLE, POLAND_CENTER } from './map-style';
 
+/** Poniżej tego przybliżenia klik w mapę nie wskazuje działki (zbyt duża niepewność punktu). */
+const MIN_PICK_ZOOM = 12;
 const EMPTY = {type: 'FeatureCollection' as const, features: []};
 
 /** Mapa MapLibre: wybór działki kliknięciem, granica działki, punkt stałej wody. */
@@ -35,7 +37,14 @@ const EMPTY = {type: 'FeatureCollection' as const, features: []};
       </button>
     </div>
     @if (locateError()) {
-      <p class="absolute left-3 right-16 top-16 z-10 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800 shadow lg:right-auto lg:max-w-sm" role="alert">{{locateError()}}</p>
+      <p class="absolute left-3 right-16 top-16 z-10 flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 shadow lg:right-auto lg:max-w-sm dark:border-red-500 dark:bg-red-950 dark:text-red-100" role="alert">
+        <i class="pi pi-exclamation-circle mt-0.5" aria-hidden="true"></i><span>{{locateError()}}</span>
+      </p>
+    }
+    @if (zoomHint()) {
+      <p class="absolute inset-x-3 bottom-20 z-10 mx-auto flex w-fit max-w-full items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900 shadow-lg lg:bottom-12 dark:border-amber-500 dark:bg-amber-950 dark:text-amber-100" role="status">
+        <i class="pi pi-search-plus" aria-hidden="true"></i>Przybliż mapę, aby wybrać działkę
+      </p>
     }
     @if (drawing()) {
       <div class="absolute left-3 right-16 top-16 z-10 rounded-lg bg-primary px-3 py-2 text-sm text-primary-contrast shadow lg:right-auto lg:top-3 lg:max-w-sm" role="status">
@@ -63,6 +72,8 @@ export class WodoMap implements OnDestroy {
   protected readonly drawing = signal(false);
   protected readonly locateError = signal('');
   protected readonly parcelLayer = signal(true);
+  protected readonly zoomHint = signal(false);
+  private zoomHintTimer?: ReturnType<typeof setTimeout>;
   private readonly container = viewChild.required<ElementRef<HTMLDivElement>>('container');
   private map?: MapLibreMap;
   private draw_?: TerraDraw;
@@ -71,6 +82,12 @@ export class WodoMap implements OnDestroy {
   constructor() {
     afterNextRender(() => void this.init());
     effect(() => { this.geometry(); this.waterPoint(); this.markers(); this.ready(); this.draw(); });
+  }
+
+  private showZoomHint() {
+    this.zoomHint.set(true);
+    clearTimeout(this.zoomHintTimer);
+    this.zoomHintTimer = setTimeout(() => this.zoomHint.set(false), 6000);
   }
 
   protected setBasemap(id: Basemap) {
@@ -134,7 +151,13 @@ export class WodoMap implements OnDestroy {
     if (matchMedia('(pointer: fine)').matches) map.addControl(new maplibregl.NavigationControl({showCompass: false}), 'bottom-right');
     map.addControl(new maplibregl.ScaleControl({unit: 'metric'}), 'bottom-left');
     map.getCanvas().style.cursor = 'crosshair';
-    map.on('click', (event) => !this.drawing() && Date.now() > this.ignoreClicksUntil && this.pointClicked.emit({lat: event.lngLat.lat, lon: event.lngLat.lng}));
+    map.on('click', (event) => {
+      if (this.drawing() || Date.now() <= this.ignoreClicksUntil) return;
+      if (map.getZoom() < MIN_PICK_ZOOM) { this.showZoomHint(); return; }
+      this.zoomHint.set(false);
+      this.pointClicked.emit({lat: event.lngLat.lat, lon: event.lngLat.lng});
+    });
+    map.on('zoomend', () => { if (map.getZoom() >= MIN_PICK_ZOOM) this.zoomHint.set(false); });
     map.on('load', () => {
       map.addSource('parcel', {type: 'geojson', data: EMPTY});
       map.addSource('water', {type: 'geojson', data: EMPTY});
@@ -204,5 +227,5 @@ export class WodoMap implements OnDestroy {
     this.map?.fitBounds(bounds, {padding: 56, maxZoom: 17, duration: reduced ? 0 : 600});
   }
 
-  ngOnDestroy() { this.draw_?.stop(); this.map?.remove(); }
+  ngOnDestroy() { clearTimeout(this.zoomHintTimer); this.draw_?.stop(); this.map?.remove(); }
 }
