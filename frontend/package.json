@@ -4,7 +4,8 @@
   "scripts": {
     "start": "ng serve",
     "build": "ng build",
-    "test:e2e": "node e2e.mjs"
+    "test:e2e": "node e2e.mjs",
+    "gen:api": "openapi-typescript ${API_URL:-http://localhost:8000}/openapi.json -o src/app/core/api/schema.d.ts"
   },
   "dependencies": {
     "@angular/animations": "~21.2.0",
@@ -12,8 +13,12 @@
     "@angular/core": "~21.2.0",
     "@angular/forms": "~21.2.0",
     "@angular/platform-browser": "~21.2.0",
+    "@angular/router": "~21.2.0",
     "@primeuix/themes": "^3.1.1",
-    "leaflet": "^1.9.4",
+    "@turf/turf": "^7.4.0",
+    "echarts": "^6.1.0",
+    "maplibre-gl": "^6.19.0",
+    "ngx-echarts": "^21.0.0",
     "primeicons": "^8.0.2",
     "primeng": "^21.1.10",
     "rxjs": "~7.8.0"
@@ -24,7 +29,7 @@
     "@angular/compiler": "~21.2.0",
     "@angular/compiler-cli": "~21.2.0",
     "@tailwindcss/postcss": "^4.3.5",
-    "@types/leaflet": "^1.9.22",
+    "openapi-typescript": "^7.13.0",
     "playwright": "^1.65.1",
     "postcss": "^8.5.33",
     "tailwindcss": "^4.3.5",
