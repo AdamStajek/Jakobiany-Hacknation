@@ -5,8 +5,8 @@ import { Component, input } from '@angular/core';
   selector: 'app-data-table',
   template: `
     <details class="mt-2 text-sm">
-      <summary class="cursor-pointer text-primary">Pokaż dane wykresu</summary>
-      <div class="mt-2 max-h-64 overflow-auto">
+      <summary class="cursor-pointer py-1 text-primary">Pokaż dane wykresu</summary>
+      <div class="pw-scroll mt-2 max-h-64">
         <table class="w-full text-left text-xs">
           <caption class="sr-only">{{caption()}}</caption>
           <thead><tr>@for (c of columns(); track c) { <th scope="col" class="border-b border-surface px-2 py-1 font-semibold">{{c}}</th> }</tr></thead>

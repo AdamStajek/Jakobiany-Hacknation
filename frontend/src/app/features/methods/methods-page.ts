@@ -7,13 +7,13 @@ type Item = {name: string; what: string; url: string};
   selector: 'app-methods-page',
   imports: [ModelPage],
   template: `
-    <article class="mx-auto max-w-4xl space-y-6">
+    <article class="mx-auto max-w-4xl space-y-5 p-4 lg:p-8">
       <header>
         <h1 class="text-2xl font-bold tracking-tight">Jak to działa?</h1>
         <p class="mt-1 text-muted-color">Porównujemy opad z zapotrzebowaniem uprawy na wodę dla konkretnej działki. Każde zalecenie ma dowód, a brak danych jest pokazany wprost.</p>
       </header>
 
-      <section aria-labelledby="metoda" class="space-y-2 rounded-xl border border-surface bg-surface-0 p-4 dark:bg-surface-900">
+      <section aria-labelledby="metoda" class="space-y-2 pw-card p-4">
         <h2 id="metoda" class="text-lg font-semibold">Co liczymy</h2>
         <ul class="ml-5 list-disc space-y-1 text-sm">
           <li><strong>ET₀ FAO-56 × Kc:</strong> dobowe zapotrzebowanie uprawy z temperatury, wiatru, promieniowania i fazy rozwoju.</li>
@@ -28,7 +28,7 @@ type Item = {name: string; what: string; url: string};
         <h2 id="zrodla" class="text-lg font-semibold">Źródła danych (bezpłatne)</h2>
         <div class="grid gap-3 sm:grid-cols-2">
           @for (item of sources; track item.name) {
-            <a [href]="item.url" target="_blank" rel="noopener" class="block rounded-xl border border-surface bg-surface-0 p-3 hover:border-primary dark:bg-surface-900">
+            <a [href]="item.url" target="_blank" rel="noopener" class="pw-card block p-3 hover:border-primary">
               <div class="font-medium text-primary">{{item.name}} <span aria-hidden="true">↗</span></div>
               <div class="text-sm text-muted-color">{{item.what}}</div>
             </a>
@@ -36,7 +36,7 @@ type Item = {name: string; what: string; url: string};
         </div>
       </section>
 
-      <section aria-labelledby="limity" class="space-y-2 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-50">
+      <section aria-labelledby="limity" class="space-y-2 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-950 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-50">
         <h2 id="limity" class="text-lg font-semibold">Jak czytać wynik</h2>
         <ul class="ml-5 list-disc space-y-1 text-sm">
           <li>To ocena przesiewowa: podpowiada, gdzie i kiedy sprawdzić pole. Nie jest dawką nawadniania ani dokumentem urzędowym.</li>
@@ -47,7 +47,7 @@ type Item = {name: string; what: string; url: string};
         </ul>
         <p class="text-sm">Pełny opis: <code>docs/DATA_LIMITATIONS.md</code>.</p>
       </section>
-      <details class="mt-4 rounded-xl border border-surface p-4">
+      <details class="pw-card p-4">
         <summary class="cursor-pointer font-semibold">Szczegóły modelu paszportu pola</summary>
         <app-model-page />
       </details>

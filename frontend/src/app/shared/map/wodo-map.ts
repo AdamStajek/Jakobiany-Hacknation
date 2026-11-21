@@ -13,29 +13,32 @@ const EMPTY = {type: 'FeatureCollection' as const, features: []};
   template: `
     <div #container class="h-full w-full" role="application"
       aria-label="Interaktywna mapa. Kliknij, aby wskazać działkę. Działkę możesz też wyszukać po identyfikatorze."></div>
-    <div class="absolute left-3 top-3 z-10 flex overflow-hidden rounded-lg border border-surface bg-surface-0 text-sm shadow dark:bg-surface-900" role="group" aria-label="Podkład mapy">
-      @for (item of basemaps; track item.id) {
-        <button type="button" (click)="setBasemap(item.id)" [attr.aria-pressed]="basemap() === item.id"
-          class="px-3 py-1.5 font-medium" [class]="basemap() === item.id ? 'bg-primary text-primary-contrast' : 'hover:bg-surface-100 dark:hover:bg-surface-800'">{{item.label}}</button>
-      }
-    </div>
-    <div class="absolute bottom-8 left-3 z-10 flex flex-col items-start gap-2 text-sm">
+    <div class="absolute right-3 top-3 z-10 flex flex-col gap-2" role="group" aria-label="Narzędzia mapy">
+      <button type="button" (click)="setBasemap(basemap() === 'osm' ? 'orto' : 'osm')" [attr.aria-pressed]="basemap() === 'orto'"
+        [attr.aria-label]="basemap() === 'orto' ? 'Przełącz na mapę' : 'Przełącz na ortofotomapę'" [title]="basemap() === 'orto' ? 'Mapa' : 'Ortofoto'"
+        class="pw-card grid h-11 w-11 place-items-center shadow-md hover:bg-surface-100 dark:hover:bg-surface-800">
+        <i class="pi pi-images" aria-hidden="true"></i>
+      </button>
+      <button type="button" (click)="toggleParcelLayer()" [attr.aria-pressed]="parcelLayer()" aria-label="Granice działek (od zbliżenia)" title="Granice działek"
+        class="pw-card grid h-11 w-11 place-items-center shadow-md hover:bg-surface-100 dark:hover:bg-surface-800" [class.ring-2]="parcelLayer()" [class.ring-primary]="parcelLayer()">
+        <i class="pi pi-table" aria-hidden="true"></i>
+      </button>
       <button type="button" (click)="toggleDraw()" [attr.aria-pressed]="drawing()" [disabled]="!ready()"
-        class="rounded-lg border border-surface bg-surface-0 px-3 py-1.5 font-medium shadow disabled:opacity-50 dark:bg-surface-900"
-        [class]="drawing() ? 'ring-2 ring-primary' : 'hover:bg-surface-100 dark:hover:bg-surface-800'">
-        <i class="pi {{drawing() ? 'pi-times' : 'pi-pencil'}}" aria-hidden="true"></i> {{drawing() ? 'Anuluj rysowanie' : 'Narysuj granicę'}}
+        [attr.aria-label]="drawing() ? 'Anuluj rysowanie' : 'Narysuj granicę działki'" [title]="drawing() ? 'Anuluj rysowanie' : 'Narysuj granicę'"
+        class="pw-card grid h-11 w-11 place-items-center shadow-md hover:bg-surface-100 disabled:opacity-50 dark:hover:bg-surface-800"
+        [class.ring-2]="drawing()" [class.ring-primary]="drawing()">
+        <i class="pi {{drawing() ? 'pi-times' : 'pi-pencil'}}" aria-hidden="true"></i>
       </button>
-      <button type="button" (click)="locate()" [disabled]="!ready()"
-        class="rounded-lg border border-surface bg-surface-0 px-3 py-1.5 font-medium shadow disabled:opacity-50 hover:bg-surface-100 dark:bg-surface-900 dark:hover:bg-surface-800">
-        <i class="pi pi-map-marker" aria-hidden="true"></i> Lokalizuj mnie na mapie
+      <button type="button" (click)="locate()" [disabled]="!ready()" aria-label="Lokalizuj mnie na mapie" title="Moja lokalizacja"
+        class="pw-card grid h-11 w-11 place-items-center shadow-md hover:bg-surface-100 disabled:opacity-50 dark:hover:bg-surface-800">
+        <i class="pi pi-compass" aria-hidden="true"></i>
       </button>
-      @if (locateError()) { <p class="max-w-xs rounded-lg bg-red-50 px-3 py-1.5 text-red-800 shadow" role="alert">{{locateError()}}</p> }
-      <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-surface bg-surface-0 px-3 py-1.5 shadow dark:bg-surface-900">
-        <input type="checkbox" [checked]="parcelLayer()" (change)="toggleParcelLayer()" /> Granice działek (od zbliżenia)
-      </label>
     </div>
+    @if (locateError()) {
+      <p class="absolute left-3 right-16 top-16 z-10 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800 shadow lg:right-auto lg:max-w-sm" role="alert">{{locateError()}}</p>
+    }
     @if (drawing()) {
-      <div class="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-lg bg-primary px-3 py-1.5 text-sm text-primary-contrast shadow" role="status">
+      <div class="absolute left-3 right-16 top-16 z-10 rounded-lg bg-primary px-3 py-2 text-sm text-primary-contrast shadow lg:right-auto lg:top-3 lg:max-w-sm" role="status">
         Klikaj kolejne rogi działki. Dwuklik lub kliknięcie ostatniego punktu kończy rysowanie.
       </div>
     }
@@ -55,7 +58,6 @@ export class WodoMap implements OnDestroy {
   /** Granica narysowana przez użytkownika (WGS 84). */
   readonly polygonDrawn = output<Geometry>();
 
-  protected readonly basemaps: {id: Basemap; label: string}[] = [{id: 'osm', label: 'Mapa'}, {id: 'orto', label: 'Ortofoto'}];
   protected readonly basemap = signal<Basemap>('osm');
   protected readonly ready = signal(false);
   protected readonly drawing = signal(false);
@@ -128,7 +130,8 @@ export class WodoMap implements OnDestroy {
       container: this.container().nativeElement, style: MAP_STYLE, center: POLAND_CENTER, zoom: 5.4, minZoom: 4, maxZoom: 19,
       maxBounds: [[9, 46], [29, 58]], attributionControl: {compact: true},
     });
-    map.addControl(new maplibregl.NavigationControl({showCompass: false}), 'top-right');
+    // Przyciski zbliżania tylko dla myszy; na telefonie wystarcza szczypanie.
+    if (matchMedia('(pointer: fine)').matches) map.addControl(new maplibregl.NavigationControl({showCompass: false}), 'bottom-right');
     map.addControl(new maplibregl.ScaleControl({unit: 'metric'}), 'bottom-left');
     map.getCanvas().style.cursor = 'crosshair';
     map.on('click', (event) => !this.drawing() && Date.now() > this.ignoreClicksUntil && this.pointClicked.emit({lat: event.lngLat.lat, lon: event.lngLat.lng}));

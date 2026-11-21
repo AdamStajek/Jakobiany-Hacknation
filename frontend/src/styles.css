@@ -21,13 +21,37 @@
   --ui-soft: #EEF1E8;
   --ui-muted: #506047;
   --ui-overlay: rgba(13, 42, 0, 0.52);
+
+  /* Wysokość elementów powłoki: górny pasek i dolna nawigacja (tylko telefon). */
+  --shell-top: 3.5rem;
+  --shell-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 1024px) {
+  :root { --shell-top: 0px; --shell-bottom: 0px; }
 }
 
-html { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.55; }
-body { margin: 0; background: var(--pw-ivory); color: var(--pw-forest); }
+@layer components {
+  /* Karta: jedyne miejsce definiujące wygląd powierzchni, działa w obu motywach. */
+  .pw-card {
+    background: var(--p-content-background);
+    border: 1px solid var(--p-content-border-color);
+    border-radius: 0.875rem;
+  }
+  .pw-eyebrow {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--p-text-muted-color);
+  }
+  .pw-scroll { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+}
+
+html { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.5; -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--pw-ivory); color: var(--pw-forest); -webkit-tap-highlight-color: transparent; }
 html.app-dark { color-scheme: dark; }
 html.app-dark body { background: var(--p-surface-950); color: var(--p-text-color); }
-:focus-visible { outline: 3px solid var(--pw-forest); outline-offset: 3px; }
+:focus-visible { outline: 3px solid var(--pw-forest); outline-offset: 2px; }
 html.app-dark :focus-visible { outline-color: var(--pw-orange); }
+button, a { touch-action: manipulation; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
-@media print { header, footer, nav { display: none !important; } }
