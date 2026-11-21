@@ -170,7 +170,7 @@ async function run(name) {
     await shot('09-link-raportu');
     await page.getByRole('region', {name: 'Mapa i raport'}).getByRole('link', {name: 'Paszport', exact: true}).click();
     await page.getByRole('heading', {name: 'Paszporty pól'}).waitFor();
-    assert.equal(await page.locator('input[type=text], input:not([type])').first().inputValue().catch(() => ''), matches, 'paszport dostaje identyfikator z linku');
+    await page.getByRole('article', {name: /Paszport:/}).getByText(matches).first().waitFor({timeout: 20000});
     await shot('10-paszport');
 
     // 9. Link do samej działki, motyw, rysowanie granicy.

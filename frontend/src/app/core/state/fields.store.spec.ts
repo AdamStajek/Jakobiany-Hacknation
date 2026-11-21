@@ -5,6 +5,7 @@ import { ApiService } from '../api/api.service';
 import type { Parcel, Report, ServerField, User } from '../api/types';
 import { AnalysisStore } from './analysis.store';
 import { AuthStore } from './auth.store';
+import { CONSENT_KEY, ConsentStore } from './consent.store';
 import { ATTENTION_DRY_DAYS, FieldsStore, FieldStatus, STORAGE_KEY, attentionReasons, isStale, statusFromReport } from './fields.store';
 
 const parcel = (id: string): Parcel => ({
@@ -32,7 +33,7 @@ const serverField = (patch: Partial<ServerField> = {}): ServerField =>
 const newField = (id = 'P1') => ({name: ' Pole przy lesie ', color: 'blue' as const, crop: 'wheat', parcels: [{id, area_ha: 2, geometry: parcel(id).geometry}]});
 
 describe('FieldsStore', () => {
-  beforeEach(() => localStorage.clear());
+  beforeEach(() => { localStorage.clear(); localStorage.setItem(CONSENT_KEY, 'granted'); });
 
   it('dodaje pole i zapisuje je w localStorage', async () => {
     const {store} = setup();
@@ -105,7 +106,7 @@ describe('FieldsStore', () => {
 });
 
 describe('FieldsStore dla zalogowanego', () => {
-  beforeEach(() => localStorage.clear());
+  beforeEach(() => { localStorage.clear(); localStorage.setItem(CONSENT_KEY, 'granted'); });
 
   it('pobiera pola z serwera, a localStorage zostaje nietknięty', async () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify([{id: 'l1', name: 'Lokalne', color: 'green', crop: null, parcels: [], status: null}]));
@@ -128,7 +129,7 @@ describe('FieldsStore dla zalogowanego', () => {
     const createServerField = vi.fn(async (body: {name: string}) => serverField({id: 'n1', name: body.name}));
     const {store} = setup({serverFields: async () => [], createServerField}, true);
     const field = await store.add(newField());
-    expect(createServerField).toHaveBeenCalledWith({name: 'Pole przy lesie', color: 'blue', crop: 'wheat', parcels: [{id: 'P1', geometry: parcel('P1').geometry}]});
+    expect(createServerField).toHaveBeenCalledWith({name: 'Pole przy lesie', color: '#3b82f6', crop: 'wheat', parcels: [{id: 'P1', geometry: parcel('P1').geometry}]});
     expect(field?.id).toBe('n1');
     expect(store.fields().map((f) => f.id)).toEqual(['n1']);
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
@@ -217,5 +218,39 @@ describe('statusy pól', () => {
 
   it('statusFromReport znosi brak danych z ostatnich dni', () => {
     expect(statusFromReport(report('P1', {risk: 'Brak podstaw do oceny', recent: null}))).toMatchObject({dryDays: null, balanceMm: null});
+  });
+});
+
+describe('FieldsStore bez zgody na zapis', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('trzyma pola tylko w pamięci i nic nie zapisuje w localStorage', async () => {
+    const {store} = setup();
+    const field = await store.add(newField());
+    expect(store.fields()).toHaveLength(1);
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+    expect(field?.name).toBe('Pole przy lesie');
+  });
+
+  it('po wyrażeniu zgody zapisuje pola z pamięci, a po jej cofnięciu usuwa kopię', async () => {
+    const {store} = setup();
+    await store.add(newField());
+    TestBed.inject(ConsentStore).grant();
+    TestBed.flushEffects();
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]')).toHaveLength(1);
+    TestBed.inject(ConsentStore).deny();
+    TestBed.flushEffects();
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+    expect(store.fields()).toHaveLength(1);
+  });
+
+  it('quickAdd dodaje działkę raz, z nazwą z numeru', async () => {
+    const {store} = setup();
+    const first = await store.quickAdd(parcel('P9'));
+    const again = await store.quickAdd(parcel('P9'));
+    expect(first?.name).toBe('Działka P9');
+    expect(again?.id).toBe(first?.id);
+    expect(store.fields()).toHaveLength(1);
+    expect(store.parcelIds().has('P9')).toBe(true);
   });
 });

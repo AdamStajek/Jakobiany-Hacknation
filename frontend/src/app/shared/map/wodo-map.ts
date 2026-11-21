@@ -9,6 +9,12 @@ import { Basemap, MAP_STYLE, POLAND_CENTER } from './map-style';
 const MIN_PICK_ZOOM = 12;
 const EMPTY = {type: 'FeatureCollection' as const, features: []};
 
+/** Pinezka pola widoczna po oddaleniu mapy (gdy granice działek są zbyt małe). */
+export type FieldPin = {id: string; name: string; coordinates: [number, number]; color: string};
+
+/** Powyżej tego przybliżenia pinezki znikają, bo widać już granice. */
+const PIN_MAX_ZOOM = 14.5;
+
 /** Mapa MapLibre: wybór działki kliknięciem, granica działki, punkt stałej wody. */
 @Component({
   selector: 'app-wodo-map',
@@ -63,6 +69,9 @@ export class WodoMap implements OnDestroy {
   readonly markers = input<[number, number][]>([]);
   /** Przy starcie, bez wskazanej działki, wyśrodkuj mapę na lokalizacji użytkownika. */
   readonly locateUser = input(false);
+  /** Pinezki pól: przy oddaleniu sąsiednie łączą się w grupy z licznikiem. */
+  readonly pins = input<FieldPin[]>([]);
+  readonly pinClicked = output<string>();
   readonly pointClicked = output<{lat: number; lon: number}>();
   /** Granica narysowana przez użytkownika (WGS 84). */
   readonly polygonDrawn = output<Geometry>();
@@ -81,7 +90,7 @@ export class WodoMap implements OnDestroy {
 
   constructor() {
     afterNextRender(() => void this.init());
-    effect(() => { this.geometry(); this.waterPoint(); this.markers(); this.ready(); this.draw(); });
+    effect(() => { this.geometry(); this.waterPoint(); this.markers(); this.pins(); this.ready(); this.draw(); });
   }
 
   private showZoomHint() {
@@ -153,6 +162,7 @@ export class WodoMap implements OnDestroy {
     map.getCanvas().style.cursor = 'crosshair';
     map.on('click', (event) => {
       if (this.drawing() || Date.now() <= this.ignoreClicksUntil) return;
+      if (map.getLayer('pin-points') && map.queryRenderedFeatures(event.point, {layers: ['pin-clusters', 'pin-points']}).length) return;
       if (map.getZoom() < MIN_PICK_ZOOM) { this.showZoomHint(); return; }
       this.zoomHint.set(false);
       this.pointClicked.emit({lat: event.lngLat.lat, lon: event.lngLat.lng});
@@ -163,12 +173,40 @@ export class WodoMap implements OnDestroy {
       map.addSource('water', {type: 'geojson', data: EMPTY});
       map.addSource('markers', {type: 'geojson', data: EMPTY});
       map.addSource('me', {type: 'geojson', data: EMPTY});
+      map.addSource('pins', {type: 'geojson', data: EMPTY, cluster: true, clusterRadius: 48, clusterMaxZoom: 13});
       map.addLayer({id: 'parcel-fill', type: 'fill', source: 'parcel', paint: {'fill-color': '#EE8106', 'fill-opacity': 0.16}});
       map.addLayer({id: 'parcel-line', type: 'line', source: 'parcel', paint: {'line-color': '#EE8106', 'line-width': 3}});
       map.addLayer({id: 'water-point', type: 'circle', source: 'water',
         paint: {'circle-radius': 7, 'circle-color': '#0369a1', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2}});
       map.addLayer({id: 'marker-points', type: 'circle', source: 'markers',
         paint: {'circle-radius': 6, 'circle-color': '#944518', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2}});
+      map.addLayer({id: 'pin-clusters', type: 'circle', source: 'pins', filter: ['has', 'point_count'], maxzoom: PIN_MAX_ZOOM,
+        paint: {'circle-color': '#944518', 'circle-stroke-color': '#fff', 'circle-stroke-width': 3,
+          'circle-radius': ['step', ['get', 'point_count'], 16, 5, 20, 15, 25]}});
+      map.addLayer({id: 'pin-cluster-count', type: 'symbol', source: 'pins', filter: ['has', 'point_count'], maxzoom: PIN_MAX_ZOOM,
+        layout: {'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Open Sans Regular'], 'text-size': 13, 'text-allow-overlap': true},
+        paint: {'text-color': '#fff'}});
+      map.addLayer({id: 'pin-points', type: 'circle', source: 'pins', filter: ['!', ['has', 'point_count']], maxzoom: PIN_MAX_ZOOM,
+        paint: {'circle-color': ['get', 'color'], 'circle-radius': 9, 'circle-stroke-color': '#fff', 'circle-stroke-width': 3}});
+      map.addLayer({id: 'pin-labels', type: 'symbol', source: 'pins', filter: ['!', ['has', 'point_count']], minzoom: 9, maxzoom: PIN_MAX_ZOOM,
+        layout: {'text-field': ['get', 'name'], 'text-font': ['Open Sans Regular'], 'text-size': 12, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-optional': true},
+        paint: {'text-color': '#1f2937', 'text-halo-color': '#fff', 'text-halo-width': 1.5}});
+      map.on('click', 'pin-clusters', (event) => {
+        const feature = event.features?.[0];
+        if (!feature || this.drawing()) return;
+        const source = map.getSource('pins') as GeoJSONSource;
+        void source.getClusterExpansionZoom(Number(feature.properties['cluster_id'])).then((zoom) =>
+          map.easeTo({center: (feature.geometry as GeoJSON.Point).coordinates as [number, number], zoom: zoom + 0.5}));
+      });
+      map.on('click', 'pin-points', (event) => {
+        const id = event.features?.[0]?.properties['id'];
+        if (typeof id !== 'string' || this.drawing()) return;
+        this.pinClicked.emit(id);
+      });
+      for (const layer of ['pin-clusters', 'pin-points']) {
+        map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = 'crosshair'; });
+      }
       // Niebieska kropka „tu jesteś” jak w Google Maps: półprzezroczysta poświata + kropka z białą obwódką.
       map.addLayer({id: 'me-halo', type: 'circle', source: 'me', paint: {'circle-radius': 16, 'circle-color': '#4285f4', 'circle-opacity': 0.25}});
       map.addLayer({id: 'me-dot', type: 'circle', source: 'me',
@@ -212,6 +250,8 @@ export class WodoMap implements OnDestroy {
     const markerSource = map.getSource('markers') as GeoJSONSource;
     markerSource.setData({type: 'FeatureCollection', features: this.markers().map((coordinates) =>
       ({type: 'Feature' as const, properties: {}, geometry: {type: 'Point' as const, coordinates}}))});
+    (map.getSource('pins') as GeoJSONSource).setData({type: 'FeatureCollection', features: this.pins().map((pin) =>
+      ({type: 'Feature' as const, properties: {id: pin.id, name: pin.name, color: pin.color}, geometry: {type: 'Point' as const, coordinates: pin.coordinates}}))});
     parcelSource.setData((geometry ? {type: 'Feature', properties: {}, geometry} : EMPTY) as GeoJSON.GeoJSON);
     waterSource.setData(water ? {type: 'Feature', properties: {}, geometry: {type: 'Point', coordinates: water}} : EMPTY);
     if (geometry) this.fitTo(geometry, water);

@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, effect, inject, signal } from '@angular/core';
+import { ConsentStore } from '../state/consent.store';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 const KEY = 'wodo-theme';
@@ -6,14 +7,17 @@ const KEY = 'wodo-theme';
 /** Czy aktualnie obowiązuje ciemny motyw (czytane reaktywnie przez wykresy). */
 export const darkMode = signal(false);
 
-/** Motyw jasny/ciemny/systemowy; wybór zapamiętany w localStorage, klasa `app-dark` na <html>. */
+/** Motyw jasny/ciemny/systemowy; wybór zapamiętany w localStorage (tylko za zgodą), klasa `app-dark` na <html>. */
 @Injectable({providedIn: 'root'})
 export class ThemeService {
+  private readonly consent = inject(ConsentStore);
   readonly mode = signal<ThemeMode>(this.stored());
   private readonly query = typeof matchMedia === 'function' ? matchMedia('(prefers-color-scheme: dark)') : null;
 
   constructor() {
     this.apply();
+    // Wybór zapamiętujemy tylko za zgodą (także gdy zgoda padnie po wyborze motywu).
+    effect(() => { if (this.consent.storageAllowed()) this.consent.write(KEY, this.mode()); });
     this.query?.addEventListener('change', () => this.apply());
   }
 
@@ -24,7 +28,7 @@ export class ThemeService {
 
   set(mode: ThemeMode) {
     this.mode.set(mode);
-    try { localStorage.setItem(KEY, mode); } catch { /* tryb prywatny: motyw tylko na sesję */ }
+    this.consent.write(KEY, mode);
     this.apply();
   }
 
@@ -37,7 +41,7 @@ export class ThemeService {
 
   private stored(): ThemeMode {
     try {
-      const value = localStorage.getItem(KEY);
+      const value = this.consent.read(KEY);
       return value === 'system' || value === 'dark' ? value : 'light';
     } catch { return 'light'; }
   }

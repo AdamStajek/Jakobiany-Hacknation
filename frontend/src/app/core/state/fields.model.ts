@@ -75,7 +75,15 @@ export function toServerLastReport(status: FieldStatus): LastReportInput | null 
   return {risk: status.risk, dry_spell_days: status.dryDays, crop_balance_mm: status.balanceMm};
 }
 
-const colorOf = (value: unknown): FieldColor => FIELD_COLORS.find((c) => c === value) ?? 'green';
+/** Serwer przyjmuje kolor wyłącznie jako #rrggbb (odcienie 500 palety Tailwind użyte w `field-colors.ts`). */
+export const FIELD_COLOR_HEX: Record<FieldColor, string> = {
+  green: '#22c55e', blue: '#3b82f6', amber: '#f59e0b', purple: '#a855f7', teal: '#14b8a6', pink: '#ec4899',
+};
+
+export const toServerColor = (color: FieldColor): string => FIELD_COLOR_HEX[color];
+
+const colorOf = (value: unknown): FieldColor =>
+  FIELD_COLORS.find((c) => c === value || FIELD_COLOR_HEX[c] === String(value).toLowerCase()) ?? 'green';
 
 /** Pole z odpowiedzi serwera na model aplikacji (nieznany kolor wraca do domyślnego). */
 export function fieldFromServer(field: ServerField): Field {

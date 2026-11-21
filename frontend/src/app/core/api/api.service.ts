@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
-  AnalysisEvent, AnalysisProgress, AnalysisRequest, Crop, Health, LoginRequest, NotificationPrefs, Parcel, PasswordChange, RegisterRequest, Report,
+  AnalysisEvent, AnalysisProgress, AnalysisRequest, Crop, Health, LoginRequest, NotificationPrefs, Parcel, Passport, PasswordChange, RegisterRequest, Report,
   LastReportInput, ServerField, ServerFieldInput, User,
 } from './types';
 
@@ -23,6 +23,9 @@ export class ApiService {
     return firstValueFrom(this.http.get<{parcels: Parcel[]}>('/api/parcels/by-point', {params: {lat, lon}}));
   }
   importParcel(geojson: object) { return firstValueFrom(this.http.post<Parcel>('/api/parcels/import', geojson)); }
+  passport(parcelId: string, asOf: string, crop: string) {
+    return firstValueFrom(this.http.get<Passport>('/api/passport', {params: {parcel_id: parcelId, as_of: asOf, crop, irrigation_mm: 0}}));
+  }
   report(analysisId: string) { return firstValueFrom(this.http.get<Report>(`/api/analysis/${encodeURIComponent(analysisId)}`)); }
   analyze(request: AnalysisRequest) { return firstValueFrom(this.http.post<Report>('/api/analysis', request)); }
 

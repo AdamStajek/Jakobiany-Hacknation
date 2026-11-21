@@ -4,12 +4,15 @@ import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
 import { SkeletonModule } from 'primeng/skeleton';
 import type { Geometry } from '../../core/api/types';
+import bbox from '@turf/bbox';
 import { AnalysisStore } from '../../core/state/analysis.store';
 import { AuthStore } from '../../core/state/auth.store';
+import { ConsentStore } from '../../core/state/consent.store';
+import { toServerColor } from '../../core/state/fields.model';
 import { Field, FieldsStore } from '../../core/state/fields.store';
 import { ParcelStore } from '../../core/state/parcel.store';
 import { loginQuery } from '../../core/state/return-url';
-import { WodoMap } from '../../shared/map/wodo-map';
+import { FieldPin, WodoMap } from '../../shared/map/wodo-map';
 import { EmptyState } from '../../shared/ui/empty-state';
 import { LoginPrompt } from '../../shared/ui/login-prompt';
 import { Panel } from '../../shared/ui/panel';
@@ -40,8 +43,12 @@ type View = 'list' | 'map';
             </header>
             @if (auth.loggedIn()) {
               <p class="text-xs text-muted-color">Pola są zapisane na Twoim koncie.</p>
+            } @else if (consent.storageAllowed()) {
+              <p class="text-xs text-muted-color">Pola są zapisane tylko w tej przeglądarce. Nie wymagają konta.
+                <button type="button" class="text-primary underline" (click)="consent.reopen()">Zmień zgodę</button></p>
             } @else {
-              <p class="text-xs text-muted-color">Pola są zapisane tylko w tej przeglądarce. Nie wymagają konta.</p>
+              <p class="text-xs text-muted-color">Bez zgody na zapis pola są tylko w pamięci tej karty i znikną po odświeżeniu.
+                <button type="button" class="text-primary underline" (click)="consent.reopen()">Pozwól zapisywać w przeglądarce</button></p>
             }
 
             @if (offerMigration()) {
@@ -73,7 +80,7 @@ type View = 'list' | 'map';
             @if (canSaveCurrent()) {
               <div class="pw-card flex flex-wrap items-center gap-3 p-3 text-sm">
                 <span class="min-w-0 flex-1">Bieżąca działka: <strong class="break-words">{{parcels.parcel()?.id}}</strong></span>
-                <p-button label="Zapisz jako pole" icon="pi pi-bookmark" size="small" (onClick)="startAdd(true)" />
+                <p-button label="Dodaj do pól" icon="pi pi-plus" size="small" [loading]="fields.adding()" (onClick)="saveCurrent()" />
               </div>
             }
 
@@ -85,12 +92,12 @@ type View = 'list' | 'map';
               <app-field-form [initial]="prefill()" (saved)="onSaved($event)" (cancelled)="adding.set(false)" />
             } @else if (!fields.fields().length) {
               <app-empty-state icon="pi-map-marker" title="Nie masz jeszcze pól"
-                text="Dodaj pole z listy numerów działek albo zapisz działkę po analizie. Zobaczysz tu status z ostatniego raportu.">
+                text="Wybierz działkę na mapie i dodaj ją jednym kliknięciem, albo wklej listę numerów działek. Zobaczysz tu status z ostatniego raportu.">
                 <p-button label="Dodaj pierwsze pole" icon="pi pi-plus" (onClick)="startAdd(false)" />
               </app-empty-state>
               @if (!auth.loggedIn() && auth.status() === 'guest' && !inviteDismissed()) {
                 <app-login-prompt title="Miej pola pod ręką na każdym urządzeniu"
-                  text="Zaloguj się, a pola zapiszemy na koncie. Możesz też dalej korzystać bez konta: pola zostaną w tej przeglądarce."
+                  text="Z kontem pola są na każdym urządzeniu. To tylko dodatek: bez konta wszystko działa tak samo."
                   [query]="loginQuery()" (dismissed)="inviteDismissed.set(true)" />
               }
             } @else {
@@ -117,7 +124,7 @@ type View = 'list' | 'map';
         </section>
 
         <section aria-label="Mapa pól" class="relative min-h-0 min-w-0 lg:block" [class.hidden]="view() !== 'map'">
-          <app-wodo-map [geometry]="mapGeometry()" />
+          <app-wodo-map [geometry]="mapGeometry()" [pins]="pins()" (pinClicked)="selectedId.set($event)" />
           @if (selected(); as field) {
             <div class="pw-card absolute inset-x-3 bottom-3 z-10 flex items-center gap-3 p-3 shadow-lg lg:right-auto lg:max-w-sm" role="status">
               <span class="min-w-0 flex-1 truncate text-sm">Na mapie: <strong>{{field.name}}</strong></span>
@@ -136,6 +143,7 @@ export class FieldsPage {
   protected readonly parcels = inject(ParcelStore);
   protected readonly analysis = inject(AnalysisStore);
   protected readonly auth = inject(AuthStore);
+  protected readonly consent = inject(ConsentStore);
   private readonly router = inject(Router);
 
   protected readonly views: SegmentOption<View>[] = [
@@ -169,6 +177,15 @@ export class FieldsPage {
     return polygons.length ? {type: 'MultiPolygon', coordinates: polygons} : null;
   });
 
+  /** Jedna pinezka na pole (środek jego działek), widoczna po oddaleniu mapy. */
+  protected readonly pins = computed<FieldPin[]>(() => this.fields.fields().flatMap((field) => {
+    const polygons = field.parcels.flatMap(({geometry}) =>
+      geometry.type === 'MultiPolygon' ? geometry.coordinates : [geometry.coordinates]);
+    if (!polygons.length) return [];
+    const [w, s, e, n] = bbox({type: 'Feature', properties: {}, geometry: {type: 'MultiPolygon', coordinates: polygons}} as never);
+    return [{id: field.id, name: field.name, color: toServerColor(field.color), coordinates: [(w + e) / 2, (s + n) / 2] as [number, number]}];
+  }));
+
   constructor() { void this.init(); void this.auth.init(); }
 
   protected async init() {
@@ -184,6 +201,13 @@ export class FieldsPage {
   protected startAdd(current: boolean) {
     this.prefillCurrent.set(current);
     this.adding.set(true);
+  }
+
+  /** Dodaje bieżącą działkę jednym kliknięciem, bez formularza. */
+  protected async saveCurrent() {
+    const parcel = this.parcels.parcel();
+    const field = parcel ? await this.fields.quickAdd(parcel) : null;
+    if (field) this.selectedId.set(field.id);
   }
 
   protected onSaved(field: Field) {

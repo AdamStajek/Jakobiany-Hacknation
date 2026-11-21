@@ -6,6 +6,7 @@ import { AuthStore } from '../core/state/auth.store';
 import { FieldsStore } from '../core/state/fields.store';
 import { ThemeService } from '../core/theme/theme';
 import { AccountMenu } from './account-menu';
+import { ConsentBanner } from './consent-banner';
 import { ReportPrompt } from './report-prompt';
 
 type Section = 'analiza' | 'pola' | 'paszport' | 'eksperymenty' | 'metody';
@@ -22,7 +23,7 @@ const NAV: NavItem[] = [
 /** Powłoka aplikacji: pasek boczny na desktopie, górny pasek i dolna nawigacja na telefonie. */
 @Component({
   selector: 'app-shell',
-  imports: [RouterLink, AccountMenu, ReportPrompt],
+  imports: [RouterLink, AccountMenu, ConsentBanner, ReportPrompt],
   template: `
     <a class="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-contrast" href="#tresc">Przejdź do treści</a>
 
@@ -63,6 +64,7 @@ const NAV: NavItem[] = [
     </header>
 
     <main id="tresc" class="lg:pl-60"><ng-content /></main>
+    <app-consent-banner />
     <app-report-prompt [active]="section() === 'analiza'" [url]="url()" />
 
     <nav aria-label="Nawigacja główna" class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-surface bg-surface-0/95 pb-[env(safe-area-inset-bottom)] backdrop-blur print:hidden lg:hidden dark:bg-surface-900/95">

@@ -5,7 +5,9 @@ import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
 import { SkeletonModule } from 'primeng/skeleton';
 import { AnalysisStore } from '../../core/state/analysis.store';
+import { FieldsStore } from '../../core/state/fields.store';
 import { ParcelStore } from '../../core/state/parcel.store';
+import { AddFieldButton } from '../../shared/ui/add-field-button';
 import { WodoMap } from '../../shared/map/wodo-map';
 import { EmptyState } from '../../shared/ui/empty-state';
 import { ProgressOverlay } from '../../shared/ui/progress-overlay';
@@ -24,7 +26,7 @@ type Pane = 'map' | 'report';
 @Component({
   selector: 'app-analysis-page',
   imports: [DecimalPipe, ButtonModule, MessageModule, SkeletonModule, ParcelPicker, AnalysisForm, WodoMap, ReportDashboard, ProgressOverlay,
-    EmptyState, Segmented],
+    EmptyState, Segmented, AddFieldButton],
   host: {class: 'block'},
   template: `
     <div class="flex h-[calc(100dvh-var(--shell-top)-var(--shell-bottom))] flex-col print:block print:h-auto">
@@ -55,12 +57,15 @@ type Pane = 'map' | 'report';
               (pointClicked)="parcels.searchPoint($event.lat, $event.lon)" (polygonDrawn)="parcels.importGeometry($event)" />
             <div class="absolute left-3 right-16 top-3 z-10 lg:hidden"><app-parcel-picker variant="search" /></div>
             @if (parcels.parcel(); as parcel) {
-              <div class="pw-card absolute inset-x-3 bottom-3 z-10 flex items-center gap-3 p-3 shadow-lg lg:hidden" role="status">
-                <div class="min-w-0 flex-1 text-sm">
-                  <div class="truncate font-semibold">{{parcel.id}}</div>
-                  <div class="text-xs text-muted-color">{{parcel.area_ha | number:'1.0-4'}} ha@if (parcel.commune) { · gmina {{parcel.commune}} }</div>
+              <div class="pw-card absolute inset-x-3 bottom-3 z-10 flex flex-col gap-2 p-3 shadow-lg lg:hidden" role="status">
+                <div class="flex items-center gap-3">
+                  <div class="min-w-0 flex-1 text-sm">
+                    <div class="truncate font-semibold">{{parcel.id}}</div>
+                    <div class="text-xs text-muted-color">{{parcel.area_ha | number:'1.0-4'}} ha@if (parcel.commune) { · gmina {{parcel.commune}} }</div>
+                  </div>
+                  <p-button label="Dalej" icon="pi pi-arrow-right" iconPos="right" (onClick)="view.set('form')" />
                 </div>
-                <p-button label="Dalej" icon="pi pi-arrow-right" iconPos="right" (onClick)="view.set('form')" />
+                <app-add-field-button [added]="fields.parcelIds().has(parcel.id)" [busy]="fields.adding()" (add)="fields.quickAdd(parcel)" />
               </div>
             }
             @if (analysis.analyzing()) {
@@ -100,6 +105,7 @@ type Pane = 'map' | 'report';
 export class AnalysisPage {
   protected readonly parcels = inject(ParcelStore);
   protected readonly analysis = inject(AnalysisStore);
+  protected readonly fields = inject(FieldsStore);
   private readonly router = inject(Router);
   private readonly reportPane = viewChild<ElementRef<HTMLElement>>('reportPane');
 

@@ -1,10 +1,11 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, computed, input, signal } from '@angular/core';
+import { Component, computed, inject, input, signal } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { Report, Source } from '../../../core/api/types';
+import { ConsentStore } from '../../../core/state/consent.store';
 import { formatDate, formatDateTime } from '../../../shared/format';
 import { ConfidenceChip } from '../../../shared/ui/confidence-chip';
 import { KpiCard } from '../../../shared/ui/kpi-card';
@@ -187,7 +188,8 @@ const TONE_CLASS: Record<Tone, string> = {
 export class ReportDashboard {
   readonly report = input.required<Report>();
     protected readonly modes: SegmentOption<ReportMode>[] = [{label: 'Prosty', value: 'simple'}, {label: 'Zaawansowany', value: 'advanced'}];
-  protected readonly mode = signal<ReportMode>(ReportDashboard.loadMode());
+  private readonly consent = inject(ConsentStore);
+  protected readonly mode = signal<ReportMode>(this.loadMode());
   protected readonly advanced = computed(() => this.mode() === 'advanced');
   protected readonly plantsText = computed(() => {
     const scene = this.satellite()?.scene;
@@ -199,12 +201,12 @@ export class ReportDashboard {
     if (scene.ndvi >= 0.2) parts.push(scene.ndmi < 0 ? 'Mogą mieć mało wody w liściach.' : 'Nie widać oznak suszy w liściach.');
     return parts.join(' ');
   });
-  private static loadMode(): ReportMode {
-    try { return localStorage.getItem('report-mode') === 'advanced' ? 'advanced' : 'simple'; } catch { return 'simple'; }
+  private loadMode(): ReportMode {
+    try { return this.consent.read('report-mode') === 'advanced' ? 'advanced' : 'simple'; } catch { return 'simple'; }
   }
   protected setMode(m: ReportMode) {
     this.mode.set(m);
-    try { localStorage.setItem('report-mode', m); } catch { /* brak dostępu do pamięci */ }
+    this.consent.write('report-mode', m);
   }
   protected readonly risk = computed(() => RISK[this.report().metrics.risk] ?? {tone: 'info' as Tone, icon: 'pi-info-circle'});
   protected readonly riskClass = computed(() => TONE_CLASS[this.risk().tone]);

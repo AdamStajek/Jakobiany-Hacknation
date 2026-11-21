@@ -54,6 +54,12 @@ export type AnalysisRequest = {
 };
 export type Health = {status: string; analysis_date_min: string; analysis_date_max: string};
 export type Crop = {id: string; label: string};
+export type PassportField = {field: string; label: string; unit?: string | null; status: string; value: unknown};
+/** Paszport pola z /api/passport; frontend pokazuje z niego tylko krótkie podsumowanie. */
+export type Passport = {
+  parcel_id: string; analysis_as_of: string; fields: PassportField[];
+  farmer_report?: {situation: string; next_check: string | null};
+};
 export type AnalysisProgress = {done: number; total: number; label: string};
 export type AnalysisEvent =
   | ({type: 'progress'} & AnalysisProgress)
