@@ -13,7 +13,7 @@ import { ParcelStore } from '../../core/state/parcel.store';
     <section class="space-y-3" aria-labelledby="picker-title">
       <h2 id="picker-title" class="text-lg font-semibold">1. Wybierz działkę</h2>
       <p class="text-sm text-muted-color">Wpisz identyfikator (np. 301103_2.0009.549/7), obręb i numer albo kliknij na mapie.</p>
-      <form class="flex gap-2" (ngSubmit)="search()">
+      <form class="flex gap-2" (submit)="$event.preventDefault(); search()">
         <label class="sr-only" for="parcel-id">Identyfikator działki</label>
         <input pInputText id="parcel-id" class="w-full" [formControl]="query" maxlength="90" autocomplete="off"
           placeholder="np. 301103_2.0001.121" />

@@ -7,4 +7,5 @@ import { CanvasRenderer } from 'echarts/renderers';
 echarts.use([BarChart, LineChart, GaugeChart, ScatterChart, GridComponent, TooltipComponent, LegendComponent,
   TitleComponent, MarkAreaComponent, MarkLineComponent, AriaComponent, CanvasRenderer]);
 
-export default echarts;
+// ngx-echarts oczekuje modułu z funkcją init, więc re-eksportujemy rdzeń ECharts.
+export * from 'echarts/core';

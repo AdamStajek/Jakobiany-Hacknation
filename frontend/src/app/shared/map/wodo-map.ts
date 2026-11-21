@@ -55,6 +55,8 @@ export class WodoMap implements OnDestroy {
 
   private async init() {
     const maplibregl = await import('maplibre-gl');
+    // Worker serwowany jako zasób statyczny (bundler nie potrafi go wskazać samodzielnie).
+    maplibregl.setWorkerUrl('/maplibre/maplibre-gl-worker.mjs');
     const map = new maplibregl.Map({
       container: this.container().nativeElement, style: MAP_STYLE, center: POLAND_CENTER, zoom: 5.4, minZoom: 4, maxZoom: 19,
       maxBounds: [[9, 46], [29, 58]], attributionControl: {compact: true},

@@ -28,7 +28,7 @@ export class WaterBalanceChart {
     const c = palette();
     return {
       ...baseOptions(), tooltip: {trigger: 'axis', axisPointer: {type: 'shadow'}, confine: true},
-      xAxis: {type: 'category', data: ['Opad', 'Zapotrzebowanie uprawy (ETc)', 'Ewapotranspiracja (ET₀)'], ...axisStyle(), axisLabel: {color: c.muted, interval: 0, width: 90, overflow: 'break'}},
+      xAxis: {type: 'category', data: ['Opad', 'Uprawa (ETc)', 'ET₀'], ...axisStyle(), axisLabel: {color: c.muted, interval: 0, width: 90, overflow: 'break'}},
       yAxis: {type: 'value', name: 'mm', ...axisStyle()},
       series: [{type: 'bar', barMaxWidth: 56, label: {show: true, position: 'top', color: c.text, formatter: '{c} mm'},
         data: [{value: +r.rain_mm.toFixed(1), itemStyle: {color: c.water}}, {value: +r.etc_mm.toFixed(1), itemStyle: {color: c.warn}},
@@ -98,7 +98,7 @@ export class SoilChart {
     return {
       ...baseOptions(), legend: {bottom: 0, textStyle: {color: c.text}}, grid: {left: 8, right: 16, top: 24, bottom: 36, containLabel: true},
       tooltip: {trigger: 'axis', axisPointer: {type: 'shadow'}, confine: true},
-      xAxis: {type: 'category', data: depths.map((d) => d + ' cm'), ...axisStyle()},
+      xAxis: {type: 'category', data: depths.map((d) => (d.includes('cm') ? d : d + ' cm')), ...axisStyle()},
       yAxis: {type: 'value', name: 'mm/m', ...axisStyle()},
       series: [{name: 'Pojemność polowa (33 kPa)', type: 'bar', data: pick(0), itemStyle: {color: c.water}},
         {name: 'Punkt więdnięcia (1500 kPa)', type: 'bar', data: pick(1), itemStyle: {color: c.warn}}],
