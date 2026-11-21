@@ -112,3 +112,14 @@ export const GEO_LEVEL: Record<string, string> = { municipality: 'gmina', county
 export const PART_OUTCOME: Record<string, string> = {
   awarded: 'Udzielono', unawarded: 'Nie udzielono', cancelled: 'Unieważniono', unknown: 'Nieustalone',
 };
+
+export const PHASE_LABEL: Record<Schemas['Phase'], string> = {
+  planning: 'Planowanie', preparation: 'Przygotowanie', procurement: 'Zamówienie', contract_start: 'Start umowy',
+  post_contract_design: 'Projektowanie po umowie', execution: 'Realizacja', commissioning: 'Odbiór i uruchomienie',
+  closeout_and_warranty: 'Rozliczenie i gwarancja',
+};
+/** Cechy porównania projektów (klucze `comparison_weights`). */
+export const WEIGHT_LABEL: Record<string, string> = {
+  subsector: 'Podsektor', work_type: 'Rodzaj prac', function: 'Funkcja obiektu', technical: 'Parametry techniczne',
+  organization: 'Organizacja i strony', cost: 'Koszt', schedule: 'Harmonogram', location: 'Lokalizacja', text: 'Podobieństwo tekstu',
+};
