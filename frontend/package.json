@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "start": "ng serve",
-    "build": "ng build"
+    "build": "ng build",
+    "gen:api": "openapi-typescript ../docs/openapi.yaml -o src/app/core/api/schema.d.ts"
   },
   "dependencies": {
     "@angular/animations": "~21.2.0",
@@ -22,6 +23,7 @@
     "@angular/compiler": "~21.2.0",
     "@angular/compiler-cli": "~21.2.0",
     "@tailwindcss/postcss": "^4.3.5",
+    "openapi-typescript": "^7.13.0",
     "postcss": "^8.5.33",
     "tailwindcss": "^4.3.5",
     "tailwindcss-primeui": "^0.6.1",

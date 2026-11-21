@@ -22,9 +22,14 @@ const MAP: Record<Kind, { label: string; severity: 'success' | 'info' | 'warn' |
 @Component({
   selector: 'app-claim-badge',
   imports: [TagModule],
-  template: `<p-tag [value]="cfg().label" [severity]="cfg().severity" />`,
+  template: `
+    <p-tag [value]="cfg().label" [severity]="cfg().severity" />
+    @if (demo()) { <p-tag class="ml-1" value="Dane demonstracyjne" severity="secondary" icon="pi pi-info-circle" /> }
+  `,
 })
 export class ClaimBadge {
   readonly kind = input.required<Kind>();
+  /** Dane z dostawcy `mock` – wyraźnie oznaczone. */
+  readonly demo = input(false);
   protected readonly cfg = computed(() => MAP[this.kind()]);
 }

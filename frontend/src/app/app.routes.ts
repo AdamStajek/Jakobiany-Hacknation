@@ -1,25 +1,23 @@
 import { Routes } from '@angular/router';
 import { PlaceholderData, PlaceholderPage } from './pages/placeholder.page';
+import { Role } from './core/permissions';
+import { roleGuard } from './core/role.guard';
 
-const page = (path: string, data: PlaceholderData) => ({
+const page = (path: string, data: PlaceholderData, roles?: Role[]) => ({
   path,
   component: PlaceholderPage,
-  data,
+  data: { ...data, roles },
+  canActivate: [roleGuard],
   title: `${data.title} – Projekt Kompas`,
 });
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'projekty' },
-  page('projekty', {
-    title: 'Projekty',
-    subtitle: 'Repozytorium historycznych inwestycji',
-    priority: 'P0',
-    scope: [
-      'Lista rekordów z importu: status wzbogacenia, źródło, liczba powiązań i ryzyk',
-      'Filtrowanie i wyszukiwanie',
-      'Przejście do karty projektu',
-    ],
-  }),
+  {
+    path: 'projekty',
+    title: 'Projekty – Projekt Kompas',
+    loadComponent: () => import('./features/projects/projects.page').then((m) => m.ProjectsPage),
+  },
   page('projekty/:id', {
     title: 'Karta projektu',
     subtitle: 'Postępowania, ogłoszenia, umowy, zmiany i zdarzenia',
@@ -40,7 +38,7 @@ export const routes: Routes = [
       'Raport importu: znaleziono / dopasowano / do sprawdzenia / nie znaleziono / błąd',
       'Rejestr pobrań: adres, identyfikator, data, wersja',
     ],
-  }),
+  }, ['operator']),
   page('ekspert', {
     title: 'Expert Studio',
     subtitle: 'Weryfikacja połączeń, zdarzeń i wzorców',
@@ -51,7 +49,7 @@ export const routes: Routes = [
       'Historia decyzji (kto, co, kiedy, stara i nowa wartość, powód)',
       'Zatwierdzanie Risk DNA',
     ],
-  }),
+  }, ['expert']),
   page('analiza', {
     title: 'Nowa inwestycja',
     subtitle: 'Analiza planowanego przedsięwzięcia',
@@ -63,7 +61,7 @@ export const routes: Routes = [
       'Rekomendacje, przedziały odchyleń (tylko gdy próba wystarcza), Risk Graph',
       'Eksport JSON/CSV',
     ],
-  }),
+  }, ['analyst']),
   page('chaos-lab', {
     title: 'Chaos Lab',
     subtitle: 'Testy odporności z zatwierdzonych wzorców Risk DNA',
@@ -74,7 +72,7 @@ export const routes: Routes = [
       'Wynik: odporne / częściowo / nieudokumentowane / luka krytyczna',
       'Checklista działań zapobiegawczych',
     ],
-  }),
+  }, ['analyst']),
   page('radar', {
     title: 'Epidemic Radar',
     subtitle: 'Kandydaci na powtarzalne wzorce błędów',
@@ -84,7 +82,7 @@ export const routes: Routes = [
       'Liczebność próby i ostrzeżenie o ograniczeniach',
       'Dowody i decyzja eksperta',
     ],
-  }),
+  }, ['analyst', 'expert']),
   page('ustawienia', {
     title: 'Ustawienia i wiedza ekspercka',
     subtitle: 'Konfiguracja bez zmian w kodzie',
@@ -95,6 +93,6 @@ export const routes: Routes = [
       'Wagi podobieństwa',
       'Konfiguracja modelu i adresów źródeł',
     ],
-  }),
+  }, ['expert', 'operator']),
   { path: '**', redirectTo: 'projekty' },
 ];
