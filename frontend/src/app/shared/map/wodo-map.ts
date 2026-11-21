@@ -1,5 +1,5 @@
 import { Component, ElementRef, OnDestroy, afterNextRender, effect, input, output, signal, viewChild } from '@angular/core';
-import { bbox } from '@turf/turf';
+import bbox from '@turf/bbox';
 import type { GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl';
 import { Geometry } from '../../core/api/types';
 import { Basemap, MAP_STYLE, POLAND_CENTER } from './map-style';

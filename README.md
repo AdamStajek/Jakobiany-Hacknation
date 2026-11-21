@@ -33,7 +33,7 @@ Do wdrożenia zewnętrznego uruchom obraz za reverse proxy HTTPS i użyj wolumen
 
 ## Architektura i dane
 
-Angular i Leaflet renderują formularz oraz mapę. FastAPI udostępnia API i serwuje zbudowaną aplikację z tej samej domeny. Klienci źródeł działają równolegle. Moduł science.py liczy ET₀ FAO-56, ETc, scenariusze stanu początkowego i porównania historyczne. Moduł analysis.py wybiera reguły na podstawie obliczeń, a ReportLab generuje dokument z obiektu raportu.
+Angular, PrimeNG i ECharts renderują formularz, wykresy i raport, a MapLibre GL mapę z darmowymi podkładami (OpenStreetMap, ortofotomapa i granice działek GUGiK). FastAPI udostępnia API i serwuje zbudowaną aplikację z tej samej domeny. Klienci źródeł działają równolegle. Moduł science.py liczy ET₀ FAO-56, ETc, scenariusze stanu początkowego i porównania historyczne. Moduł analysis.py wybiera reguły na podstawie obliczeń, a ReportLab generuje dokument z obiektu raportu.
 
 | API | Działanie |
 |---|---|

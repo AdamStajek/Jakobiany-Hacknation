@@ -24,7 +24,7 @@ Podstawą oceny są [regulamin KOWR](https://mudnibfuppwadjkynscc.supabase.co/st
 
 | Punkt | Implementacja i test | Status |
 |---|---|---|
-| 2, 7. Formularz, mapa, import, postęp i dostępność | Angular, Leaflet, pola oznaczone etykietami, błędy statusowe, responsywność, test E2E. | Działa w uruchomionych przeglądarkach. |
+| 2, 7. Formularz, mapa, import, postęp i dostępność | Angular, MapLibre GL, pola oznaczone etykietami, błędy statusowe, responsywność, test E2E. | Działa w uruchomionych przeglądarkach. |
 | 3.1. Pełne ID, numer i obręb, punkt, WKT/WKB | geo.py, testy geometrii i check_live.py. WFS oraz GeoParquet sprawdzono jako alternatywy. | Zrealizowane. WFS obsługiwany pośrednio przez ULDK. |
 | 3.2–3.3. IMGW, odniesienie historyczne i licencja Open-Meteo | weather.py, żądania synop/meteo/hydro i archiwum stacji. NASA POWER stanowi główne źródło. | Zrealizowane dla pogody. Prognoza jest poza bieżącym raportem. |
 | 3.4. STAC, COG, SCL i sezonowe porównania | spatial.py, Earth Search i Planetary Computer, źródła pasm w manifeście. | Zrealizowane. Zasięg scen zależy od daty i zachmurzenia. |

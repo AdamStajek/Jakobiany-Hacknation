@@ -18,6 +18,18 @@
             "tsConfig": "tsconfig.json",
             "styles": [
               "src/styles.css"
+            ],
+            "budgets": [
+              {
+                "type": "initial",
+                "maximumWarning": "800kB",
+                "maximumError": "1.2MB"
+              },
+              {
+                "type": "anyComponentStyle",
+                "maximumWarning": "4kB",
+                "maximumError": "8kB"
+              }
             ]
           }
         },

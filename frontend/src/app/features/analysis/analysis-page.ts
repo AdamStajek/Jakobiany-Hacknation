@@ -13,11 +13,11 @@ import { ReportDashboard } from './dashboard/report-dashboard';
     <h1 class="mb-1 text-2xl font-bold tracking-tight">Zatrzymaj wodę. Chroń plony.</h1>
     <p class="mb-4 max-w-2xl text-muted-color">Sprawdź, jak opady, gleba i ukształtowanie terenu wpływają na zapas wody na Twojej działce.</p>
     <div class="grid gap-4 lg:grid-cols-[380px_1fr]">
-      <aside class="space-y-6 rounded-xl border border-surface bg-surface-0 p-4 dark:bg-surface-900">
+      <aside class="print:hidden space-y-6 rounded-xl border border-surface bg-surface-0 p-4 dark:bg-surface-900">
         <app-parcel-picker />
         <app-analysis-form />
       </aside>
-      <div class="h-[60vh] min-h-[360px] overflow-hidden rounded-xl border border-surface lg:sticky lg:top-16 lg:h-[calc(100vh-11rem)]">
+      <div class="print:hidden h-[60vh] min-h-[360px] overflow-hidden rounded-xl border border-surface lg:sticky lg:top-16 lg:h-[calc(100vh-11rem)]">
         <app-wodo-map [geometry]="parcels.parcel()?.geometry ?? null" [waterPoint]="analysis.waterPoint()"
           (pointClicked)="onMapClick($event)" />
       </div>

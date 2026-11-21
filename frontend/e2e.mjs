@@ -24,41 +24,51 @@ const matches = '301103_2.0009.549/7';
 
 try {
   await page.goto(url, {waitUntil:'domcontentloaded'});
-  await page.getByRole('heading', {name:'Mapa działek'}).waitFor();
-  await page.getByRole('option', {name:'Ziemniak'}).waitFor({state:'attached'});
+  
   await pause(3500);
   const input = page.getByLabel('Identyfikator działki');
-  if (capture) await input.pressSequentially(matches, {delay:90});
-  else await input.fill(matches);
-  await pause();
-  await page.getByRole('button', {name:'Szukaj'}).click();
-  await page.locator('.selected').getByText(matches, {exact:true}).waitFor({timeout:15000});
-  await page.locator('.leaflet-overlay-pane path').waitFor();
-  await page.getByLabel('Rodzaj uprawy').selectOption('potato');
+  const searchButton = page.getByRole('button', {name:'Szukaj'});
+  const selectParcel = async id => {
+    if (capture) { await input.fill(''); await input.pressSequentially(id, {delay:90}); } else await input.fill(id);
+    await pause();
+    await searchButton.click();
+    await page.getByRole('status').getByText(id, {exact:true}).waitFor({timeout:15000});
+  };
+  const chooseCrop = async label => {
+    await page.getByLabel('Rodzaj uprawy').click();
+    await page.getByRole('option', {name:label, exact:true}).click();
+  };
+  const analyze = page.getByRole('button', {name:'Analizuj gospodarowanie wodą'});
+  const heading = page.getByRole('heading', {name:'Stan wody na Twojej działce'});
+
+  await page.locator('.maplibregl-canvas').waitFor();
+  await selectParcel(matches);
+  await chooseCrop('Ziemniak');
   await page.getByLabel('Data analizy').fill('2024-07-05');
   if (capture) {
-    await page.locator('.leaflet-tile-loaded').first().waitFor({timeout:6000}).catch(() => {});
+    await page.waitForTimeout(3000);
     await page.screenshot({path:resolve(output,'map.png')});
     await pause(3500);
   }
-  const choice = page.getByRole('button', {name:'Analizuj gospodarowanie wodą'});
-  await choice.click();
-  await page.getByRole('heading', {name:'Stan wody na Twojej działce'}).waitFor({timeout:44000}).catch(async error => {
-    console.error('visible error:', await page.locator('[role=alert]').allTextContents());
+  await analyze.click();
+  await heading.waitFor({timeout:60000}).catch(async error => {
+    console.error('visible error:', await page.getByRole('alert').allTextContents());
     throw error;
   });
-  await page.getByRole('heading', {name:'Historia suszy'}).waitFor();
-  assert(await page.locator('.timeline .year').count() >= 7);
+  await page.getByRole('heading', {name:'Opad i zapotrzebowanie uprawy'}).waitFor();
+  await page.locator('[echarts] canvas').first().waitFor();
+  assert(await page.locator('[echarts] canvas').count() >= 3, 'wykresy');
+  assert(await page.getByText(/Ryzyko niedoboru wody/).isVisible());
   if (capture) await page.screenshot({path:resolve(output,'result.png')});
   await page.getByRole('heading', {name:'Co możesz zrobić?'}).scrollIntoViewIfNeeded();
-  const why = page.getByText('Dlaczego na tej działce?', {exact:true}).first();
-  await why.click();
-  assert(await page.locator('.recommendation details[open] p').count() >= 3);
+  await page.getByRole('button', {name:'Dlaczego na tej działce?'}).first().click();
+  await page.getByRole('heading', {name:'Dowody'}).waitFor();
   if (capture) {
     await page.screenshot({path:resolve(output,'recommendations.png')});
     await pause(6500);
   }
-  await page.getByRole('heading', {name:'Historia suszy'}).scrollIntoViewIfNeeded();
+  await page.keyboard.press('Escape');
+  await page.getByRole('heading', {name:'Skąd pochodzą dane?'}).scrollIntoViewIfNeeded();
   await pause(5000);
   const download = page.waitForEvent('download');
   await page.getByRole('link', {name:'Pobierz PDF'}).click();
@@ -66,26 +76,24 @@ try {
   const downloaded = resolve(output, 'browser-report.pdf');
   await file.saveAs(downloaded);
   assert((await readFile(downloaded)).subarray(0,4).equals(Buffer.from('%PDF')));
-  await page.getByRole('heading', {name:'Stan wody na Twojej działce'}).scrollIntoViewIfNeeded();
+  await heading.scrollIntoViewIfNeeded();
   await pause(3800);
   if (!capture) {
     const now = await (await context.request.get(url + '/health')).json();
-    await input.fill('280104_5.0006.98/2');
-    await page.getByRole('button', {name:'Szukaj'}).click();
-    await page.locator('.selected').getByText('280104_5.0006.98/2', {exact:true}).waitFor({timeout:15000});
-    await page.getByLabel('Rodzaj uprawy').selectOption('wheat');
+    await selectParcel('280104_5.0006.98/2');
+    await chooseCrop('Pszenica ozima');
     await page.getByLabel('Data analizy').fill(now.analysis_date_max);
-    await choice.click();
-    await page.getByRole('heading', {name:'Stan wody na Twojej działce'}).waitFor({timeout:44000});
-    assert((await page.locator('.report-heading').innerText()).includes(now.analysis_date_max));
+    await analyze.click();
+    await heading.waitFor({timeout:60000});
+    assert((await page.locator('#wynik + p').innerText()).includes(now.analysis_date_max));
     await input.fill('!!!');
-    await page.getByRole('button', {name:'Szukaj'}).click();
+    await searchButton.click();
     await page.getByRole('alert').getByText(/Podaj identyfikator/).waitFor();
     await page.setViewportSize({width:390,height:844});
     const overflow = await page.evaluate(() => {
       if (document.documentElement.scrollWidth <= innerWidth) return [];
       return [...document.querySelectorAll('main *')].filter(el => el.getBoundingClientRect().right > innerWidth + 1)
-        .filter(el => !el.closest('.map,.timeline')).map(el => el.className).slice(0,10);
+        .filter(el => !el.closest('.p-datatable-table-container,.maplibregl-map')).map(el => el.className).slice(0,10);
     });
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), JSON.stringify(overflow));
   }
