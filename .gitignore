@@ -45,3 +45,7 @@ data/parcels/
 *.part
 *.duckdb
 *.duckdb.wal
+
+# Claude Code agent worktrees (nie commitować)
+.claude/worktrees/
+.claude/settings.local.json
