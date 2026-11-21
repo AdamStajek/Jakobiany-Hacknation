@@ -14,7 +14,7 @@ import { Recommendation } from '../../../core/api/types';
         @for (item of items(); track item.title; let n = $index) {
           <article class="pw-card flex flex-col gap-2 p-4">
             <div class="flex items-center gap-2 text-xs text-muted-color">
-              <span class="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-primary-100 font-bold text-primary dark:bg-primary-950">{{n + 1}}</span>
+              <span class="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-primary-100 font-bold text-primary dark:bg-primary-900 dark:text-primary-200">{{n + 1}}</span>
               <span class="min-w-0 truncate">{{item.group}}</span><span class="ml-auto shrink-0">Pewność: {{item.confidence}}</span>
             </div>
             <h4 class="text-base font-semibold leading-snug">{{item.title}}</h4>

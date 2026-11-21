@@ -37,10 +37,11 @@ export type Report = {
   daily: {rain_mm: number | null; et0_mm: number | null; temp_c: number | null};
   sources: Source[]; missing: Record<string, string>; recommendations: Recommendation[];
   scenario: {input_mm: number; depletion_reduction_mm: [number, number]; note: string} | null;
+  soil_observation?: 'dry' | 'moist' | 'wet' | null;
   metrics: {
     risk: string; kc: number; stage: string; crop: {label: string; root_m: number};
     weather_last_day: string | null; recent: Recent | null;
-    root: {taw_mm: number; raw_mm: number; days: number; initially_wet: {depletion_mm: number}; initially_dry: {depletion_mm: number}} | null;
+    root: {taw_mm: number; raw_mm: number; days: number; input_mm?: number; initially_wet: {depletion_mm: number}; initially_dry: {depletion_mm: number}} | null;
     history: {seasons: Season[]; negative_seasons: number; riskiest_months: string[]; matched_years: number;
       matched_balance_mm: number | null; matched_rain_mm: number | null; median_season_mm: number | null};
     satellite_comparison?: {ndvi_delta: number; ndmi_delta: number; n: number; interpretation: string};
@@ -53,8 +54,32 @@ export type AnalysisRequest = {
 };
 export type Health = {status: string; analysis_date_min: string; analysis_date_max: string};
 export type Crop = {id: string; label: string};
+export type PassportField = {field: string; label: string; unit?: string | null; status: string; value: unknown};
+/** Paszport pola z /api/passport; frontend pokazuje z niego tylko krótkie podsumowanie. */
+export type Passport = {
+  parcel_id: string; analysis_as_of: string; fields: PassportField[];
+  farmer_report?: {situation: string; next_check: string | null};
+};
 export type AnalysisProgress = {done: number; total: number; label: string};
 export type AnalysisEvent =
   | ({type: 'progress'} & AnalysisProgress)
   | {type: 'result'; report: Report}
   | {type: 'error'; status: number; detail: string};
+
+/** Konto zalogowanego użytkownika (GET /api/me). */
+export type User = {id: string; email: string; username: string; email_verified: boolean; role: string};
+export type RegisterRequest = {email: string; username: string; password: string};
+export type LoginRequest = {identifier: string; password: string};
+export type PasswordChange = {current: string; new: string};
+export type NotificationPrefs = {email_enabled: boolean; email?: string; email_verified?: boolean};
+
+/** Skrót ostatniego raportu pola zapisany na serwerze (same sygnały z analizy). */
+export type ServerLastReport = {saved_at: string; risk: string; dry_spell_days: number | null; crop_balance_mm: number | null};
+/** Treść PUT last-report: serwer sam ustawia `saved_at`, a liczby są wymagane. */
+export type LastReportInput = {risk: string; dry_spell_days: number; crop_balance_mm: number};
+export type ServerField = {
+  id: string; name: string; color: string; crop: string | null;
+  parcels: {id: string; geometry: Geometry}[];
+  last_report?: ServerLastReport | null;
+};
+export type ServerFieldInput = {name: string; color: string; crop: string | null; parcels: {id: string; geometry: Geometry}[]};

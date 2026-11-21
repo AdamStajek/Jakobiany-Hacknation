@@ -12,8 +12,8 @@ const INDEX: Record<string, number> = {
     <div class="flex gap-1" role="img" [attr.aria-label]="'Ryzyko: ' + risk() + '. Skala: niskie, niepewne, podwyższone.'">
       @for (level of levels; track level; let i = $index) {
         <div class="flex-1">
-          <div class="h-2 rounded-full" [class]="i === active() ? bar[i] : 'bg-black/10 dark:bg-white/15'"></div>
-          <div class="mt-1 text-center text-[11px]" [class.font-bold]="i === active()" [class.opacity-60]="i !== active()">{{level}}</div>
+          <div class="h-2 rounded-full" [class]="i === active() ? bar[i] : 'bg-black/15 dark:bg-white/25'"></div>
+          <div class="mt-1 text-center text-[11px]" [class.font-bold]="i === active()" [class.opacity-90]="i !== active()">{{level}}</div>
         </div>
       }
     </div>
@@ -22,6 +22,6 @@ const INDEX: Record<string, number> = {
 export class RiskScale {
   readonly risk = input.required<string>();
   protected readonly levels = LEVELS;
-  protected readonly bar = ['bg-[#385A15]', 'bg-[#778C12]', 'bg-[#EE8106]'];
+  protected readonly bar = ['bg-primary-700 dark:bg-primary-300', 'bg-primary-500 dark:bg-primary-400', 'bg-(--pw-orange)'];
   protected readonly active = computed(() => INDEX[this.risk()] ?? 1);
 }

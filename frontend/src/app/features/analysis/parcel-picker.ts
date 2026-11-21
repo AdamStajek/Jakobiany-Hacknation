@@ -4,7 +4,9 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
+import { FieldsStore } from '../../core/state/fields.store';
 import { ParcelStore } from '../../core/state/parcel.store';
+import { AddFieldButton } from '../../shared/ui/add-field-button';
 
 /**
  * Wybór działki. `full` — pełny krok w panelu (opis, wybrana działka, import),
@@ -12,7 +14,7 @@ import { ParcelStore } from '../../core/state/parcel.store';
  */
 @Component({
   selector: 'app-parcel-picker',
-  imports: [ReactiveFormsModule, ButtonModule, InputTextModule, MessageModule, DecimalPipe],
+  imports: [ReactiveFormsModule, ButtonModule, InputTextModule, MessageModule, DecimalPipe, AddFieldButton],
   template: `
     <section class="space-y-3" [attr.aria-labelledby]="variant() === 'full' ? 'picker-title' : null" [attr.aria-label]="variant() === 'search' ? 'Wyszukiwanie działki' : null">
       @if (variant() === 'full') {
@@ -46,12 +48,15 @@ import { ParcelStore } from '../../core/state/parcel.store';
 
       @if (variant() === 'full') {
         @if (store.parcel(); as parcel) {
-          <div class="flex items-start gap-3 rounded-xl border border-primary-200 bg-primary-50 p-3 dark:border-primary-800 dark:bg-primary-950" role="status">
+          <div class="flex items-start gap-3 rounded-xl border border-primary-200 bg-primary-50 p-3 dark:border-primary-500 dark:bg-primary-900" role="status">
             <i class="pi pi-check-circle mt-0.5 text-primary" aria-hidden="true"></i>
             <div class="min-w-0 flex-1 text-sm">
               <div class="break-all font-semibold">{{parcel.id}}</div>
               <div class="text-muted-color">{{parcel.area_ha | number:'1.0-4'}} ha
                 @if (parcel.commune) { · gmina {{parcel.commune}} } @if (parcel.region) { · obręb {{parcel.region}} }</div>
+              <div class="mt-2">
+                <app-add-field-button [added]="fields.parcelIds().has(parcel.id)" [busy]="fields.adding()" (add)="fields.quickAdd(parcel)" />
+              </div>
             </div>
             <p-button icon="pi pi-times" [text]="true" [rounded]="true" severity="secondary" size="small"
               ariaLabel="Odznacz działkę" (onClick)="store.clear()" />
@@ -66,13 +71,14 @@ import { ParcelStore } from '../../core/state/parcel.store';
         </div>
       }
 
-      @if (store.error()) { <p-message severity="error" role="alert">{{store.error()}}</p-message> }
+      @if (store.error()) { <p-message severity="error" icon="pi pi-exclamation-circle" role="alert">{{store.error()}}</p-message> }
     </section>
   `,
 })
 export class ParcelPicker {
   readonly variant = input<'full' | 'search'>('full');
   protected readonly store = inject(ParcelStore);
+  protected readonly fields = inject(FieldsStore);
   protected readonly query = new FormControl('', {nonNullable: true});
   protected readonly inputId = () => (this.variant() === 'full' ? 'parcel-id' : 'parcel-id-map');
 

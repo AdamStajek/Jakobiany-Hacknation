@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { ThemeService, darkMode } from './theme';
 
 describe('ThemeService', () => {
-  beforeEach(() => { localStorage.clear(); document.documentElement.classList.remove('app-dark'); });
+  beforeEach(() => { localStorage.clear(); localStorage.setItem('pw.consent.v1', 'granted'); document.documentElement.classList.remove('app-dark'); });
 
   it('domyślnie jasny; przełącza jasny → ciemny → system → jasny', () => {
     const theme = TestBed.inject(ThemeService);
