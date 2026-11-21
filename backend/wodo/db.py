@@ -56,7 +56,9 @@ LOCK = Lock()
 
 def data_dir():
     path = Path(
-        os.environ.get("WODO_DATA_DIR") or Path(__file__).parent.parent / ".wodo-data"
+        os.environ.get("WODO_DATA_DIR")
+        or os.environ.get("WODO_CACHE_DIR")
+        or Path(__file__).parent.parent / ".wodo-data"
     )
     path.mkdir(parents=True, exist_ok=True)
     return path

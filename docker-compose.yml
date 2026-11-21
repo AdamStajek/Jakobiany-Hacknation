@@ -15,6 +15,14 @@ services:
       WODO_NONCOMMERCIAL_OPEN_METEO:
       WODO_EGIB_GPKG: /egib/ostrowiecki-2607.gpkg
       WODO_PARCEL_SOURCE: ${WODO_PARCEL_SOURCE:-parquet}
+      WODO_ENV: ${WODO_ENV:-production}
+      WODO_PUBLIC_URL: ${WODO_PUBLIC_URL:-http://localhost:8080}
+      WODO_SMTP_HOST:
+      WODO_SMTP_PORT:
+      WODO_SMTP_USER:
+      WODO_SMTP_PASSWORD:
+      WODO_SMTP_FROM:
+      WODO_SMTP_TLS:
     volumes:
       - wodo-cache:/var/lib/wodo
       - ./.wodo-cache/egib:/egib:ro
