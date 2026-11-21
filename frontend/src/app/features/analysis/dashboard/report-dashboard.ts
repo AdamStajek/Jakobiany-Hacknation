@@ -15,7 +15,8 @@ import { RiskScale } from '../../../shared/ui/risk-scale';
 import { RouterLink } from '@angular/router';
 import { SatelliteChart, SeasonChart, SoilChart, WaterBalanceChart } from './charts';
 import { ReportEnvironment } from './report-environment';
-import { ReportRecommendations } from './report-recommendations';
+import { ReportExperiments } from './report-experiments';
+import { ReportRecommendations } from '../../../shared/ui/report-recommendations';
 
 type ReportMode = 'simple' | 'advanced';
 type Tone = 'danger' | 'warn' | 'success' | 'info';
@@ -36,7 +37,7 @@ const TONE_CLASS: Record<Tone, string> = {
 @Component({
   selector: 'app-report-dashboard',
   imports: [DecimalPipe, ButtonModule, MessageModule, TableModule, TagModule, ConfidenceChip, KpiCard, Panel, Segmented, RiskScale, RouterLink,
-    ReportEnvironment, ReportRecommendations, WaterBalanceChart, SeasonChart, SoilChart, SatelliteChart],
+    ReportEnvironment, ReportRecommendations, ReportExperiments, WaterBalanceChart, SeasonChart, SoilChart, SatelliteChart],
   host: {class: 'block'},
   template: `
     <section aria-labelledby="wynik" class="space-y-5">
@@ -97,7 +98,9 @@ const TONE_CLASS: Record<Tone, string> = {
         <p-message severity="info">Brak wystarczających danych pogodowych dla ostatnich 30 dni.</p-message>
       }
 
-      <app-report-recommendations [items]="report().recommendations" />
+      <app-report-experiments [report]="report()" />
+
+      <app-report-recommendations [items]="report().recommendations" [geometry]="report().parcel.geometry" />
 
       @if (advanced()) {
         <div class="grid gap-3 lg:grid-cols-2">

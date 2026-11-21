@@ -1,0 +1,70 @@
+<section aria-labelledby="zalecenia" class="space-y-3">
+  <h3 id="zalecenia" class="text-lg font-semibold">Co możesz zrobić?</h3>
+  <div class="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+    @for (item of items(); track item.id ?? item.title) {
+      <article class="pw-card flex flex-col gap-2 p-4">
+        <div class="flex items-center gap-2 text-xs text-muted-color">
+          <span class="min-w-0 truncate">{{item.group}}</span><span class="ml-auto shrink-0">Pewność: {{item.confidence}}</span>
+        </div>
+        <h4 class="text-base font-semibold leading-snug">{{item.title}}</h4>
+        @if (item.action !== item.title) { <p class="text-sm">{{item.action}}</p> }
+        @if (item.scope) {
+          <p class="text-sm">
+            <i [class]="item.scope === 'field' ? 'pi pi-map' : 'pi pi-map-marker'" aria-hidden="true"></i>
+            {{item.scope === 'field' ? 'Całe pole' : 'Zaznaczone miejsca'}}
+            @if (item.points?.length) { · Punkty na mapie ({{item.points?.length}}) }
+          </p>
+        }
+        @if (item.cost) { <p class="text-sm"><strong>Koszt.</strong> {{item.cost}}</p> }
+        <p class="text-sm"><strong>Kiedy?</strong> {{item.when}}</p>
+        <p-button class="mt-auto" label="Dlaczego na tej działce?" icon="pi pi-info-circle" [text]="true" size="small" (onClick)="selected.set(item)" />
+      </article>
+    } @empty {
+      <p class="text-muted-color">Brak wystarczających podstaw do zaleceń dla wybranej działki i daty.</p>
+    }
+  </div>
+</section>
+
+<p-drawer [visible]="!!selected()" (visibleChange)="!$event && selected.set(null)" position="right" styleClass="!w-full md:!w-[28rem]"
+  [header]="selected()?.title ?? ''">
+  @if (selected(); as rec) {
+    <div class="space-y-4 text-sm">
+      <p class="text-muted-color">{{rec.group}} · Pewność: {{rec.confidence}}</p>
+      <div><h4 class="font-semibold">Dlaczego na tej działce</h4><p>{{rec.why}}</p></div>
+      <div><h4 class="font-semibold">Dowody</h4><p>{{rec.evidence}}</p></div>
+      @if (rec.points?.length) {
+        <div>
+          <h4 class="font-semibold">Miejsca na polu</h4>
+          @if (geometry(); as boundary) {
+            <div class="my-2 h-64 overflow-hidden rounded-lg">
+              <app-wodo-map [geometry]="boundary" [markers]="markers()" [drawEnabled]="false" mapLabel="Mapa miejsc objętych zaleceniem" />
+            </div>
+          }
+          <ul class="ml-5 list-disc space-y-2">
+            @for (point of rec.points; track $index) {
+              <li><strong>{{point.type}} · {{point.date}}</strong>
+                <span class="block">{{point.coordinates[1] | number:'1.5-5'}}° N, {{point.coordinates[0] | number:'1.5-5'}}° E</span>
+                @if (point.description) { <span class="block">{{point.description}}</span> }
+                <span>{{point.evidence}}</span>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+      <div><h4 class="font-semibold">Warunki i ograniczenia</h4><p>{{rec.limits}}</p></div>
+      @if (rec.cost_details) {
+        <div><h4 class="font-semibold">Składniki kosztu</h4><p>{{rec.cost_details}}</p></div>
+      }
+      @if (rec.sources?.length) {
+        <div>
+          <h4 class="font-semibold">Źródła naukowe</h4>
+          <ul class="ml-5 list-disc space-y-1">
+            @for (source of rec.sources; track source.url) {
+              <li><a class="text-primary underline" [href]="source.url" target="_blank" rel="noopener">{{source.title}}</a></li>
+            }
+          </ul>
+        </div>
+      }
+    </div>
+  }
+</p-drawer>

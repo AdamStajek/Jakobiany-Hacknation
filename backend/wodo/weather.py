@@ -3,6 +3,7 @@ import io
 import os
 import unicodedata
 import zipfile
+from collections import defaultdict
 from datetime import date
 from math import isfinite
 
@@ -16,6 +17,11 @@ IMGW_NOTICE = "Dane Instytutu Meteorologii i Gospodarki Wodnej – Państwowego 
 PARAMETERS = ("PRECTOTCORR", "T2M", "T2M_MIN", "T2M_MAX", "T2MDEW", "WS2M", "ALLSKY_SFC_SW_DWN")
 ARCHIVE = "https://danepubliczne.imgw.pl/data/dane_pomiarowo_obserwacyjne/dane_meteorologiczne/dobowe/synop/"
 OPEN_METEO = "https://archive-api.open-meteo.com/v1/archive"
+OPEN_METEO_FORECAST = "https://api.open-meteo.com/v1/forecast"
+FORECAST_DAILY = {
+    "et0_fao_evapotranspiration": "et0",
+    "precipitation_probability_max": "probability", "temperature_2m_max": "temperature", "wind_speed_10m_max": "wind",
+}
 
 
 def number(value):
@@ -24,6 +30,50 @@ def number(value):
     except (TypeError, ValueError):
         return None
     return result if isfinite(result) and result not in (-999, -9999) else None
+
+
+def liquid_rain(section, rain_key, showers_key):
+    rain = {}
+    for stamp, widespread, convective in zip(section["time"], section[rain_key], section[showers_key], strict=True):
+        widespread, convective = number(widespread), number(convective)
+        if widespread is not None and convective is not None and min(widespread, convective) >= 0:
+            rain[stamp] = widespread + convective
+    return rain
+
+
+def forecast_rows(daily, hourly_rain):
+    rows = defaultdict(dict)
+    for name, series in daily.items():
+        for day, value in series.items():
+            value = number(value)
+            if value is not None and (name == "temperature" or value >= 0) and (name != "probability" or value <= 100):
+                rows[day][name] = value
+    for stamp, value in hourly_rain.items():
+        if (value := number(value)) is not None and value >= 0:
+            row = rows[stamp[:10]]
+            row["hourly_rain_max"] = max(row.get("hourly_rain_max", 0), value)
+    return dict(rows)
+
+
+def forecast(lon, lat, day):
+    if os.environ.get("WODO_NONCOMMERCIAL_OPEN_METEO") != "1":
+        raise SourceError("Włącz WODO_NONCOMMERCIAL_OPEN_METEO=1 przy bezpłatnym użyciu niekomercyjnym prognozy.")
+    query = {"latitude": lat, "longitude": lon, "timezone": "Europe/Warsaw", "wind_speed_unit": "ms",
+             "forecast_days": 4, "daily": ",".join((*FORECAST_DAILY, "rain_sum", "showers_sum")), "hourly": "rain,showers"}
+
+    def download():
+        data = payload(OPEN_METEO_FORECAST, query, timeout=7)
+        daily, hourly = data["daily"], data["hourly"]
+        series = {name: dict(zip(daily["time"], daily[key], strict=True)) for key, name in FORECAST_DAILY.items()}
+        series["rain"] = liquid_rain(daily, "rain_sum", "showers_sum")
+        rows = forecast_rows(series, liquid_rain(hourly, "rain", "showers"))
+        if not any(rows.values()):
+            raise SourceError("Prognoza nie zawiera użytecznych danych przez najbliższe dni.")
+        return {"name": "Open-Meteo Forecast API", "url": OPEN_METEO_FORECAST, "kind": "prognoza",
+                "resolution": "punkt siatki modelu pogodowego dla lokalizacji pola",
+                "coverage": [min(rows), max(rows)], "publication_date": None, "rows": rows}
+
+    return cached("recommendation-forecast-v2", [day.isoformat(), query], 1 / 24, download)
 
 
 def nasa(lon, lat):

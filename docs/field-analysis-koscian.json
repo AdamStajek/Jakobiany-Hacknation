@@ -1,25 +1,36 @@
 {
   "farmer_report": {
-    "situation": "Wybrana data wypada poza okresem wzrostu tej uprawy według typowego kalendarza. Brakuje danych o wilgotności przy korzeniach.",
-    "next_check": "Jeśli rośliny nadal rosną, wpisz ich obecną fazę rozwoju i ponów ocenę. Po zbiorze możesz od razu zaplanować prace na następny sezon.",
+    "situation": "Wybrana data wypada poza okresem wzrostu tej uprawy według typowego kalendarza.",
+    "next_check": null,
     "steps": [
       {
-        "evidence": "historical_drought_frequency_pct",
-        "when": "W czerwcu podczas kolejnej uprawy",
-        "action": "W kilku miejscach pola wykop mały dołek obok rośliny. Sprawdź dłonią, czy ziemia przy żywych korzeniach jest jeszcze wilgotna.",
-        "why": "W 8 z 10 sezonów z niedoborem wody pierwszy taki okres zaczął się właśnie w tym miesiącu.",
-        "condition": "Obliczenia zakładają tę samą uprawę w każdym sezonie, bez podlewania."
-      },
-      {
-        "evidence": "historical_drought_frequency_pct",
-        "when": "Po zbiorze, jeśli masz zdrowe resztki pożniwne",
-        "action": "Na próbę zostaw pas gleby przykryty rozdrobnionymi resztkami. Obok zostaw pas uprawiony jak zwykle. Po kilku suchych dniach porównaj wilgotność na tej samej głębokości.",
-        "why": "W poprzednich sezonach uprawie mogło brakować wody. Osłona może ograniczyć wysychanie ziemi.",
-        "condition": "Wybierz miejsce, gdzie resztki nie utrudnią kolejnego siewu lub sadzenia."
+        "id": 10,
+        "group": "Agrotechnika i ochrona gleby",
+        "title": "Wprowadzenie zróżnicowanego płodozmianu",
+        "action": "Wprowadzenie zróżnicowanego płodozmianu",
+        "why": "Doświadczenia wieloletnie wskazują, że zróżnicowanie zmianowania może stabilizować plon w trudnych sezonach.",
+        "evidence": "Scenariusz paszportu: deficyt modelowy w 100% sezonów.",
+        "when": "Kolejne sezony",
+        "confidence": "wstępna",
+        "limits": "Monokultura, degradacja struktury gleby lub powtarzający się deficyt wody",
+        "cost": "niski",
+        "cost_details": "Planowanie zmianowania; koszty gospodarcze zależne od gatunków",
+        "scope": "field",
+        "points": [],
+        "sources": [
+          {
+            "title": "Bowles i in. (2020), wieloletnie doświadczenia z różnorodnością płodozmianu",
+            "url": "https://www.sciencedirect.com/science/article/pii/S2590332220300889"
+          },
+          {
+            "title": "Doroszewski i in. (2012), podstawy monitoringu suszy rolniczej w Polsce",
+            "url": "https://www.itp.edu.pl/old/wydawnictwo/woda/zeszyt_38_2012/artykuly/Doroszewski%20i%20in.pdf"
+          }
+        ]
       }
     ]
   },
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "field_id": "301103_2.0009.549/7",
   "analysis_date": "2026-11-21",
   "crop_context": {
@@ -213,18 +224,29 @@
   },
   "prioritized_action_plan": [
     {
-      "evidence": "historical_drought_frequency_pct",
-      "when": "W czerwcu podczas kolejnej uprawy",
-      "action": "W kilku miejscach pola wykop mały dołek obok rośliny. Sprawdź dłonią, czy ziemia przy żywych korzeniach jest jeszcze wilgotna.",
-      "why": "W 8 z 10 sezonów z niedoborem wody pierwszy taki okres zaczął się właśnie w tym miesiącu.",
-      "condition": "Obliczenia zakładają tę samą uprawę w każdym sezonie, bez podlewania."
-    },
-    {
-      "evidence": "historical_drought_frequency_pct",
-      "when": "Po zbiorze, jeśli masz zdrowe resztki pożniwne",
-      "action": "Na próbę zostaw pas gleby przykryty rozdrobnionymi resztkami. Obok zostaw pas uprawiony jak zwykle. Po kilku suchych dniach porównaj wilgotność na tej samej głębokości.",
-      "why": "W poprzednich sezonach uprawie mogło brakować wody. Osłona może ograniczyć wysychanie ziemi.",
-      "condition": "Wybierz miejsce, gdzie resztki nie utrudnią kolejnego siewu lub sadzenia."
+      "id": 10,
+      "group": "Agrotechnika i ochrona gleby",
+      "title": "Wprowadzenie zróżnicowanego płodozmianu",
+      "action": "Wprowadzenie zróżnicowanego płodozmianu",
+      "why": "Doświadczenia wieloletnie wskazują, że zróżnicowanie zmianowania może stabilizować plon w trudnych sezonach.",
+      "evidence": "Scenariusz paszportu: deficyt modelowy w 100% sezonów.",
+      "when": "Kolejne sezony",
+      "confidence": "wstępna",
+      "limits": "Monokultura, degradacja struktury gleby lub powtarzający się deficyt wody",
+      "cost": "niski",
+      "cost_details": "Planowanie zmianowania; koszty gospodarcze zależne od gatunków",
+      "scope": "field",
+      "points": [],
+      "sources": [
+        {
+          "title": "Bowles i in. (2020), wieloletnie doświadczenia z różnorodnością płodozmianu",
+          "url": "https://www.sciencedirect.com/science/article/pii/S2590332220300889"
+        },
+        {
+          "title": "Doroszewski i in. (2012), podstawy monitoringu suszy rolniczej w Polsce",
+          "url": "https://www.itp.edu.pl/old/wydawnictwo/woda/zeszyt_38_2012/artykuly/Doroszewski%20i%20in.pdf"
+        }
+      ]
     }
   ],
   "missing_data": {

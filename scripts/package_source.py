@@ -14,7 +14,8 @@ FILES = [
     "frontend/e2e/deck.mjs", "frontend/eslint.config.js", "frontend/.prettierrc.json", "frontend/tsconfig.spec.json", "frontend/src/index.html", "frontend/src/main.ts", "frontend/src/styles.css",
 ]
 PATTERNS = [
-    "frontend/src/**/*.ts", "frontend/src/**/*.css", "docs/FRONTEND_REBUILD_PLAN.md",
+    "frontend/src/**/*.ts", "frontend/src/**/*.html", "frontend/src/**/*.css",
+    "docs/baza_60_rekomendacji_KOWR.csv", "docs/paszport_pola_*danych*.csv", "docs/FRONTEND_REBUILD_PLAN.md",
     "backend/wodo/*.py", "scripts/*.py", "scripts/run.sh", "docs/DATA_*.md", "docs/REQUIREMENTS_MATRIX.md",
     "docs/COMPONENTS.tsv", "docs/VERIFICATION.md", "submission/*.md", "submission/live-verification.json",
     "submission/*.pdf", "submission/demo.mp4", "submission/reports/*.pdf",

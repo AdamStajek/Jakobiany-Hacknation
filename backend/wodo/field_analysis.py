@@ -1,10 +1,14 @@
 """Offline interpretation of a dated field passport."""
 from calendar import monthrange
 from datetime import date, timedelta
-from math import isfinite
+from math import isfinite, radians, tan
+from types import SimpleNamespace
 
-from wodo.farmer_report import root_message, seasonal_timing
-from wodo.science import CROPS, phenology
+from wodo.declarations import FarmerAnswers
+from wodo.farmer_report import root_message
+from wodo.recommendations import field_facts, ordered_recommendations
+from wodo.science import CROPS, STAGES, UNKNOWN_CROP, phenology, summarize
+from wodo.weather import forecast_rows
 
 METHODS = {
     "root": {"reference": "https://www.fao.org/4/x0490e/x0490e0e.htm",
@@ -41,7 +45,8 @@ def monthly_balance(rain, et, end):
             if len(days) == monthrange(int(month[:4]), int(month[5:]))[1]}
 
 
-def analyze_field(field_passport: dict, analysis_date: date) -> dict:
+def analyze_field(field_passport: dict, analysis_date: date, *, farmer_answers=None, irrigation=False, crop_key=None,
+                  sowing=None, stage=None, soil_observation=None) -> dict:
     snapshot = stamp(field_passport.get("analysis_as_of"))
     if not isinstance(field_passport.get("parcel_id"), str) or not snapshot or not isinstance(field_passport.get("fields"), list) or not field_passport.get("parcel_id"):
         raise ValueError("Wymagany jest datowany paszport z identyfikatorem i listą fields.")
@@ -86,7 +91,6 @@ def analyze_field(field_passport: dict, analysis_date: date) -> dict:
     context = model or fields.get("root_zone_taw_mm", {}).get("provenance", {})
     bounds = model.get("uncertainty")
     bounds = bounds.get("depletion_range_mm") if isinstance(bounds, dict) else None
-    actions = []
     stress = "Brak podstaw do oceny."
     message = "Brakuje danych, żeby ocenić, ile wody zostało przy korzeniach w dniu analizy."
     scenario = {"status": "brak wariantów wyczerpania"}
@@ -103,21 +107,12 @@ def analyze_field(field_passport: dict, analysis_date: date) -> dict:
                     "storage_gain_range_mm": [min(1, x) for x in bounds],
                     "horizon": "bezpośrednio po dopływie, przed ET",
                     "baseline_storage_range_mm": storage}
-        if bounds[1] > raw:
-            actions.append({"evidence": "root", "when": "Przed podlewaniem",
-                            "action": "W kilku miejscach odgarnij ziemię aż do żywych korzeni. Jeśli jest tam wilgotna, odłóż podlewanie. Jeśli jest sucha, sprawdź zapowiadany deszcz.",
-                            "why": message,
-                            "both_scenarios_exceed_raw": dr > raw})
     volume = value("potential_depression_volume_m3", "m³")
     area = value("parcel_area_ha", "ha")
     retention = {"status": "brak objętości zagłębień lub powierzchni"}
     if number(volume) and number(area) and area > 0:
         retention = {"status": "model NMT", "geometric_capacity_m3": volume,
                      "equivalent_field_depth_mm": volume / (10 * area)}
-        if volume:
-            actions.append({"evidence": "storage", "when": "Po większym deszczu",
-                            "action": "Obejdź obniżenia pola. Zaznacz, gdzie stoi woda i którędy odpływa. Przed zmianą odpływu sprawdź z doradcą, czy woda nie zaleje upraw lub sąsiada.",
-                            "why": "Mapa wysokości pokazuje zagłębienia, w których może zbierać się deszcz."})
     causes = []
     if balance.get("status") == "ok" and balance["p_minus_et0_mm"] < 0:
         causes.append({"evidence": "climate", "finding": "Opad z 30 dni poniżej referencyjnej ET.",
@@ -137,40 +132,61 @@ def analyze_field(field_passport: dict, analysis_date: date) -> dict:
             profile[key] = theta * (bottom-top) * 10
     history = value("historical_drought_frequency_pct", "%")
     historical_scenario = fields.get("historical_drought_frequency_pct", {}).get("provenance", {}).get("historical_scenario")
-    if number(history) and 0 < history <= 100:
-        when, reason = seasonal_timing(historical_scenario)
-        actions.append({"evidence": "historical_drought_frequency_pct", "when": when,
-                           "action": "W kilku miejscach pola wykop mały dołek obok rośliny. Sprawdź dłonią, czy ziemia przy żywych korzeniach jest jeszcze wilgotna.",
-                           "why": reason,
-                           "condition": "Obliczenia zakładają tę samą uprawę w każdym sezonie, bez podlewania."})
-        cover_crop_choice = balance.get("status") == "ok" and balance["p_minus_et0_mm"] < 0
-        arable_crop = isinstance(context.get("crop"), str) and context["crop"] in CROPS and context["crop"] not in ("grass", "unknown")
-        if arable_crop and not cover_crop_choice:
-            actions.append({"evidence": "historical_drought_frequency_pct",
-                            "when": "Po zbiorze, jeśli masz zdrowe resztki pożniwne",
-                            "action": "Na próbę zostaw pas gleby przykryty rozdrobnionymi resztkami. Obok zostaw pas uprawiony jak zwykle. Po kilku suchych dniach porównaj wilgotność na tej samej głębokości.",
-                            "why": "W poprzednich sezonach uprawie mogło brakować wody. Osłona może ograniczyć wysychanie ziemi.",
-                            "condition": "Wybierz miejsce, gdzie resztki nie utrudnią kolejnego siewu lub sadzenia."})
-        if arable_crop and cover_crop_choice:
-            actions.append({"evidence": ["climate", "historical_drought_frequency_pct"], "when": "Przed siewem międzyplonu",
-                           "action": "Jeśli ziemia przy korzeniach jest sucha, rozważ zostawienie resztek po zbiorze jako osłony gleby.",
-                           "why": "Ostatnie deszcze były skąpe w stosunku do parowania. Żywy międzyplon też zużywa wodę.",
-                           "condition": "Sprawdź ilość resztek, wymagania następnej uprawy i możliwość siewu."})
-    if root["status"] == "model" and not actions:
-        next_check = "Przy kolejnej kontroli pola sprawdź, czy ziemia przy korzeniach nadal jest wilgotna."
-    elif root["status"] != "model":
-        next_check = "Jeśli uprawa nadal rośnie i rozważasz podlewanie, najpierw sprawdź ziemię przy korzeniach w kilku miejscach pola."
-    else:
-        next_check = None
-    crop = context.get("crop")
-    stage = context.get("stage")
-    if (root["status"] != "model" and isinstance(crop, str) and crop in CROPS
-            and (stage is None or type(stage) is int and 0 <= stage <= 4)
-            and phenology(CROPS[crop], analysis_date, stamp(context.get("sowing")), stage)[0] == 4):
-        message = "Wybrana data wypada poza okresem wzrostu tej uprawy według typowego kalendarza. Brakuje danych o wilgotności przy korzeniach."
-        next_check = "Jeśli rośliny nadal rosną, wpisz ich obecną fazę rozwoju i ponów ocenę. Po zbiorze możesz od razu zaplanować prace na następny sezon."
-    return {"farmer_report": {"situation": message, "next_check": next_check, "steps": actions},
-            "schema_version": "1.0", "field_id": field_passport["parcel_id"], "analysis_date": str(analysis_date),
+    inferred_crop = context.get("crop")
+    crop_key = crop_key or (inferred_crop if isinstance(inferred_crop, str) and inferred_crop in CROPS else UNKNOWN_CROP)
+    inferred_stage = context.get("stage")
+    if stage is None and type(inferred_stage) is int and 0 <= inferred_stage <= 4:
+        stage = inferred_stage
+    sowing = sowing or stamp(context.get("sowing"))
+    crop = CROPS[crop_key]
+    phase, kc = phenology(crop, analysis_date, sowing, stage)
+
+    # Use only records accepted by the passport's as-of provenance checks.
+    rows = {}
+    if isinstance(rain, dict) and isinstance(et, dict):
+        rows = {d: [rain[d], et[d], None] for d in rain.keys() & et.keys() if number(rain[d]) and number(et[d])}
+    recent = summarize(rows, analysis_date - timedelta(days=29), analysis_date, crop, sowing, stage) if rows else None
+    forecast_fields = {
+        "rain": ("forecast_liquid_precipitation_mm", "mm"),
+        "et0": ("forecast_et0_mm", "mm"),
+        "probability": ("forecast_precip_probability_pct", "%"),
+        "temperature": ("forecast_temp_max_c", "°C"),
+    }
+    forecast_series = {key: series for key, (field, unit) in forecast_fields.items()
+                       if isinstance(series := value(field, unit), dict)}
+    if isinstance(wind := value("forecast_wind_speed_m_s", "m/s"), dict):
+        for time, speed in wind.items():
+            if number(speed):
+                daily_wind = forecast_series.setdefault("wind", {})
+                daily_wind[time[:10]] = max(daily_wind.get(time[:10], 0), speed)
+    hourly_rain = value("forecast_hourly_rain_mm", "mm")
+    forecast = forecast_rows(forecast_series, hourly_rain if isinstance(hourly_rain, dict) else {})
+    slope = value("slope_mean_deg", "°")
+    metrics = {
+        "recent": recent, "history": {"seasons": [], "negative_seasons": 0}, "stage": STAGES[phase],
+        "stage_id": phase, "kc": kc, "crop": {"label": crop.label},
+        "root": {"raw_mm": raw, "initially_wet": {"depletion_mm": bounds[0]},
+                 "initially_dry": {"depletion_mm": bounds[1]}} if root["status"] == "model" else None,
+    }
+    request = SimpleNamespace(day=analysis_date, crop=crop_key, irrigation=irrigation, soil_observation=soil_observation)
+    answers = farmer_answers or FarmerAnswers()
+    facts = field_facts(metrics, {"forecast": {"rows": forecast}, "retention_available": "taw_mm" in root},
+                        request, answers)
+    if number(slope) and slope < 90 and (grade := 100 * tan(radians(slope))) >= 3:
+        facts["slope"] = f"Średnie nachylenie według NMT: {grade:.1f}%."
+    if number(history) and 50 <= history <= 100:
+        facts.setdefault("recurrent", f"Scenariusz paszportu: deficyt modelowy w {history:g}% sezonów.")
+    if (scene_day := stamp(fields.get("ndmi_anomaly", fields.get("ndvi_anomaly", {})).get("provenance", {}).get("observed_at"))
+            ) and 0 <= (analysis_date - scene_day).days <= 14:
+        if any(anomaly <= -.1 for anomaly in satellite.values()):
+            facts["sat_anomaly"] = f"Scena {scene_day}: " + ", ".join(
+                f"{key[:4].upper()} {delta:+.2f}" for key, delta in satellite.items()
+            ) + " względem porównywalnych sezonów."
+    actions = ordered_recommendations(facts, answers, analysis_date)
+    if root["status"] != "model" and crop_key != UNKNOWN_CROP and phase == 4:
+        message = "Wybrana data wypada poza okresem wzrostu tej uprawy według typowego kalendarza."
+    return {"farmer_report": {"situation": message, "next_check": None, "steps": actions},
+            "schema_version": "1.1", "field_id": field_passport["parcel_id"], "analysis_date": str(analysis_date),
             "crop_context": {k: context.get(k) for k in ("crop", "stage", "sowing")},
             "data_quality": {"passport_rows": len(field_passport["fields"]), "accepted_fields": len(fields)},
             "water_balance": balance, "soil_water_availability": root, "retention_potential": retention,

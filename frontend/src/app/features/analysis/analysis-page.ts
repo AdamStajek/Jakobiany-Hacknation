@@ -157,8 +157,9 @@ export class AnalysisPage {
       untracked(() => this.view.set('report'));
     });
 
+    const reportMetrics = computed(() => this.analysis.report()?.metrics);
     effect(() => {
-      if (!this.analysis.report()) return;
+      if (!reportMetrics()) return;
       setTimeout(() => {
         this.reportPane()?.nativeElement.scrollTo({top: 0});
         document.getElementById('wynik')?.focus({preventScroll: true});

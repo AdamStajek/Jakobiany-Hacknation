@@ -3,9 +3,10 @@
 import os
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from math import ceil, pi
 from statistics import mean
+from zoneinfo import ZoneInfo
 
 import numpy as np
 from rasterio.io import MemoryFile
@@ -122,8 +123,8 @@ def historical(parcel, start, end):
 
 
 def forecast(parcel, start, end):
-    url = "https://api.open-meteo.com/v1/forecast"
-    if end != date.today():
+    url = weather.OPEN_METEO_FORECAST
+    if end != datetime.now(ZoneInfo("Europe/Warsaw")).date():
         return {}, {"url": url, "reason": "Bieżąca prognoza jest dostępna wyłącznie dla bieżącej daty analizy."}
     daily = {
         "precipitation_sum": "forecast_precipitation_mm",
@@ -132,8 +133,12 @@ def forecast(parcel, start, end):
         "et0_fao_evapotranspiration": "forecast_et0_mm",
     }
     layers = [f"soil_moisture_{depth}cm" for depth in ("0_to_1", "1_to_3", "3_to_9", "9_to_27", "27_to_81")]
-    source, meta = meteo(parcel, url, daily, ["wind_speed_10m", *layers], {"forecast_days": 7}, 1 / 24)
+    source, meta = meteo(parcel, url, [*daily, "rain_sum", "showers_sum"], ["wind_speed_10m", "rain", "showers", *layers],
+                         {"timezone": "Europe/Warsaw", "start_date": str(end),
+                          "end_date": str(end + timedelta(days=6))}, 1 / 24)
     values = {field: series(source["daily"], key) for key, field in daily.items()}
+    values["forecast_liquid_precipitation_mm"] = weather.liquid_rain(source["daily"], "rain_sum", "showers_sum")
+    values["forecast_hourly_rain_mm"] = weather.liquid_rain(source["hourly"], "rain", "showers")
     values["forecast_wind_speed_m_s"] = series(source["hourly"], "wind_speed_10m")
     values["forecast_soil_moisture"] = {
         key: samples for key in layers if (samples := series(source["hourly"], key))
@@ -342,6 +347,6 @@ SUPPORTED_FIELDS = {
     """.split()),
     "Open-Meteo Forecast API": set("""
         forecast_precipitation_mm forecast_precip_probability_pct forecast_temp_max_c forecast_temp_min_c
-        forecast_et0_mm forecast_wind_speed_m_s forecast_soil_moisture
+        forecast_et0_mm forecast_wind_speed_m_s forecast_soil_moisture forecast_hourly_rain_mm forecast_liquid_precipitation_mm
     """.split()),
 }

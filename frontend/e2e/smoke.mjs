@@ -55,7 +55,12 @@ async function run(name) {
   const searchButton = () => (mobile ? page.locator('app-parcel-picker[variant=search], section[aria-label="Wyszukiwanie działki"]') : page.locator('section[aria-labelledby="picker-title"]'))
     .getByRole('button', {name: 'Szukaj działki'});
   const selectedCard = id => page.getByRole('status').getByText(id, {exact: true}).first();
-  const analyze = page.getByRole('button', {name: 'Analizuj gospodarowanie wodą'});
+  const details = page.getByRole('dialog', {name: 'Dodaj informacje o polu'});
+  const closeDetails = async () => {
+    await details.getByRole('button', {name: 'Gotowe'}).click();
+    await details.waitFor({state: 'hidden'});
+  };
+  const analyze = details.getByRole('button', {name: 'Analizuj', exact: true});
   const heading = page.getByRole('heading', {name: 'Stan wody na Twojej działce'});
   const chooseCrop = async label => {
     await page.locator('#crop').click();
@@ -68,7 +73,6 @@ async function run(name) {
     await searchButton().click();
     await selectedCard(id).waitFor({timeout: 20000});
   };
-  const openData = async () => { if (mobile) { await page.getByRole('button', {name: 'Dalej'}).click(); await goView('Dane').catch(() => {}); } };
   const noOverflow = async step => {
     const overflow = await page.evaluate(() => {
       if (document.documentElement.scrollWidth <= innerWidth) return [];
@@ -90,6 +94,14 @@ async function run(name) {
     for (const [label, path] of [['Moje pola', /\/pola$/], ['Eksperymenty', /\/eksperymenty/], ['Metody|Jak to działa', /\/metody$/], ['Analiza', /\/$/]]) {
       await nav.getByRole('link', {name: new RegExp(label)}).click();
       await page.waitForURL(path);
+      if (label.startsWith('Metody')) {
+        const catalog = page.getByRole('region', {name: 'Katalog działań KOWR'});
+        await catalog.locator('summary').first().waitFor();
+        assert.equal(await catalog.locator('article').count(), 60);
+        await catalog.getByText(/Retencja i infrastruktura/).click();
+        await catalog.getByRole('heading', {name: /Utworzenie trawiastych pasów buforowych/}).waitFor();
+        assert(await catalog.getByRole('link', {name: /Borin/}).isVisible());
+      }
       assert.equal(await nav.getByRole('link', {name: new RegExp(label)}).getAttribute('aria-current'), 'page', `${name}: aria-current dla ${label}`);
     }
     await page.locator('.maplibregl-canvas').first().waitFor();
@@ -97,6 +109,7 @@ async function run(name) {
     // 1. Wyszukanie po numerze.
     await selectParcel(matches);
     await shot('02-wyszukanie');
+    await closeDetails();
 
     // 2. Klik na mapie (po wyszukaniu mapa jest wycentrowana na działce, środek płótna leży w jej obrębie).
     if (mobile) await goView('Mapa');
@@ -109,7 +122,9 @@ async function run(name) {
     await page.waitForTimeout(1000);
     await shot('03-klik-mapa');
     // Wróć do znanej działki, niezależnie od trafienia kliknięcia.
+    if (await details.isVisible()) await closeDetails();
     await selectParcel(matches);
+    if (await details.isVisible()) await closeDetails();
 
     // 3. „Dalej” → Dane.
     if (mobile) {
@@ -119,13 +134,27 @@ async function run(name) {
     await shot('04-dane');
 
     // 4. Formularz i analiza.
+    await page.getByRole('button', {name: 'Dodaj informacje o polu'}).click();
     await chooseCrop('Ziemniak');
     await page.locator('#day').fill('2024-07-05');
+    await details.getByLabel('Co rosło na tym polu w poprzednim sezonie głównym?').fill('Rzepak');
+    await details.getByText('Wybierz warunki dla pola', {exact: true}).click();
+    await page.getByLabel('Szukaj warunku dla pola').fill('dach');
+    await page.getByRole('option', {name: /Jest dostępny dach/}).click();
+    await details.getByRole('combobox', {name: 'Warunki zaobserwowane na całym polu'}).press('Escape');
+    await details.getByLabel(/Czy podczas ulewy woda widocznie spływa/).selectOption('Często');
     await analyze.click();
     await heading.waitFor({timeout: 90000}).catch(async error => {
       console.error('widoczny błąd:', await page.getByRole('alert').allTextContents());
       throw error;
     });
+    await page.waitForURL(/\/analiza\/[a-f0-9]{32}$/);
+    const report = await (await context.request.get(url + '/api/analysis/' + page.url().split('/').at(-1))).json();
+    assert.equal(report.farmer_answers?.previous_crop, 'Rzepak');
+    const buffer = report.recommendations.find(action => action.id === 15);
+    assert.equal(buffer?.scope, 'field');
+    assert(report.recommendations.some(action => action.id === 18));
+    assert(buffer.sources.length > 0);
     await shot('05-raport');
     assert.match(page.url(), /\/dzialka\/.+\/analiza\/[a-f0-9]{32}$/, 'adres raportu');
     await isActive('Raport', 'raport aktywny po analizie');
@@ -146,7 +175,8 @@ async function run(name) {
 
     // 6. Zalecenia z dowodami.
     await page.getByRole('heading', {name: 'Co możesz zrobić?'}).scrollIntoViewIfNeeded();
-    await page.getByRole('button', {name: 'Dlaczego na tej działce?'}).first().click();
+    await page.locator('article').filter({has: page.getByRole('heading', {name: buffer.title})})
+      .getByRole('button', {name: 'Dlaczego na tej działce?'}).click();
     await page.getByRole('heading', {name: 'Dowody'}).waitFor();
     await shot('08-dowody');
     await page.keyboard.press('Escape');
@@ -176,6 +206,7 @@ async function run(name) {
     // 9. Link do samej działki, motyw, rysowanie granicy.
     await page.goto(reportUrl.replace(/\/analiza\/.*$/, ''), {waitUntil: 'domcontentloaded'});
     await selectedCard(matches).waitFor({timeout: 20000});
+    await closeDetails();
     const themeButton = page.getByRole('button', {name: /Motyw/}).locator('visible=true').first();
     await themeButton.click();
     await page.waitForTimeout(300);
@@ -189,7 +220,6 @@ async function run(name) {
     // 10. Bieżąca data i błąd walidacji.
     const now = await (await context.request.get(url + '/api/health')).json();
     await selectParcel('280104_5.0006.98/2');
-    if (mobile) { await page.getByRole('button', {name: 'Dalej'}).click(); }
     await chooseCrop('Pszenica ozima');
     await page.locator('#day').fill(now.analysis_date_max);
     await analyze.click();

@@ -63,12 +63,6 @@ import { AddFieldButton } from '../../shared/ui/add-field-button';
           </div>
           @if (parcel.warning) { <p-message severity="warn" role="status">{{parcel.warning}}</p-message> }
         }
-        <div>
-          <input #file type="file" class="hidden" accept=".geojson,.json,application/geo+json,application/json"
-            (change)="importFile($event)" />
-          <p-button icon="pi pi-upload" label="Wczytaj granicę z GeoJSON" severity="secondary" [text]="true" size="small"
-            [disabled]="store.loading()" (onClick)="file.click()" />
-        </div>
       }
 
       @if (store.error()) { <p-message severity="error" icon="pi pi-exclamation-circle" role="alert">{{store.error()}}</p-message> }
@@ -83,11 +77,4 @@ export class ParcelPicker {
   protected readonly inputId = () => (this.variant() === 'full' ? 'parcel-id' : 'parcel-id-map');
 
   protected search() { void this.store.search(this.query.value); }
-
-  protected importFile(event: Event) {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    input.value = '';
-    if (file) void this.store.importFile(file);
-  }
 }

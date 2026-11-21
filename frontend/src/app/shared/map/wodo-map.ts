@@ -20,7 +20,7 @@ const PIN_MAX_ZOOM = 14.5;
   selector: 'app-wodo-map',
   template: `
     <div #container class="h-full w-full" role="application"
-      aria-label="Interaktywna mapa. Kliknij, aby wskazać działkę. Działkę możesz też wyszukać po identyfikatorze."></div>
+      [attr.aria-label]="mapLabel()"></div>
     <div class="absolute right-3 top-3 z-10 flex flex-col gap-2" role="group" aria-label="Narzędzia mapy">
       <button type="button" (click)="setBasemap(basemap() === 'osm' ? 'orto' : 'osm')" [attr.aria-pressed]="basemap() === 'orto'"
         [attr.aria-label]="basemap() === 'orto' ? 'Przełącz na mapę' : 'Przełącz na ortofotomapę'" [title]="basemap() === 'orto' ? 'Mapa' : 'Ortofoto'"
@@ -31,12 +31,14 @@ const PIN_MAX_ZOOM = 14.5;
         class="pw-card grid h-11 w-11 place-items-center shadow-md hover:bg-surface-100 dark:hover:bg-surface-800" [class.ring-2]="parcelLayer()" [class.ring-primary]="parcelLayer()">
         <i class="pi pi-table" aria-hidden="true"></i>
       </button>
-      <button type="button" (click)="toggleDraw()" [attr.aria-pressed]="drawing()" [disabled]="!ready()"
-        [attr.aria-label]="drawing() ? 'Anuluj rysowanie' : 'Narysuj granicę działki'" [title]="drawing() ? 'Anuluj rysowanie' : 'Narysuj granicę'"
-        class="pw-card grid h-11 w-11 place-items-center shadow-md hover:bg-surface-100 disabled:opacity-50 dark:hover:bg-surface-800"
-        [class.ring-2]="drawing()" [class.ring-primary]="drawing()">
-        <i class="pi {{drawing() ? 'pi-times' : 'pi-pencil'}}" aria-hidden="true"></i>
-      </button>
+      @if (drawEnabled()) {
+        <button type="button" (click)="toggleDraw()" [attr.aria-pressed]="drawing()" [disabled]="!ready()"
+          [attr.aria-label]="drawing() ? 'Anuluj rysowanie' : 'Narysuj granicę działki'" [title]="drawing() ? 'Anuluj rysowanie' : 'Narysuj granicę'"
+          class="pw-card grid h-11 w-11 place-items-center shadow-md hover:bg-surface-100 disabled:opacity-50 dark:hover:bg-surface-800"
+          [class.ring-2]="drawing()" [class.ring-primary]="drawing()">
+          <i class="pi {{drawing() ? 'pi-times' : 'pi-pencil'}}" aria-hidden="true"></i>
+        </button>
+      }
       <button type="button" (click)="locate()" [disabled]="!ready()" aria-label="Lokalizuj mnie na mapie" title="Moja lokalizacja"
         class="pw-card grid h-11 w-11 place-items-center shadow-md hover:bg-surface-100 disabled:opacity-50 dark:hover:bg-surface-800">
         <i class="pi pi-compass" aria-hidden="true"></i>
@@ -72,6 +74,8 @@ export class WodoMap implements OnDestroy {
   /** Pinezki pól: przy oddaleniu sąsiednie łączą się w grupy z licznikiem. */
   readonly pins = input<FieldPin[]>([]);
   readonly pinClicked = output<string>();
+  readonly drawEnabled = input(true);
+  readonly mapLabel = input('Interaktywna mapa. Kliknij, aby wskazać działkę. Działkę możesz też wyszukać po identyfikatorze.');
   readonly pointClicked = output<{lat: number; lon: number}>();
   /** Granica narysowana przez użytkownika (WGS 84). */
   readonly polygonDrawn = output<Geometry>();

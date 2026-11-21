@@ -7,11 +7,12 @@ import time
 from collections import OrderedDict, deque
 from datetime import date
 from threading import BoundedSemaphore
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 from fastapi import (
+    Body,
     FastAPI,
     HTTPException,
     Query,
@@ -25,12 +26,15 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from wodo import parcels_data
 from wodo.analysis import SOURCE_LABELS, run
 from wodo.auth.router import router as auth_router
+from wodo.declarations import FarmerAnswers
+from wodo.experiments import experiment_checks, experiment_diagnosis
 from wodo.farmer_report import report_message
 from wodo.field_analysis import analyze_field
 from wodo.fields.router import router as fields_router
 from wodo.geo import PARCEL_ID, by_point, imported, lookup
 from wodo.notify.router import router as notify_router
 from wodo.passport import collect, farmer_questions
+from wodo.recommendation_catalog import catalog, observation_options
 from wodo.report import pdf
 from wodo.science import CROPS, years_ago
 from wodo.store import SourceError, read, timestamp, write
@@ -63,6 +67,7 @@ class AnalysisRequest(BaseModel):
     scenario_mm: float = Field(default=0, ge=0, le=50)
     confirm_land: bool = False
     soil_observation: Literal["dry", "moist", "wet"] | None = None
+    farmer_answers: FarmerAnswers = Field(default_factory=FarmerAnswers)
 
     @field_validator("crop")
     @classmethod
@@ -85,6 +90,7 @@ class AnalysisRequest(BaseModel):
             raise ValueError(
                 "Data siewu powinna poprzedzać analizę o co najwyżej 370 dni."
             )
+        self.farmer_answers.validate_dates(self.day)
         return self
 
 
@@ -229,6 +235,11 @@ def analyze_passport(
         raise HTTPException(422, str(error)) from error
 
 
+@app.get("/api/recommendations/catalog")
+def recommendation_catalog():
+    return {"actions": catalog(), "field_observations": observation_options(), "point_observations": observation_options(local=True)}
+
+
 @app.get("/api/passport/questions")
 def passport_questions():
     return farmer_questions()
@@ -246,19 +257,32 @@ def passport(
     return build_passport(parcel_id, None, as_of, crop, sowing, stage, irrigation_mm)
 
 
+class PassportSelection(BaseModel):
+    field_request: AnalysisRequest
+
+
 @app.post("/api/passport")
 def passport_from_geojson(
-    geojson: dict,
+    geojson: Annotated[PassportSelection | dict, Field(union_mode="left_to_right")],
     as_of: date | None = None,
     crop: str | None = None,
     sowing: date | None = None,
     stage: int | None = None,
     irrigation_mm: float = 0,
 ):
+    if isinstance(geojson, PassportSelection):
+        selection = geojson.field_request
+        return build_passport(
+            selection.parcel_id, selection.geojson, selection.day, selection.crop, selection.sowing,
+            selection.stage, selection.irrigation_mm, selection.farmer_answers, selection.irrigation, selection.soil_observation,
+        )
+    if "field_request" in geojson:
+        raise HTTPException(422, "Sprawdź datę, dane pola i zaznaczone obserwacje.")
     return build_passport(None, geojson, as_of, crop, sowing, stage, irrigation_mm)
 
 
-def build_passport(parcel_id, geojson, as_of, crop, sowing, stage, irrigation_mm):
+def build_passport(parcel_id, geojson, as_of, crop, sowing, stage, irrigation_mm,
+                   farmer_answers=None, irrigation=False, soil_observation=None):
     day = as_of or today()
     if (
         (crop is not None and crop not in CROPS)
@@ -288,11 +312,13 @@ def build_passport(parcel_id, geojson, as_of, crop, sowing, stage, irrigation_mm
             )["parcels"][0]
         )
         ensure_analyzable(parcel)
+        if farmer_answers:
+            farmer_answers.validate_zones(parcel["geometry"])
         passport = collect(parcel, day, crop, sowing, stage, irrigation_mm)
-        return {
-            **passport,
-            "farmer_report": analyze_field(passport, day)["farmer_report"],
-        }
+        return {**passport, "farmer_report": analyze_field(
+            passport, day, farmer_answers=farmer_answers, irrigation=irrigation, crop_key=crop, sowing=sowing, stage=stage,
+            soil_observation=soil_observation,
+        )["farmer_report"]}
     finally:
         analysis_slots.release()
 
@@ -318,8 +344,13 @@ def execute_analysis(request: AnalysisRequest, on_progress=None):
             else matches(lookup(request.parcel_id))["parcels"][0]
         )
         ensure_analyzable(parcel)
+        if request.farmer_answers.problem_zones:
+            request.farmer_answers.validate_zones(parcel["geometry"])
         result = run(parcel, request, on_progress)
+        if answers := request.farmer_answers.model_dump(mode="json", exclude_unset=True):
+            result["farmer_answers"] = answers
         result["situation"] = report_message(result)
+        result["experiments"] = experiment_checks(result)
         analysis_id = uuid4().hex
         report = {
             **result,
@@ -341,7 +372,7 @@ def execute_analysis(request: AnalysisRequest, on_progress=None):
                         "detail": result["missing"].get(label),
                     }
                     for key, label in SOURCE_LABELS.items()
-                    if key != "gauge" or request.day == today()
+                    if key not in ("gauge", "forecast") or request.day == today()
                 ],
             },
         )
@@ -430,12 +461,26 @@ def get_report(analysis_id):
         raise HTTPException(404, "Raport nie istnieje lub wygasł.")
     if "situation" not in report:
         report["situation"] = report_message(report)
+    report["experiments"] = experiment_checks(report)
     return report
 
 
 @app.get("/api/analysis/{analysis_id}")
 def analysis_result(analysis_id: str):
     return get_report(analysis_id)
+
+
+@app.post("/api/analysis/{analysis_id}/experiments")
+def save_experiments(analysis_id: str, results: dict[str, str] = Body(max_length=5)):
+    report = get_report(analysis_id)
+    try:
+        conclusions = experiment_diagnosis(report, results)
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from error
+    report.update(analysis_id=uuid4().hex, experiment_results=results, experiment_conclusions=conclusions)
+    report["experiments"] = experiment_checks(report)
+    write(f"report:{report['analysis_id']}", report)
+    return report
 
 
 @app.get("/api/analysis/{analysis_id}/provenance")

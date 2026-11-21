@@ -1,0 +1,102 @@
+<fieldset class="space-y-3">
+  <legend class="mb-2 font-semibold">Dane rolnika o polu</legend>
+  @if (recommendationCatalog(); as catalog) {
+    <div class="space-y-1">
+      <label for="field-confirmations" class="text-sm font-medium">Warunki zaobserwowane na całym polu</label>
+      <p class="text-xs text-muted-color">Zaznacz warunki, które możesz potwierdzić dla dnia analizy.</p>
+      <p-multiselect inputId="field-confirmations" ariaLabel="Warunki zaobserwowane na całym polu" ariaFilterLabel="Szukaj warunku dla pola" placeholder="Wybierz warunki dla pola"
+        [options]="catalog.field_observations" optionLabel="label" optionValue="key" [formControl]="observations"
+        [showToggleAll]="false" selectedItemsLabel="Wybrane warunki: {0}" appendTo="body" panelStyleClass="max-w-[calc(100vw-2rem)]" [fluid]="true" />
+    </div>
+  }
+  @for (item of questionsWithControls(); track item.field) {
+    @switch (item.field) {
+      @case ('problem_zones') {
+        <div class="space-y-2" role="group" [attr.aria-label]="item.label">
+          <p class="text-sm font-medium">{{item.question}}</p>
+          <button type="button" class="p-button p-button-outlined" [disabled]="!parcel()" (click)="mapVisible.set(!mapVisible())">
+            {{mapVisible() ? 'Zamknij mapę stref' : 'Zaznacz strefy na mapie'}}
+          </button>
+          @if (active() && mapVisible() && parcel(); as selected) {
+            <p class="text-sm text-muted-color">Kliknij wewnątrz granicy pola, aby dodać punkt.</p>
+            <div class="h-64 overflow-hidden rounded-lg">
+              <app-wodo-map [geometry]="selected.geometry" [markers]="markers()" [drawEnabled]="false"
+                mapLabel="Mapa stref problemowych. Kliknij, aby zaznaczyć punkt." (pointClicked)="addZone($event)" />
+            </div>
+          }
+          @for (zone of zones.controls; track zone; let i = $index) {
+            <div class="space-y-2 rounded-lg border border-surface p-2">
+              <label class="flex flex-col gap-1 text-sm">Typ strefy {{i + 1}}
+                <select class="p-inputtext w-full" [formControl]="zone.controls.type">
+                  <option value="">Wybierz typ</option>
+                  @for (type of zonesTypes; track type) { <option [value]="type">{{type}}</option> }
+                </select>
+              </label>
+              <label class="flex flex-col gap-1 text-sm">Data obserwacji
+                <input class="p-inputtext w-full" type="date" [max]="day()" [formControl]="zone.controls.date">
+              </label>
+              <label class="flex flex-col gap-1 text-sm">Opis strefy (opcjonalnie)
+                <input class="p-inputtext w-full" maxlength="150" [formControl]="zone.controls.description">
+              </label>
+              @if (recommendationCatalog(); as catalog) {
+                <label [for]="'point-confirmations-' + i" class="text-sm font-medium">Warunki zaobserwowane w punkcie {{i + 1}}</label>
+                <p-multiselect [inputId]="'point-confirmations-' + i" [ariaLabel]="'Warunki zaobserwowane w punkcie ' + (i + 1)" ariaFilterLabel="Szukaj warunku dla punktu"
+                  placeholder="Wybierz warunki dla punktu" [options]="catalog.point_observations" optionLabel="label" optionValue="key"
+                  [formControl]="zone.controls.recommendation_observations" [showToggleAll]="false"
+                  selectedItemsLabel="Wybrane warunki: {0}" appendTo="body" panelStyleClass="max-w-[calc(100vw-2rem)]" [fluid]="true" />
+              }
+              <button type="button" class="p-button p-button-text" (click)="removeZone(i)">Usuń punkt {{i + 1}}</button>
+            </div>
+          }
+        </div>
+      }
+      @case ('irrigation_events') {
+        <div class="space-y-2">
+          <label for="field-irrigation-events" class="block text-sm font-medium">{{item.question}}</label>
+          <select id="field-irrigation-events" class="p-inputtext w-full" [formControl]="history">
+            <option value="">Wybierz odpowiedź</option>
+            <option value="none">Brak nawadniania</option>
+            <option value="unknown">Nie wiem</option>
+            <option value="events">Podam zdarzenia</option>
+          </select>
+          @if (history.value === 'events') {
+            @for (event of watering.controls; track event; let i = $index) {
+              <div class="space-y-2 rounded-lg border border-surface p-2">
+                <label class="flex flex-col gap-1 text-sm">Data nawadniania {{i + 1}}
+                  <input class="p-inputtext w-full" type="date" [max]="day()" [formControl]="event.controls.date">
+                </label>
+                <label class="flex flex-col gap-1 text-sm">Dawka [mm] (opcjonalnie)
+                  <input class="p-inputtext w-full" type="number" min="0" step="any" [formControl]="event.controls.dose_mm">
+                </label>
+                <button type="button" class="p-button p-button-text" (click)="watering.removeAt(i)">Usuń zdarzenie {{i + 1}}</button>
+              </div>
+            }
+            <button type="button" class="p-button p-button-outlined" [disabled]="watering.length >= 100" (click)="addWatering()">Dodaj nawadnianie</button>
+          }
+        </div>
+      }
+      @case ('irrigation_water_source') {
+        <div class="flex flex-col gap-1 text-sm font-medium">
+          <label for="field-irrigation-sources">{{item.question}}</label>
+          <select id="field-irrigation-sources" class="p-inputtext w-full" multiple size="4" [formControl]="sources">
+            @for (option of item.options; track option) { <option [value]="option">{{option}}</option> }
+          </select>
+        </div>
+      }
+      @default {
+        <div class="flex flex-col gap-1 text-sm font-medium">
+          <label [for]="'field-answer-' + item.field">{{item.question}}</label>
+          @if (item.field === 'previous_crop') {
+            <input [id]="'field-answer-' + item.field" class="p-inputtext w-full" maxlength="150" placeholder="np. rzepak ozimy, ugór lub nie wiem" [formControl]="item.control">
+          } @else {
+            <select [id]="'field-answer-' + item.field" class="p-inputtext w-full" [formControl]="item.control">
+              <option value="">Wybierz odpowiedź</option>
+              @for (option of item.options; track option) { <option [value]="option">{{option}}</option> }
+            </select>
+          }
+        </div>
+      }
+    }
+  }
+  @if (error()) { <p class="text-sm text-red-700 dark:text-red-300" role="alert">{{error()}}</p> }
+</fieldset>

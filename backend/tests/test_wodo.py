@@ -1,4 +1,5 @@
 from datetime import date
+from types import SimpleNamespace
 
 import httpx
 import numpy as np
@@ -8,8 +9,9 @@ from shapely import Point, to_wkb
 
 from main import AnalysisRequest, app, today
 from wodo import store
-from wodo.analysis import recommendations
+from wodo.declarations import FarmerAnswers
 from wodo.geo import TO_GPS, TO_PL, parse_reply, validate_geometry
+from wodo.recommendations import recommendations
 from wodo.science import (
     CROPS,
     assess,
@@ -83,13 +85,17 @@ def test_historical_cutoff_and_rules():
     assert flat["history"]["matched_years"] == 10
     assert all(s["end"] <= selected.isoformat() for s in flat["history"]["seasons"])
     assert flat["recent"]["crop_balance_mm"] != assess(rows, soil, "maize", selected)["recent"]["crop_balance_mm"]
-    context = {"soil": soil, "terrain": {"slope_pct": 4}, "land": {"nearest_water_m": 250}}
-    titles = [r["title"] for r in recommendations(flat, context, True, True)]
-    assert "Spowolnij odpływ ze stoku" in titles and "Zweryfikuj potrzebę nawodnienia" in titles
-    assert recommendations(flat, context, True, False) == []
+    context = {"retention_available": True, "terrain": {"slope_pct": 4}, "land": {"nearest_water_m": 250}}
+    request = SimpleNamespace(day=selected, crop="potato", irrigation=True, soil_observation=None,
+                              farmer_answers=FarmerAnswers(recommendation_observations=["contour_safe"]))
+    ids = {item["id"] for item in recommendations(flat, context, request, True)}
+    assert {16, 52} <= ids and 21 not in ids
+    assert recommendations(flat, context, request, False) == []
     empty = assess({}, None, "potato", selected)
     assert empty["risk"] == "Brak podstaw do oceny" and empty["root"] is None
-    assert recommendations(empty, {}, False, True) == []
+    request.irrigation = False
+    request.farmer_answers = FarmerAnswers()
+    assert recommendations(empty, {}, request, True) == []
 
 
 def test_cloud_mask():
@@ -155,8 +161,6 @@ def test_azure_asset_radiometry_and_access_validation():
 
 
 def test_partial_sources_and_small_parcel(monkeypatch):
-    from types import SimpleNamespace
-
     from wodo import analysis, spatial
 
     day = date(2024, 7, 1)
@@ -183,8 +187,9 @@ def test_partial_sources_and_small_parcel(monkeypatch):
 
 
 def test_unknown_crop_is_accepted_and_neutral():
-    from wodo.science import CROPS, UNKNOWN_CROP, phenology
     from datetime import date
+
+    from wodo.science import CROPS, UNKNOWN_CROP, phenology
 
     stage_id, kc = phenology(CROPS[UNKNOWN_CROP], date(2024, 12, 31))
     assert stage_id != 4 and kc == 1.0
@@ -201,6 +206,7 @@ def test_polygon_with_hole_validates():
 
 def test_oversized_parcel_is_shown_but_not_analyzable():
     import pytest as _pt
+
     from wodo.geo import validate_geometry
 
     big = {"type": "Polygon", "coordinates": [[[20.0, 50.0], [20.2, 50.0], [20.2, 50.2], [20.0, 50.2], [20.0, 50.0]]]}

@@ -29,10 +29,37 @@ export type Source = {
   station?: string; river?: string; distance_km?: number; gauge_cm?: number;
   observations?: {label: string; value: number; date: string}[];
 };
+export type ResearchSource = {title: string; url: string};
+export type RecommendationPoint = {
+  coordinates: [number, number]; type: string; date: string; description: string; evidence: string;
+};
 export type Recommendation = {
   group: string; title: string; action: string; why: string; evidence: string; when: string; confidence: string; limits: string;
+  id?: number; cost?: string; cost_details?: string; scope?: 'field' | 'point'; points?: RecommendationPoint[];
+  sources?: ResearchSource[];
 };
+export type RecommendationAction = {
+  id: number; title: string; group: string; when: string; conditions: string; cost: string; cost_details: string;
+  triggers: Partial<Record<'field' | 'point', string[][]>>; sources: ResearchSource[]; why: string; exclusion: string | null;
+};
+export type ObservationOption = {key: string; label: string};
+export type RecommendationCatalog = {
+  actions: RecommendationAction[]; field_observations: ObservationOption[]; point_observations: ObservationOption[];
+};
+export type ExperimentCheck = {
+  slug: string; title: string; reason: string; impact: string;
+  options: {value: string; label: string}[];
+};
+export type FarmerQuestion = {field: string; label: string; question: string; format: string;
+  table: string; sql_type: string; source: string; unit: string | null};
+export type ProblemZone = {geometry: {type: 'Point'; coordinates: [number, number]}; type: string; date: string; description: string; recommendation_observations?: string[]};
+export type Watering = {date: string; dose_mm: number | null};
+export type FarmerAnswers = Record<string, string | string[] | ProblemZone[] | Watering[] | null>;
 export type Report = {
+  farmer_answers?: FarmerAnswers;
+  experiments?: ExperimentCheck[];
+  experiment_results?: Record<string, string>;
+  experiment_conclusions?: Record<string, string>;
   parcel: Parcel; date: string; analysis_id: string; elapsed_ms: number; confidence: string; agricultural: boolean;
   daily: {rain_mm: number | null; et0_mm: number | null; temp_c: number | null};
   sources: Source[]; missing: Record<string, string>; recommendations: Recommendation[];
@@ -51,6 +78,15 @@ export type AnalysisRequest = {
   parcel_id?: string; geojson?: object; crop: string; date: string; stage: number | null; sowing: string | null;
   irrigation: boolean; irrigation_mm: number; scenario_mm: number; confirm_land: boolean;
   soil_observation: 'dry' | 'moist' | 'wet' | null;
+  farmer_answers?: FarmerAnswers;
+};
+export type PassportField = {
+  field: string; label: string; source: string; unit?: string | null;
+  status: string; value: unknown; detail?: string | null; provenance?: {source_id?: string};
+};
+export type Passport = {
+  farmer_report?: {situation: string; steps: Recommendation[]};
+  parcel_id: string; analysis_as_of: string; fields: PassportField[];
 };
 export type Health = {status: string; analysis_date_min: string; analysis_date_max: string};
 export type Crop = {id: string; label: string};

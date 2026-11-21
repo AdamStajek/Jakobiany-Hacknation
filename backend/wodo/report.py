@@ -112,6 +112,18 @@ def pdf(report):
         canvas.drawString(52, 25, "WodoStrażnik  •  Raport działki")
         canvas.drawRightString(543, 25, str(doc.page))
 
+    def recommendation_details(rec):
+        details = [p(rec["why"]), p(rec["evidence"]), p(rec["limits"], tiny)]
+        if rec.get("cost"):
+            details.append(p(f'{rec["cost"]} · {rec["cost_details"]}', tiny))
+        for point in rec.get("points", ()):
+            lon, lat = point["coordinates"]
+            details.append(p(f'{point["type"]} · {point["date"]} · {lat:.5f}° N, {lon:.5f}° E. {point["description"]}', tiny))
+            details.append(p(point["evidence"], tiny))
+        for source in rec.get("sources", ()):
+            details.append(p(f'{source["title"]} · {source["url"]}', tiny))
+        return details
+
     reading = ParagraphStyle("reading", parent=body, fontSize=12, leading=18, spaceAfter=7)
     if "field_id" in report and "farmer_report" in report:
         plan = report["farmer_report"]
@@ -121,8 +133,11 @@ def pdf(report):
         if plan["next_check"]:
             flows.append(p(plan["next_check"], reading))
         for step in plan["steps"]:
-            flows.append(KeepTogether([p(step["when"], section), p(step["action"], reading),
-                                       p(step["why"], reading), p(step.get("condition", ""))]))
+            if step.get("id"):
+                flows.extend([p(step["title"], section), p(step["when"]), *recommendation_details(step)])
+            else:
+                flows.append(KeepTogether([p(step["when"], section), p(step["action"], reading),
+                                           p(step["why"], reading), p(step.get("condition", ""))]))
         document.build(flows, onFirstPage=footer, onLaterPages=footer)
         return buf.getvalue()
 
@@ -139,7 +154,11 @@ def pdf(report):
     if report["recommendations"]:
         flows.append(p("Co możesz zrobić?", section))
     for rec in report["recommendations"]:
-        flows.append(KeepTogether([p(rec["title"], sub), p(rec["when"]), p(rec["action"], reading)]))
+        scope = {"field": "Całe pole", "point": "Zaznaczone miejsca"}.get(rec.get("scope"))
+        timing = f'{rec["when"]} · {scope}' if scope else rec["when"]
+        flows.append(KeepTogether([p(rec["title"], sub), p(timing), *(
+            [p(rec["action"], reading)] if rec["action"] != rec["title"] else []
+        )]))
     if recent := metrics["recent"]:
         flows.extend([p("Sytuacja wodna", section),
                       p(f'{recent["start"]} – {recent["end"]}. Opad {recent["rain_mm"]:g} mm. ET₀ {recent["et0_mm"]:g} mm. '
@@ -178,8 +197,7 @@ def pdf(report):
     if report["recommendations"]:
         flows.append(p("Podstawa zaleceń", section))
     for rec in report["recommendations"]:
-        flows.append(KeepTogether([p(rec["title"], sub), p(rec["why"]),
-                                    p(rec["evidence"]), p(f'{rec["when"]} · Pewność {rec["confidence"]}. {rec["limits"]}', tiny)]))
+        flows.extend([p(rec["title"], sub), *recommendation_details(rec)])
     if scenario := report["scenario"]:
         low, high = scenario["depletion_reduction_mm"]
         flows.extend([p("Co jeśli? Symulacja", section), p(f'Dodatkowe {scenario["input_mm"]:g} mm: zmniejszenie ubytku o {low:g}–{high:g} mm. {scenario["note"]}')])

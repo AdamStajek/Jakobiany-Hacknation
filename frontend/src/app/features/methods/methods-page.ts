@@ -1,11 +1,12 @@
 import { ModelPage } from './model-page';
 import { Component } from '@angular/core';
+import { RecommendationMethods } from './recommendation-methods';
 
 type Item = {name: string; what: string; url: string};
 
 @Component({
   selector: 'app-methods-page',
-  imports: [ModelPage],
+  imports: [ModelPage, RecommendationMethods],
   template: `
     <article class="mx-auto max-w-4xl space-y-5 p-4 lg:p-8">
       <header>
@@ -47,6 +48,8 @@ type Item = {name: string; what: string; url: string};
         </ul>
         <p class="text-sm">Pełny opis: <code>docs/DATA_LIMITATIONS.md</code>.</p>
       </section>
+      <app-recommendation-methods />
+
       <details class="pw-card p-4">
         <summary class="cursor-pointer font-semibold">Szczegóły modelu paszportu pola</summary>
         <app-model-page />
@@ -58,6 +61,7 @@ export class MethodsPage {
   protected readonly sources: Item[] = [
     {name: 'GUGiK / EGiB', what: 'Granice działek ewidencyjnych (krajowy zbiór GeoParquet, odświeżany codziennie)', url: 'https://mapy.geoportal.gov.pl/wss/service/PZGIK/EGIB/WFS/UslugaZbiorcza'},
     {name: 'NASA POWER', what: 'Opad, temperatura, wiatr i promieniowanie', url: 'https://power.larc.nasa.gov/docs/services/api/temporal/daily/'},
+    {name: 'Open-Meteo', what: 'Prognozowany opad, ET₀, temperatura i wiatr dla najbliższych dni', url: 'https://open-meteo.com/en/docs'},
     {name: 'IMGW-PIB', what: 'Stacje meteorologiczne i wodowskazy', url: 'https://danepubliczne.imgw.pl/pl/apiinfo'},
     {name: 'Sentinel-2 L2A', what: 'Obrazy satelitarne 20 m (Planetary Computer, Earth Search)', url: 'https://planetarycomputer.microsoft.com/docs/'},
     {name: 'ISRIC SoilGrids', what: 'Retencja wody w glebie, 250 m', url: 'https://docs.isric.org/globaldata/soilgrids/SoilGrids_access.html'},

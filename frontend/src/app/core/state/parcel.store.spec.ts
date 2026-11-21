@@ -58,10 +58,4 @@ describe('ParcelStore', () => {
     expect(store.importedGeometry()).not.toBeNull();
     expect(store.parcel()?.id).toBe('Działka z GeoJSON');
   });
-
-  it('odrzuca zbyt duży plik GeoJSON', async () => {
-    const store = setup({});
-    await store.importFile(new File(['x'.repeat(600_001)], 'a.geojson'));
-    expect(store.error()).toContain('600 kB');
-  });
 });

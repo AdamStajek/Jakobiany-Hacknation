@@ -54,7 +54,7 @@ def test_farmer_summary_distinguishes_confirmed_and_uncertain_shortage():
     assert "dość wody" in root_message(20, 40, 40)
     assert "zależy" in root_message(20, 50, 40)
     assert "tak sucho" in root_message(45, 50, 40)
-    assert "Odłóż podlewanie" in report_message({"agricultural": True, "soil_observation": "wet", "metrics": {}})
+    assert "gleba jest mokra" in report_message({"agricultural": True, "soil_observation": "wet", "metrics": {}})
 
 
 def test_seasonal_advice_counts_years_once():

@@ -1,0 +1,91 @@
+<form [formGroup]="form" (ngSubmit)="submit()" class="flex min-h-full flex-col gap-4" aria-labelledby="form-title">
+  <header>
+    <h2 id="form-title" class="text-base font-semibold">Uprawa i data</h2>
+    <p class="text-sm text-muted-color">Wybierz dziś lub dzień z ostatnich 10 lat.</p>
+  </header>
+  <p-button type="button" label="Dodaj informacje o polu" icon="pi pi-list" severity="secondary" [outlined]="true"
+    [disabled]="!parcels.parcel()" (onClick)="detailsOpen.set(true)" />
+
+  <p-dialog header="Dodaj informacje o polu" appendTo="body" [modal]="true" [draggable]="false" [resizable]="false"
+    closeAriaLabel="Zamknij informacje o polu" [style]="{width: 'min(36rem, 94vw)'}"
+    [visible]="detailsOpen()" (visibleChange)="detailsOpen.set($event)">
+    <div class="space-y-4">
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+        <div class="flex flex-col gap-1">
+          <label id="crop-label" for="crop" class="text-sm font-medium">Rodzaj uprawy</label>
+          <p-select inputId="crop" ariaLabelledBy="crop-label" formControlName="crop" [options]="store.crops()" optionLabel="label" optionValue="id"
+            appendTo="body" styleClass="w-full h-11" placeholder="Wybierz uprawę" />
+          @if (cropUnknown()) {
+            <p-message severity="warn" styleClass="mt-1">Bez uprawy wynik jest orientacyjny: używamy ogólnych parametrów, bez fazy rozwoju i porównania sezonowego. Wybierz uprawę, aby go doprecyzować.</p-message>
+          }
+        </div>
+        <div class="flex flex-col gap-1">
+          <label for="day" class="text-sm font-medium">Data analizy</label>
+          <input id="day" type="date" formControlName="date" required class="p-inputtext p-component h-11 w-full"
+            [min]="store.range().min" [max]="store.range().max" />
+        </div>
+      </div>
+
+      <div class="space-y-3 border-t border-surface pt-4">
+        <div class="flex flex-col gap-1">
+          <label id="stage-label" for="stage" class="text-sm font-medium">Faza uprawy</label>
+          <p-select inputId="stage" ariaLabelledBy="stage-label" formControlName="stage" [options]="stages" optionLabel="label" optionValue="value"
+            appendTo="body" styleClass="w-full" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label for="sowing" class="text-sm font-medium">Siew lub wznowienie wegetacji</label>
+          <input id="sowing" type="date" formControlName="sowing" class="p-inputtext p-component h-11 w-full" [max]="form.controls.date.value" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label id="soil-label" for="soil" class="text-sm font-medium">Co widzisz po sprawdzeniu gleby?</label>
+          <p-select inputId="soil" ariaLabelledBy="soil-label" formControlName="soil_observation" [options]="soilOptions" optionLabel="label" optionValue="value"
+            appendTo="body" styleClass="w-full" />
+        </div>
+        <div class="flex items-center gap-2">
+          <p-checkbox inputId="irrigation" formControlName="irrigation" [binary]="true" />
+          <label for="irrigation" class="text-sm">Mam możliwość nawadniania</label>
+        </div>
+        @if (form.controls.irrigation.value) {
+          <div class="flex flex-col gap-1">
+            <label for="irrigation-mm" class="text-sm font-medium">Woda z nawadniania w dniu analizy [mm]</label>
+            <input id="irrigation-mm" type="number" min="0" max="150" step="0.1" formControlName="irrigation_mm" class="p-inputtext p-component h-11 w-full" />
+          </div>
+        }
+        <div class="flex flex-col gap-1">
+          <label for="scenario" class="text-sm font-medium">Co jeśli zatrzymam dodatkowy opad? [mm]</label>
+          <input id="scenario" type="number" min="0" max="50" step="0.5" formControlName="scenario_mm" placeholder="np. 10" class="p-inputtext p-component h-11 w-full" />
+        </div>
+        <div class="flex items-start gap-2">
+          <p-checkbox inputId="confirm" formControlName="confirm_land" [binary]="true" />
+          <label for="confirm" class="text-sm">Potwierdzam uprawę, jeśli mapa wskazuje inne użytkowanie</label>
+        </div>
+        @if (store.questionError()) {
+          <p-message severity="warn" role="alert">{{store.questionError()}}</p-message>
+        } @else if (!store.questions().length) {
+          <p class="text-sm text-muted-color" role="status">Wczytujemy pytania o pole…</p>
+        }
+        @if (catalog.error()) {
+          <p-message severity="warn" role="alert">{{catalog.error()}}</p-message>
+          <p-button type="button" label="Ponów pobieranie katalogu" [text]="true" (onClick)="catalog.load()" />
+        }
+        <app-field-declarations [recommendationCatalog]="catalog.data()" [questions]="store.questions()" [parcel]="parcels.parcel()" [day]="form.controls.date.value" [active]="detailsOpen()" />
+        @if (store.questions().length) {
+          <p class="text-xs text-muted-color">Uzupełnione odpowiedzi zapiszą się w raporcie dostępnym przez jego link.</p>
+        }
+      </div>
+    </div>
+    <ng-template #footer>
+      <p-button type="button" label="Gotowe" severity="secondary" [outlined]="true" (onClick)="closeDetails()" />
+      <p-button type="button" label="Analizuj" [disabled]="form.invalid || store.running() || parcels.parcel()?.analyzable === false"
+        (onClick)="submit()" />
+    </ng-template>
+  </p-dialog>
+
+  @if (store.error()) { <p-message severity="error" role="alert">{{store.error()}}</p-message> }
+
+  <div class="sticky bottom-0 -mx-4 mt-auto space-y-2 border-t border-surface bg-surface-0 px-4 py-3 dark:bg-surface-900">
+    <p-button type="submit" styleClass="h-12 w-full" icon="pi pi-chart-line" label="Analizuj gospodarowanie wodą"
+      [loading]="store.running()" [disabled]="!parcels.parcel() || parcels.parcel()?.analyzable === false || form.invalid || store.running() || parcels.loading()" />
+    @if (!parcels.parcel()) { <p class="text-center text-xs text-muted-color">Najpierw wybierz działkę.</p> }
+  </div>
+</form>

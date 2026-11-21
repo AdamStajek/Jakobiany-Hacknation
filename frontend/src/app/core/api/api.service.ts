@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
-  AnalysisEvent, AnalysisProgress, AnalysisRequest, Crop, Health, LoginRequest, NotificationPrefs, Parcel, Passport, PasswordChange, RegisterRequest, Report,
+  AnalysisEvent, AnalysisProgress, AnalysisRequest, Crop, FarmerQuestion, Health, LoginRequest, NotificationPrefs, Parcel, Passport, PasswordChange, RegisterRequest, RecommendationCatalog, Report,
   LastReportInput, ServerField, ServerFieldInput, User,
 } from './types';
 
@@ -15,6 +15,8 @@ export class ApiService {
   private readonly http = inject(HttpClient);
 
   health() { return firstValueFrom(this.http.get<Health>('/api/health')); }
+  farmerQuestions() { return firstValueFrom(this.http.get<FarmerQuestion[]>('/api/passport/questions')); }
+  recommendationCatalog() { return firstValueFrom(this.http.get<RecommendationCatalog>('/api/recommendations/catalog')); }
   crops() { return firstValueFrom(this.http.get<Crop[]>('/api/crops')); }
   searchParcels(query: string) {
     return firstValueFrom(this.http.get<{parcels: Parcel[]}>('/api/parcels/search', {params: {query}}));
@@ -27,6 +29,10 @@ export class ApiService {
     return firstValueFrom(this.http.get<Passport>('/api/passport', {params: {parcel_id: parcelId, as_of: asOf, crop, irrigation_mm: 0}}));
   }
   report(analysisId: string) { return firstValueFrom(this.http.get<Report>(`/api/analysis/${encodeURIComponent(analysisId)}`)); }
+  saveExperiments(analysisId: string, results: Record<string, string>) {
+    return firstValueFrom(this.http.post<Report>(`/api/analysis/${encodeURIComponent(analysisId)}/experiments`, results));
+  }
+  passport(field_request: AnalysisRequest) { return firstValueFrom(this.http.post<Passport>('/api/passport', {field_request})); }
   analyze(request: AnalysisRequest) { return firstValueFrom(this.http.post<Report>('/api/analysis', request)); }
 
   // Konta (ciasteczko sesji HttpOnly, ten sam origin przez proxy).

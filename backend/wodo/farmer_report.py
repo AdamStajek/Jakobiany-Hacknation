@@ -17,17 +17,17 @@ def root_message(low, high, threshold):
 def report_message(report):
     metrics = report["metrics"]
     if not report["agricultural"]:
-        return "Sprawdź, czy granica na mapie obejmuje Twoją uprawę. Mapa wskazuje tu głównie inne użytkowanie."
+        return "Mapa wskazuje tu głównie inne użytkowanie. Ocena wody dla uprawy wymaga potwierdzenia użytkowania pola."
     if report.get("soil_observation") == "wet":
-        return "Podajesz, że gleba jest mokra. Odłóż podlewanie i sprawdź, czy woda stoi także w niższych częściach pola."
+        return "Podajesz, że gleba jest mokra. W takich warunkach nośność gleby może być ograniczona."
     if metrics.get("stage_id") == 4:
-        return "Według podanego terminu uprawa jest poza sezonem wzrostu. Jeśli nadal rośnie, popraw fazę rozwoju w formularzu."
+        return "Według podanego terminu uprawa jest poza sezonem wzrostu."
     if root := metrics["root"]:
         return root_message(root["initially_wet"]["depletion_mm"], root["initially_dry"]["depletion_mm"], root["raw_mm"])
     if (recent := metrics["recent"]) and recent["crop_balance_mm"] < 0:
         return (f"Do {date.fromisoformat(recent['end']):%d.%m.%Y} w dniach z dostępnymi danymi spadło mniej deszczu, "
-                "niż według obliczeń potrzebowała uprawa. Sprawdź, czy ziemia przy korzeniach jest jeszcze wilgotna.")
-    return "Brakuje danych o zapasie wody przy korzeniach. Jeśli uprawa rośnie, sprawdź ziemię w kilku miejscach pola."
+                "niż według obliczeń potrzebowała uprawa.")
+    return "Brakuje danych o zapasie wody przy korzeniach."
 
 
 def seasonal_timing(scenario):

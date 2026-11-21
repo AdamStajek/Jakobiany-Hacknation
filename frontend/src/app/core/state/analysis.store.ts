@@ -1,7 +1,7 @@
 import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { ApiService } from '../api/api.service';
 import { errorMessage } from '../api/errors';
-import { AnalysisRequest, Crop, Report } from '../api/types';
+import { AnalysisRequest, Crop, FarmerQuestion, Report } from '../api/types';
 import { ParcelStore } from './parcel.store';
 import { formFromReport } from './report-form';
 
@@ -13,12 +13,16 @@ export class AnalysisStore {
   private readonly parcels = inject(ParcelStore);
 
   readonly crops = signal<Crop[]>([]);
+  readonly questions = signal<FarmerQuestion[]>([]);
+  readonly questionError = signal('');
   readonly range = signal({min: '', max: ''});
   readonly report = signal<Report | null>(null);
   readonly progress = signal('');
   /** Postęp 0–100 z serwera; null = nieznany (pasek nieokreślony). */
   readonly percent = signal<number | null>(null);
   readonly error = signal('');
+  readonly experimentError = signal('');
+  readonly savingExperiment = signal(false);
   readonly running = computed(() => !!this.progress());
   /** [lon, lat] najbliższej stałej wody z ostatniego raportu. */
   readonly waterPoint = computed(() => this.report()?.sources.find((s) => s.key === 'land')?.nearest_water_point ?? null);
@@ -40,11 +44,22 @@ export class AnalysisStore {
     // Zmiana działki unieważnia poprzedni raport (chyba że raport dotyczy tej samej działki).
     effect(() => {
       const parcel = this.parcels.parcel();
-      untracked(() => { if (this.report()?.parcel.id !== parcel?.id) this.report.set(null); });
+      untracked(() => {
+        if (this.report()?.parcel.id !== parcel?.id) {
+          this.report.set(null);
+          this.experimentError.set('');
+        }
+      });
     });
   }
 
   async init() {
+    if (!this.questions().length) {
+      this.questionError.set('');
+      void this.api.farmerQuestions()
+        .then(questions => this.questions.set(questions))
+        .catch(error => this.questionError.set(errorMessage(error, 'Nie udało się wczytać pytań o pole.')));
+    }
     if (this.crops().length) return;
     try {
       const [health, crops] = await Promise.all([this.api.health(), this.api.crops()]);
@@ -59,6 +74,7 @@ export class AnalysisStore {
   async load(analysisId: string) {
     if (this.report()?.analysis_id === analysisId || this.running()) return;
     this.error.set('');
+    this.experimentError.set('');
     this.progress.set('Wczytujemy zapisany raport…');
     try {
       const report = await this.api.report(analysisId);
@@ -68,6 +84,23 @@ export class AnalysisStore {
       this.error.set(errorMessage(error, 'Nie znaleziono raportu. Mógł wygasnąć po 14 dniach. Wykonaj analizę ponownie.'));
     } finally {
       this.progress.set('');
+    }
+  }
+
+  async saveExperiment(report: Report, slug: string, value: string) {
+    if (this.report() !== report || this.savingExperiment()) return;
+    this.savingExperiment.set(true);
+    this.experimentError.set('');
+    try {
+      const results = {...report.experiment_results};
+      if (value) results[slug] = value;
+      else delete results[slug];
+      const updated = await this.api.saveExperiments(report.analysis_id, results);
+      if (this.report() === report) this.report.set({...updated, metrics: report.metrics});
+    } catch (error) {
+      if (this.report() === report) this.experimentError.set(errorMessage(error, 'Nie udało się zapisać wyniku próby.'));
+    } finally {
+      this.savingExperiment.set(false);
     }
   }
 
@@ -82,6 +115,7 @@ export class AnalysisStore {
     const parcel = this.parcels.parcel();
     if (!parcel || this.running()) return;
     this.error.set('');
+    this.experimentError.set('');
     this.report.set(null);
     this.percent.set(null);
     this.abort = new AbortController();
