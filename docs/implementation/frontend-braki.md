@@ -6,6 +6,23 @@ Stan na 2026-11-21: backend udostępnia tylko `GET /api/hello`, więc wszystkie 
 
 ---
 
+## Aktualizacja po wydaniu backendu (2026-11-21)
+
+Backend wydał implementację zgodną z [openapi.yaml](../openapi.yaml) (opis w [backend.md](backend.md) §6). Co to zmienia dla punktów poniżej:
+
+| # | Stan | Co ustalono / co zostaje |
+|---|---|---|
+| 1 | CZĘŚCIOWO | Role wynikają z tokenów `demo-analyst`, `demo-expert`, `demo-operator` (oraz `demo` = wszystko). Frontend wysyła token odpowiadający roli z przełącznika. **Nadal brak `GET /me`** i macierzy uprawnień, a przełącznik jest tylko trybem demo. |
+| 2 | ROZWIĄZANE | `content_url` wskazuje `GET /documents/{id}/versions/{vid}/content` (załącznik, wymaga tokena). Front pobiera przez `fetch` jako `blob:` (`EvidenceApi.documentContent`). Nie znamy tylko obsługi `Range` (PDF.js). |
+| 3 | ROZWIĄZANE | Bez CORS: front i API pod jednym hostem przez proxy `/api` (`proxy.conf.mjs`, w Compose `API_URL=http://backend:8000`). `Location` ma postać `/api/v1/jobs/{id}`. Produkcyjny reverse proxy dalej do zrobienia. |
+| 4 | OTWARTE | Brak `GET /health`. Tryb demo rozpoznajemy po `Source.provider`. |
+| 6 | CZĘŚCIOWO | Kody: `stale_revision` (projekt, rekord eksperta), `stale_sector_rules`, `idempotency_conflict`. Nie sprawdzono, czy `Problem` zwraca bieżącą rewizję. |
+| 12 | CZĘŚCIOWO | `GET /projects?q=` przeszukuje tytuł, `id` i `external_ids[].value` (podciąg, bez rozróżniania wielkości liter). Brak filtra `external_id` i akcji „pobierz po identyfikatorze, gdy nie ma w bazie” (pozostaje otwarte). Formaty z danych: BZP `2022/BZP 00058537/01`, KPO `KPOD.03.15-IW.13-0004/25`. |
+
+Obserwacje z działającego backendu: baza demonstracyjna ma 1 projekt (`mock-water-network`, `provider: mock`); import arkusza (22 wiersze, lista 3 w próbie offline) zwraca `202` z `Location`, a raport zadania ma etapy `import`/`fetch` ze statusami `found`/`error`/`unmatched` i `attempted_url`. Pole `normalized` w `ExternalId` jest wypełnione (np. `2022/BZP00058537/01`).
+
+---
+
 ## 1. Tożsamość i role — BLOKUJE
 
 **Co jest w dokumentach**
@@ -194,9 +211,9 @@ Frontend pokazuje polskie etykiety, więc potrzebuje stałych wartości wyliczen
 
 | # | Temat | Status |
 |---|---|---|
-| 1 | Tożsamość, role, `GET /me` | BLOKUJE |
-| 2 | Dostęp do plików z tokenem (`content_url`) | BLOKUJE |
-| 3 | Proxy / CORS / eksponowane nagłówki | POTRZEBNE |
+| 1 | Tożsamość, role, `GET /me` | CZĘŚCIOWO (tokeny demo) |
+| 2 | Dostęp do plików z tokenem (`content_url`) | ROZWIĄZANE (fetch → blob) |
+| 3 | Proxy / CORS / eksponowane nagłówki | ROZWIĄZANE (proxy) |
 | 4 | Tryb mock / `GET /health` | POTRZEBNE |
 | 5 | `GET /jobs`, rejestr źródeł | POTRZEBNE |
 | 6 | Kody i ciało `409` | POTRZEBNE |
@@ -205,6 +222,6 @@ Frontend pokazuje polskie etykiety, więc potrzebuje stałych wartości wyliczen
 | 9 | Wartości wyliczeniowe | DO POTWIERDZENIA |
 | 10 | Typy z OpenAPI jako źródło prawdy | POTRZEBNE |
 | 11 | Zakres P1 | DO POTWIERDZENIA |
-| 12 | Wyszukiwanie po BZP/KPO, pobranie po identyfikatorze, TERYT/BDL | BLOKUJE |
+| 12 | Wyszukiwanie po BZP/KPO, pobranie po identyfikatorze, TERYT/BDL | CZĘŚCIOWO (`q` działa) |
 
 Niepewności po stronie frontendu: nie czytałem całego `openapi.yaml` (1766 linii), więc punkty 7–9 wymagają sprawdzenia w schematach, zanim backend uzna je za luki.

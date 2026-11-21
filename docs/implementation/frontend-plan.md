@@ -1,8 +1,18 @@
 # Plan implementacji frontendu (Angular 21 + PrimeNG + Tailwind)
 
-Zakres: tylko `frontend/`. Backend robi kolega, więc pracujemy na kontrakcie [openapi.yaml](../openapi.yaml) i mocku po stronie frontu. Wymagania: [frontend.md](frontend.md). Pytania do backendu: [frontend-braki.md](frontend-braki.md).
+Zakres: tylko `frontend/`. Backend jest już wydany (branch `front` zawiera jego kod, opis w [backend.md](backend.md) §6), więc domyślnie pracujemy na prawdziwym API przez proxy `/api`. Mock (`environment.useMock`) zostaje jako zapas, gdy backend jest niedostępny lub potrzebny jest przypadek, którego nie ma w bazie demo. Wymagania: [frontend.md](frontend.md). Pytania do backendu: [frontend-braki.md](frontend-braki.md).
 
-## Stan wyjściowy
+## Stan po Etapie 0 i 1A oraz po wydaniu backendu
+
+- Etap 0 i 1A zrobione (commity „etap 0” i „repozytorium projektów”). Zostało 1B–1G i Etap 2.
+- `environment.useMock = false`: front wysyła prawdziwe żądania. Backend uruchamiamy z katalogu repo: `RISK_MINER_OFFLINE=1 uv run --project backend --locked uvicorn --app-dir backend main:app` (port 8000; `proxy.conf.mjs` kieruje tam `/api/**`).
+- **Token = rola:** `AuthService.token` zwraca `demo-analyst|demo-expert|demo-operator` zależnie od przełącznika ról, a `authInterceptor` dokłada go do każdego żądania `/api`. Wcześniej brak tokena dawał `401`.
+- **Dokument/PDF:** `GET /documents/{id}/versions/{vid}/content` wymaga tokena, więc Evidence Lens (1C) pobiera treść przez `EvidenceApi.documentContent` (blob), nie przez link.
+- **Wyszukiwanie po identyfikatorze (1A):** `q` w backendzie przeszukuje też `external_ids`. Formaty: BZP `2022/BZP 00058537/01`, KPO `KPOD.03.15-IW.13-0004/25`.
+- Dane demo w bazie: 1 projekt (`mock-water-network`, ma 2 ryzyka i dowody). Po `POST /imports` z arkusza konkursowego pojawiają się projekty `RM-2026-*` z `external_ids`, ale bez postępowań, gdy źródła są niedostępne offline.
+- Kody `409` z backendu: `stale_revision`, `stale_sector_rules`, `idempotency_conflict`.
+
+## Stan wyjściowy (historyczny, przed Etapem 0)
 
 Jest szkielet: `shell.ts` (nawigacja), `app.routes.ts` (strony zastępcze `PlaceholderPage` dla `projekty`, `projekty/:id`, `import`, `ekspert`, `analiza`, `chaos-lab`, `radar`, `ustawienia`), `EvidenceService` i `evidence-drawer`, `claim-badge`, `page-header`, `theme.ts`, `proxy.conf.mjs`. Brakuje `provideHttpClient`, warstwy API, typów z OpenAPI, obsługi błędów, formularzy i wszystkich realnych widoków.
 
@@ -69,6 +79,8 @@ Jest szkielet: `shell.ts` (nawigacja), `app.routes.ts` (strony zastępcze `Place
 - Nagłówek, status, eksport JSON/CSV (`/export?format=`; nazwa z `Content-Disposition`, pobranie przez blob).
 - Zakładki (lazy): **Struktura** (drzewo `p-tree`: postępowanie → część → umowa → ogłoszenia, zmiany), **Oś czasu** (`p-timeline`), **Zdarzenia i ryzyka** (tabela R01–R15 z `ClaimBadge`, rodzajem zdarzenia, `EvidenceLink`), **Dokumenty** (wersje, status ekstrakcji), **Powiązania** (kandydaci ze statusem i uzasadnieniem), **Twierdzenia** (`/evidence`).
 - Kwoty przez `MoneyAmount`.
+- **Status 1B (zrobione):** `features/projects/project-detail/` (strona + 7 zakładek renderowanych leniwie, zakładka w `?tab=`), trasa lazy `projekty/:id`, eksport blob (`core/download.ts`, nazwa z `Content-Disposition`), mock rozszerzony o `/risks`, `/evidence`, `/export` i bogatszy `p-001`. Źródła danych: grupy BZP/dokumenty/KPO/TERYT/BDL/pozostałe z `external_ids`, `notices`, wersji dokumentów, `works_location`, `geo_signals` i dowodów (`provider`; `mock` = „Dane demonstracyjne”). Kształty sprawdzone curl-em na `mock-water-network`.
+  - Braki/obserwacje: demo w bazie ma puste `procedures/documents/links/timeline/amounts`, więc Struktura, Oś czasu, Dokumenty, Powiązania, TERYT i BDL są sprawdzone tylko na fixtures mocka. `Source` w `schema.d.ts` jest typu `unknown` (oneOf), więc `types.ts` ma ręczny interfejs `Source` i `asSource()`. Dowody w zakładce Źródła ładowane po jednym (max 25). Brak testu w przeglądarce (tylko build + curl).
 
 ### 1C. Evidence Lens (rozbudowa `evidence-drawer`)
 - `GET /evidence/{id}`: źródło, data pobrania, wersja, cytat, lokalizacja (strona PDF / akapit DOCX / komórka / pole).
