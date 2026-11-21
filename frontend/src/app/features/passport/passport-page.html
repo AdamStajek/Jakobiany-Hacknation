@@ -107,19 +107,20 @@
                     </select></label>
                   }
                   @default {
-                    <label>{{item.question}}
+                    <label [for]="'q-' + item.field">{{item.question}}</label>
+                    <div>
                       @if (item.format.includes(';') && !['current_crop', 'previous_crop', 'sowing_date'].includes(item.field)) {
-                        <select [name]="item.field" [(ngModel)]="answers[item.field]">
+                        <select [id]="'q-' + item.field" [name]="item.field" [(ngModel)]="answers[item.field]">
                           <option value="">Wybierz odpowiedź</option>
                           @for (option of item.format.split('; '); track option) {
                             <option [value]="option">{{option}}</option>
                           }
                         </select>
                       } @else {
-                        <input [name]="item.field" [(ngModel)]="answers[item.field]" maxlength="150" [attr.aria-describedby]="'hint-' + item.field">
+                        <input [id]="'q-' + item.field" [name]="item.field" [(ngModel)]="answers[item.field]" maxlength="150" [attr.aria-describedby]="'hint-' + item.field">
                         <small [id]="'hint-' + item.field">{{item.format}}</small>
                       }
-                    </label>
+                    </div>
                   }
                 }
               }
@@ -136,7 +137,10 @@
     <div class="card map-card">
       <div class="map-head"><div><h2>Mapa działek</h2><p>Kliknij na mapie, żeby wyszukać granicę.</p></div>
         <button type="button" class="secondary map-reset" (click)="resetMap()" aria-label="Wyśrodkuj mapę">Wyśrodkuj</button></div>
-      <div #map class="map" aria-label="Interaktywna mapa do wskazania działki. Możesz też wyszukać działkę po identyfikatorze."></div>
+      <div class="map">
+        <app-wodo-map [geometry]="parcel()?.geometry ?? null" [markers]="zoneMarkers()"
+          (pointClicked)="onMapClick($event)" (polygonDrawn)="onPolygonDrawn($event)" />
+      </div>
       <div class="map-footer"><span class="legend-mark"></span> Granica działki</div>
     </div>
   </section>

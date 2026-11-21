@@ -20,7 +20,7 @@ import { ReportDashboard } from './dashboard/report-dashboard';
         <app-analysis-form />
       </aside>
       <div class="print:hidden order-1 h-[48vh] min-h-[320px] overflow-hidden rounded-xl border border-surface lg:order-2 lg:sticky lg:top-16 lg:h-[calc(100vh-11rem)]">
-        <app-wodo-map [geometry]="parcels.parcel()?.geometry ?? null" [waterPoint]="analysis.waterPoint()"
+        <app-wodo-map [locateUser]="true" [geometry]="parcels.parcel()?.geometry ?? null" [waterPoint]="analysis.waterPoint()"
           (pointClicked)="parcels.searchPoint($event.lat, $event.lon)" (polygonDrawn)="parcels.importGeometry($event)" />
       </div>
     </div>

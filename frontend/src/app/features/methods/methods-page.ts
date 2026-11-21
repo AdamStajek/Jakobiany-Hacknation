@@ -1,4 +1,4 @@
-import { ModelPage } from '../../model-page';
+import { ModelPage } from './model-page';
 import { Component } from '@angular/core';
 
 type Item = {name: string; what: string; url: string};

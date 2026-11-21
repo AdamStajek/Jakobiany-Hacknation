@@ -42,6 +42,10 @@ export class WodoMap implements OnDestroy {
   readonly geometry = input<Geometry | null>(null);
   /** [lon, lat] najbliższej stałej wody. */
   readonly waterPoint = input<[number, number] | null>(null);
+  /** Dodatkowe punkty [lon, lat], np. oznaczone strefy problemowe. */
+  readonly markers = input<[number, number][]>([]);
+  /** Przy starcie, bez wskazanej działki, wyśrodkuj mapę na lokalizacji użytkownika. */
+  readonly locateUser = input(false);
   readonly pointClicked = output<{lat: number; lon: number}>();
   /** Granica narysowana przez użytkownika (WGS 84). */
   readonly polygonDrawn = output<Geometry>();
@@ -58,7 +62,7 @@ export class WodoMap implements OnDestroy {
 
   constructor() {
     afterNextRender(() => void this.init());
-    effect(() => { this.geometry(); this.waterPoint(); this.ready(); this.draw(); });
+    effect(() => { this.geometry(); this.waterPoint(); this.markers(); this.ready(); this.draw(); });
   }
 
   protected setBasemap(id: Basemap) {
@@ -125,13 +129,26 @@ export class WodoMap implements OnDestroy {
     map.on('load', () => {
       map.addSource('parcel', {type: 'geojson', data: EMPTY});
       map.addSource('water', {type: 'geojson', data: EMPTY});
+      map.addSource('markers', {type: 'geojson', data: EMPTY});
       map.addLayer({id: 'parcel-fill', type: 'fill', source: 'parcel', paint: {'fill-color': '#10b981', 'fill-opacity': 0.35}});
       map.addLayer({id: 'parcel-line', type: 'line', source: 'parcel', paint: {'line-color': '#047857', 'line-width': 3}});
       map.addLayer({id: 'water-point', type: 'circle', source: 'water',
         paint: {'circle-radius': 7, 'circle-color': '#0369a1', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2}});
+      map.addLayer({id: 'marker-points', type: 'circle', source: 'markers',
+        paint: {'circle-radius': 6, 'circle-color': '#944518', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2}});
       this.map = map;
       this.ready.set(true);
+      this.centerOnUser(map);
     });
+  }
+
+  private centerOnUser(map: MapLibreMap) {
+    if (!this.locateUser() || this.geometry() || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition((pos) => {
+      if (this.geometry()) return; // użytkownik zdążył już wybrać działkę
+      const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      map.easeTo({center: [pos.coords.longitude, pos.coords.latitude], zoom: 14, duration: reduced ? 0 : 800});
+    }, () => { /* brak zgody lub błąd: zostaje widok Polski */ }, {timeout: 8000, maximumAge: 300000});
   }
 
   private draw() {
@@ -141,6 +158,9 @@ export class WodoMap implements OnDestroy {
     const water = this.waterPoint();
     const parcelSource = map.getSource('parcel') as GeoJSONSource;
     const waterSource = map.getSource('water') as GeoJSONSource;
+    const markerSource = map.getSource('markers') as GeoJSONSource;
+    markerSource.setData({type: 'FeatureCollection', features: this.markers().map((coordinates) =>
+      ({type: 'Feature' as const, properties: {}, geometry: {type: 'Point' as const, coordinates}}))});
     parcelSource.setData((geometry ? {type: 'Feature', properties: {}, geometry} : EMPTY) as GeoJSON.GeoJSON);
     waterSource.setData(water ? {type: 'Feature', properties: {}, geometry: {type: 'Point', coordinates: water}} : EMPTY);
     if (geometry) this.fitTo(geometry, water);

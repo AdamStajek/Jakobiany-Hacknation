@@ -1,8 +1,10 @@
 import { DecimalPipe } from '@angular/common';
 import { Component, computed, input, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { DrawerModule } from 'primeng/drawer';
 import { MessageModule } from 'primeng/message';
+import { SelectButtonModule } from 'primeng/selectbutton';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { Recommendation, Report, Source } from '../../../core/api/types';
@@ -29,7 +31,7 @@ const TONE_CLASS: Record<Tone, string> = {
 
 @Component({
   selector: 'app-report-dashboard',
-  imports: [DecimalPipe, ButtonModule, DrawerModule, MessageModule, TableModule, TagModule, ConfidenceChip, KpiCard, RiskScale, RouterLink,
+  imports: [DecimalPipe, FormsModule, SelectButtonModule, ButtonModule, DrawerModule, MessageModule, TableModule, TagModule, ConfidenceChip, KpiCard, RiskScale, RouterLink,
     WaterBalanceChart, SeasonChart, SoilChart, SatelliteChart],
   template: `
     <section aria-labelledby="wynik" class="space-y-4">
@@ -47,6 +49,12 @@ const TONE_CLASS: Record<Tone, string> = {
           <a pButton [href]="'/api/analysis/' + report().analysis_id + '/report?format=json'" download icon="pi pi-download"
             severity="secondary" [outlined]="true">JSON</a>
         </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 print:hidden">
+        <span class="text-sm text-muted-color">Widok:</span>
+        <p-selectbutton [options]="modes" [ngModel]="mode()" (ngModelChange)="setMode($event)" optionLabel="label" optionValue="value"
+          [allowEmpty]="false" ariaLabel="Wybierz widok: prosty lub zaawansowany" />
       </div>
 
       <div class="flex flex-wrap items-center gap-4 rounded-xl border p-4" [class]="riskClass()">
@@ -67,6 +75,13 @@ const TONE_CLASS: Record<Tone, string> = {
       }
 
       @if (report().metrics.recent; as r) {
+        @if (!advanced()) {
+          <div class="grid grid-cols-2 gap-3">
+            <app-kpi-card label="Deszcz w ostatnich 30 dniach" [value]="(r.rain_mm | number:'1.0-0') ?? ''" unit="mm"
+              [hint]="r.rain_anomaly_mm !== undefined ? (r.rain_anomaly_mm < 0 ? 'Mniej niż zwykle' : 'Tyle samo lub więcej niż zwykle') : ''" />
+            <app-kpi-card label="Najdłuższa przerwa bez deszczu" [value]="r.dry_spell_days" unit="dni" />
+          </div>
+        } @else {
         <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <app-kpi-card label="Bilans uprawy · 30 dni" [value]="(r.crop_balance_mm | number:'1.0-1') ?? ''" unit="mm"
             [hint]="'Opad minus zapotrzebowanie · ' + r.samples + '/' + r.days + ' dni z danymi'" />
@@ -75,6 +90,7 @@ const TONE_CLASS: Record<Tone, string> = {
           <app-kpi-card label="Najdłuższy okres bez deszczu" [value]="r.dry_spell_days" unit="dni" hint="Dni z opadem poniżej 1 mm" />
           <app-kpi-card label="Współczynnik uprawy Kc" [value]="(report().metrics.kc | number:'1.2-3') ?? ''" [hint]="report().metrics.stage" />
         </div>
+        }
       } @else {
         <p-message severity="info">Brak wystarczających danych pogodowych dla ostatnich 30 dni.</p-message>
       }
@@ -99,39 +115,53 @@ const TONE_CLASS: Record<Tone, string> = {
         </div>
       </section>
 
-      <div class="grid gap-3 lg:grid-cols-2">
-        <app-water-balance-chart [report]="report()" />
-        <app-season-chart [report]="report()" />
-        <app-soil-chart [report]="report()" />
-        <div>
-          <app-satellite-chart [report]="report()" />
-          @if (satellite(); as s) {
-            @if (s.scene; as scene) {
-              <div class="mt-3 grid grid-cols-3 gap-3">
-                <app-kpi-card label="NDVI" [value]="(scene.ndvi | number:'1.2-2') ?? ''" hint="Zieleń łanu" />
-                <app-kpi-card label="NDMI" [value]="(scene.ndmi | number:'1.2-2') ?? ''" hint="Woda w liściach" />
-                <app-kpi-card label="NDWI" [value]="(scene.ndwi | number:'1.2-2') ?? ''" hint="Woda na powierzchni" />
-              </div>
-              <p class="mt-2 text-sm text-muted-color">Scena {{scene.date}} · {{scene.clear_share * 100 | number:'1.0-0'}}% użytecznej powierzchni.
-                @if (scene.crop_stage) { Faza kalendarzowa: {{scene.crop_stage}}. }
-                @if (report().metrics.satellite_comparison; as cmp) { {{cmp.interpretation}} Odchylenie NDMI od mediany {{cmp.n}} scen sezonowych: {{cmp.ndmi_delta | number:'1.2-2'}}. }
-              </p>
-            } @else { <p class="mt-2 text-sm text-muted-color">Brak użytecznego obrazu dla tej daty.</p> }
-          }
+      @if (advanced()) {
+        <div class="grid gap-3 lg:grid-cols-2">
+          <app-water-balance-chart class="block min-w-0" [report]="report()" />
+          <app-season-chart class="block min-w-0" [report]="report()" />
+          <app-soil-chart class="block min-w-0" [report]="report()" />
+          <div class="min-w-0">
+            <app-satellite-chart class="block" [report]="report()" />
+            @if (satellite(); as s) {
+              @if (s.scene; as scene) {
+                <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <app-kpi-card label="NDVI" [value]="(scene.ndvi | number:'1.2-2') ?? ''" hint="Zieleń łanu" />
+                  <app-kpi-card label="NDMI" [value]="(scene.ndmi | number:'1.2-2') ?? ''" hint="Woda w liściach" />
+                  <app-kpi-card label="NDWI" [value]="(scene.ndwi | number:'1.2-2') ?? ''" hint="Woda na powierzchni" />
+                </div>
+                <p class="mt-3 text-sm text-muted-color">Scena {{scene.date}} · {{scene.clear_share * 100 | number:'1.0-0'}}% użytecznej powierzchni.
+                  @if (scene.crop_stage) { Faza kalendarzowa: {{scene.crop_stage}}. }
+                  @if (report().metrics.satellite_comparison; as cmp) { {{cmp.interpretation}} Odchylenie NDMI od mediany {{cmp.n}} scen sezonowych: {{cmp.ndmi_delta | number:'1.2-2'}}. }
+                </p>
+              } @else { <p class="mt-2 text-sm text-muted-color">Brak użytecznego obrazu dla tej daty.</p> }
+            }
+          </div>
         </div>
-      </div>
+      } @else {
+        <div class="grid gap-3 lg:grid-cols-2">
+          <app-water-balance-chart class="block min-w-0" [report]="report()" />
+          <section class="min-w-0 rounded-xl border border-surface bg-surface-0 p-4 dark:bg-surface-900" aria-labelledby="rosliny">
+            <h3 id="rosliny" class="text-base font-semibold">Jak wyglądają rośliny?</h3>
+            @if (plantsText(); as t) {
+              <p class="mt-2 text-sm">{{t}}</p>
+              <p class="mt-2 text-xs text-muted-color">Na podstawie zdjęcia satelitarnego z {{satellite()?.scene?.date}}.</p>
+            } @else { <p class="mt-2 text-sm text-muted-color">Brak użytecznego zdjęcia satelitarnego dla tej daty.</p> }
+          </section>
+        </div>
+      }
 
+      @if (advanced()) {
       <section class="rounded-xl border border-surface bg-surface-0 p-4 dark:bg-surface-900" aria-labelledby="otoczenie">
         <h3 id="otoczenie" class="mb-2 text-xl font-semibold">Teren i otoczenie</h3>
-        <div class="grid gap-4 md:grid-cols-3">
-          <div class="text-sm">
+        <div class="grid gap-6 md:grid-cols-3">
+          <div class="min-w-0 text-sm">
             <h4 class="mb-1 font-semibold">Rzeźba terenu</h4>
             @if (source('terrain'); as t) {
               <p>Średnia wysokość <strong>{{t.elevation_m | number:'1.0-1'}} m</strong>.
                 @if (t.slope_pct !== null && t.slope_pct !== undefined) { Nachylenie <strong>{{t.slope_pct | number:'1.0-1'}}%</strong>. }</p>
             } @else { <p class="text-muted-color">Brak danych o terenie.</p> }
           </div>
-          <div class="text-sm">
+          <div class="min-w-0 text-sm">
             <h4 class="mb-1 font-semibold">Pokrycie terenu (2021)</h4>
             @if (source('land'); as land) {
               @for (c of land.classes ?? []; track c.class) {
@@ -140,7 +170,7 @@ const TONE_CLASS: Record<Tone, string> = {
               }
             } @else { <p class="text-muted-color">Brak danych o pokryciu.</p> }
           </div>
-          <div class="text-sm">
+          <div class="min-w-0 text-sm">
             <h4 class="mb-1 font-semibold">Woda w pobliżu</h4>
             @if (source('land'); as land) {
               @if (land.nearest_water_m !== null && land.nearest_water_m !== undefined) {
@@ -151,6 +181,7 @@ const TONE_CLASS: Record<Tone, string> = {
           </div>
         </div>
       </section>
+      }
 
       @if (report().scenario; as sc) {
         <section class="rounded-xl border border-surface bg-surface-0 p-4 dark:bg-surface-900">
@@ -161,13 +192,14 @@ const TONE_CLASS: Record<Tone, string> = {
       }
 
       <section class="rounded-xl border border-surface bg-surface-0 p-4 dark:bg-surface-900" aria-labelledby="zrodla">
-        <h3 id="zrodla" class="mb-2 text-xl font-semibold">Skąd pochodzą dane?</h3>
+        <h3 id="zrodla" class="mb-2 text-xl font-semibold">{{advanced() ? 'Skąd pochodzą dane?' : 'Na czym opieramy wynik?'}}</h3>
         @if (missing().length) {
           <p-message severity="warn" styleClass="mb-3">
             <div><strong>Braki i ograniczenia dla tej analizy</strong>
               <ul class="ml-5 mt-1 list-disc">@for (m of missing(); track m[0]) { <li><strong>{{m[0]}}.</strong> {{m[1]}}</li> }</ul></div>
           </p-message>
         }
+        @if (advanced()) {
         <p-table [value]="report().sources" [scrollable]="true" size="small" stripedRows>
           <ng-template #header>
             <tr><th>Źródło</th><th>Rodzaj</th><th>Rozdzielczość</th><th>Pobrano</th><th>Publikacja</th><th></th></tr>
@@ -181,6 +213,9 @@ const TONE_CLASS: Record<Tone, string> = {
             </tr>
           </ng-template>
         </p-table>
+        } @else {
+          <p class="text-sm">Korzystamy z danych satelitarnych Sentinel-2, pogody z ostatnich dni i lat oraz map gleby i terenu. Pełną listę źródeł znajdziesz w widoku zaawansowanym.</p>
+        }
         <p class="mt-2 text-xs text-muted-color">Czas analizy {{report().elapsed_ms / 1000 | number:'1.1-1'}} s · Geometria: {{report().parcel.source}}.
           Wynik ma charakter przesiewowy i nie zastępuje pomiaru w polu.</p>
       </section>
@@ -202,6 +237,26 @@ const TONE_CLASS: Record<Tone, string> = {
 export class ReportDashboard {
   readonly report = input.required<Report>();
   protected readonly selected = signal<Recommendation | null>(null);
+  protected readonly modes = [{label: 'Prosty', value: 'simple'}, {label: 'Zaawansowany', value: 'advanced'}];
+  protected readonly mode = signal<'simple' | 'advanced'>(ReportDashboard.loadMode());
+  protected readonly advanced = computed(() => this.mode() === 'advanced');
+  protected readonly plantsText = computed(() => {
+    const scene = this.satellite()?.scene;
+    if (!scene) return null;
+    const parts: string[] = [];
+    if (scene.ndvi < 0.2) parts.push('Na polu widać niewiele zielonej roślinności. Może to być okres poza sezonem lub świeży siew.');
+    else if (scene.ndvi < 0.5) parts.push('Rośliny są umiarkowanie rozwinięte.');
+    else parts.push('Rośliny są dobrze rozwinięte i zielone.');
+    if (scene.ndvi >= 0.2) parts.push(scene.ndmi < 0 ? 'Mogą mieć mało wody w liściach.' : 'Nie widać oznak suszy w liściach.');
+    return parts.join(' ');
+  });
+  private static loadMode(): 'simple' | 'advanced' {
+    try { return localStorage.getItem('report-mode') === 'advanced' ? 'advanced' : 'simple'; } catch { return 'simple'; }
+  }
+  protected setMode(m: 'simple' | 'advanced') {
+    this.mode.set(m);
+    try { localStorage.setItem('report-mode', m); } catch { /* brak dostępu do pamięci */ }
+  }
   protected readonly risk = computed(() => RISK[this.report().metrics.risk] ?? {tone: 'info' as Tone, icon: 'pi-info-circle'});
   protected readonly riskClass = computed(() => TONE_CLASS[this.risk().tone]);
   protected readonly missing = computed(() => Object.entries(this.report().missing));

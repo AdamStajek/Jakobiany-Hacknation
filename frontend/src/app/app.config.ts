@@ -7,7 +7,7 @@ import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from 
 import { providePrimeNG } from 'primeng/config';
 import { provideEchartsCore } from 'ngx-echarts';
 import { routes } from './app.routes';
-import { AppPreset } from './theme';
+import { AppPreset } from './core/theme/preset';
 
 registerLocaleData(localePl);
 

@@ -1,13 +1,12 @@
 import { DatePipe, DecimalPipe, JsonPipe, KeyValuePipe, NgTemplateOutlet } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, computed, inject, input, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, input, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import type { MultiPolygon, Polygon } from 'geojson';
-import * as L from 'leaflet';
+import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
 import { firstValueFrom } from 'rxjs';
 import type { Parcel } from '../../core/api/types';
 import { ParcelStore } from '../../core/state/parcel.store';
-
+import { WodoMap } from '../../shared/map/wodo-map';
 
 type PassportField = {
   field: string; label: string; source: string; unit?: string | null;
@@ -23,16 +22,14 @@ type Zone = {geometry: {type: 'Point'; coordinates: [number, number]}; type: str
 type Watering = {date: string; dose_mm: number | null};
 @Component({
   selector: 'app-passport-page',
-  imports: [FormsModule, DatePipe, DecimalPipe, JsonPipe, KeyValuePipe, NgTemplateOutlet],
+  imports: [FormsModule, WodoMap, DatePipe, DecimalPipe, JsonPipe, KeyValuePipe, NgTemplateOutlet],
   templateUrl: './passport-page.html',
   styleUrl: './passport-page.css',
 })
-export class PassportPage implements AfterViewInit, OnDestroy {
-  @ViewChild('map') private mapElement!: ElementRef<HTMLDivElement>;
+export class PassportPage implements OnInit {
+  private readonly wodoMap = viewChild.required(WodoMap);
   private readonly selectedParcel = inject(ParcelStore);
   private readonly http = inject(HttpClient);
-  private map?: L.Map;
-  private feature?: L.GeoJSON;
   private originalGeometry?: object;
   readonly id = input<string>();
 
@@ -41,6 +38,7 @@ export class PassportPage implements AfterViewInit, OnDestroy {
   protected readonly crops = signal<{id: string; label: string}[]>([]);
   protected readonly loadingParcel = signal(false);
   protected readonly loadingPassport = signal(false);
+  protected readonly zoneMarkers = signal<[number, number][]>([]);
   protected readonly passport = signal<Passport | null>(null);
   protected readonly availablePassportFields = computed(() =>
     this.passport()?.fields.filter(({field, status, value}) =>
@@ -69,7 +67,6 @@ export class PassportPage implements AfterViewInit, OnDestroy {
   protected watering: Watering[] = [];
   protected zones: Zone[] = [];
   protected markingZone = false;
-  private readonly zoneMarkers = L.layerGroup();
   protected query = '';
   protected crop = 'wheat';
   protected day = '';
@@ -91,35 +88,42 @@ export class PassportPage implements AfterViewInit, OnDestroy {
     });
   }
 
-  ngAfterViewInit() {
-    this.map = L.map(this.mapElement.nativeElement, {
-      center: [52.05, 19.2], zoom: 6, minZoom: 5, maxZoom: 19, scrollWheelZoom: false, zoomControl: false,
-      maxBounds: [[47, 10], [57, 28]],
-    });
-    L.control.zoom({position: 'topright', zoomInTitle: 'Powiększ', zoomOutTitle: 'Pomniejsz'}).addTo(this.map);
-    L.control.scale({imperial: false}).addTo(this.map);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19, attribution: '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a> · Granice © GUGiK',
-    }).addTo(this.map);
-    this.zoneMarkers.addTo(this.map);
-    this.map.on('click', (event: L.LeafletMouseEvent) => {
-      if (this.markingZone) return;
-      const {lat, lng} = event.latlng;
-      void this.find('/api/parcels/by-point', {lat, lon: lng});
-    });
-    if (this.id()) {
-      const selected = this.selectedParcel.parcel();
-      if (selected && selected.id === this.id()) {
-        this.select(selected, this.selectedParcel.importedGeometry() ?? undefined);
-      } else {
-        this.query = this.id() ?? '';
-        void this.find();
-      }
+  ngOnInit() {
+    const id = this.id();
+    if (!id) return;
+    const selected = this.selectedParcel.parcel();
+    if (selected && selected.id === id) {
+      this.select(selected, this.selectedParcel.importedGeometry() ?? undefined);
+    } else {
+      this.query = id;
+      void this.find();
     }
   }
 
-  ngOnDestroy() {
-    this.map?.remove();
+  protected onMapClick({lat, lon}: {lat: number; lon: number}) {
+    if (!this.markingZone) {
+      void this.find('/api/parcels/by-point', {lat, lon});
+      return;
+    }
+    const geometry = this.parcel()?.geometry;
+    if (!geometry || !booleanPointInPolygon([lon, lat], {type: 'Feature', properties: {}, geometry} as never)) return;
+    this.zones.push({geometry: {type: 'Point', coordinates: [lon, lat]}, type: '', date: '', description: ''});
+    this.markingZone = false;
+    this.refreshZoneMarkers();
+  }
+
+  protected async onPolygonDrawn(geometry: object) {
+    if (this.loadingParcel()) return;
+    this.error.set('');
+    this.loadingParcel.set(true);
+    try {
+      const geojson = {type: 'Feature', properties: {}, geometry};
+      this.select(await firstValueFrom(this.http.post<Parcel>('/api/parcels/import', geojson)), geojson);
+    } catch (error) {
+      this.showError(error, 'Nie udało się użyć narysowanej granicy.');
+    } finally {
+      this.loadingParcel.set(false);
+    }
   }
 
   protected async find(path = '/api/parcels/search', params?: {lat: number; lon: number}) {
@@ -151,7 +155,7 @@ export class PassportPage implements AfterViewInit, OnDestroy {
       this.irrigationHistory = '';
       this.watering = [];
       this.zones = [];
-      this.zoneMarkers.clearLayers();
+      this.refreshZoneMarkers();
     }
     this.markingZone = false;
     this.originalGeometry = geojson;
@@ -159,20 +163,6 @@ export class PassportPage implements AfterViewInit, OnDestroy {
     this.parcel.set(parcel);
     this.choices.set([]);
     this.query = geojson ? '' : parcel.id;
-    if (!this.map) return;
-    this.feature?.remove();
-    this.feature = L.geoJSON(parcel.geometry as Polygon | MultiPolygon, {
-      style: {color: '#006a50', weight: 3, fillColor: '#70b995', fillOpacity: .55},
-    }).addTo(this.map);
-    this.feature.on('click', (event: L.LeafletMouseEvent) => {
-      if (!this.markingZone) return;
-      L.DomEvent.stopPropagation(event);
-      const {lng, lat} = event.latlng;
-      this.zones.push({geometry: {type: 'Point', coordinates: [lng, lat]}, type: '', date: '', description: ''});
-      this.markingZone = false;
-      this.refreshZoneMarkers();
-    });
-    this.map.fitBounds(this.feature.getBounds(), {padding: [48, 48], maxZoom: 17});
     if (!this.questions().length) {
       this.http.get<Question[]>('/api/passport/questions').subscribe({
         next: (questions) => this.questions.set(questions),
@@ -182,15 +172,11 @@ export class PassportPage implements AfterViewInit, OnDestroy {
   }
 
   protected refreshZoneMarkers() {
-    this.zoneMarkers.clearLayers();
-    for (const {geometry: {coordinates: [lng, lat]}} of this.zones) {
-      L.circleMarker([lat, lng], {radius: 6, color: '#944518', interactive: false}).addTo(this.zoneMarkers);
-    }
+    this.zoneMarkers.set(this.zones.map(({geometry}) => geometry.coordinates));
   }
 
   protected resetMap() {
-    if (this.feature) this.map?.fitBounds(this.feature.getBounds(), {padding: [48, 48], maxZoom: 17});
-    else this.map?.setView([52.05, 19.2], 6);
+    this.wodoMap().fit();
   }
 
   protected async importFile(event: Event) {
@@ -233,7 +219,9 @@ export class PassportPage implements AfterViewInit, OnDestroy {
       irrigation_events: this.irrigationHistory === 'events' ? this.watering :
         this.irrigationHistory === 'none' ? [] : this.irrigationHistory === 'unknown' ? null : undefined,
     };
-    const farmerFields = this.questions().flatMap(({question, format, ...field}) => {
+    const farmerFields = this.questions().flatMap((item) => {
+      const {field: name, label, table, sql_type, source, unit} = item;
+      const field = {field: name, label, table, sql_type, source, unit};
       const value = answers[field.field];
       return value === undefined || value === '' ? [] : [{
         ...field, value, status: value === null ? 'missing' : 'ok',
