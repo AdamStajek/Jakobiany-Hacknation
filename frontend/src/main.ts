@@ -1,14 +1,10 @@
-import { bootstrapApplication } from '@angular/platform-browser';
+import { registerLocaleData } from '@angular/common';
+import localePl from '@angular/common/locales/pl';
 import { provideHttpClient } from '@angular/common/http';
-import { providePrimeNG } from 'primeng/config';
+import { LOCALE_ID } from '@angular/core';
+import { bootstrapApplication } from '@angular/platform-browser';
 import { App } from './app/app';
-import { AppPreset } from './app/theme';
 
-bootstrapApplication(App, {
-  providers: [
-    provideHttpClient(),
-    providePrimeNG({
-      theme: { preset: AppPreset, options: { darkModeSelector: '.dark' } },
-    }),
-  ],
-}).catch(console.error);
+registerLocaleData(localePl);
+bootstrapApplication(App, {providers: [provideHttpClient(), {provide: LOCALE_ID, useValue: 'pl'}]})
+  .catch(console.error);
