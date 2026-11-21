@@ -94,7 +94,7 @@ export class AssessmentsApi {
   list(q: PageQuery) { return this.api.page<Assessment>('/assessments', q); }
   get(id: string) { return this.api.get<Assessment>(`/assessments/${id}`); }
   create(body: AssessmentInput, key?: string) { return this.api.postAccepted<Job>('/assessments', body, key).pipe(toAccepted); }
-  twins(id: string, q: PageQuery = {}) { return this.api.page<Twin>(`/assessments/${id}/twins`, q); }
-  gaps(id: string, q: PageQuery = {}) { return this.api.page<InformationCheck>(`/assessments/${id}/gaps`, q); }
+  twins(id: string) { return this.api.get<Twin[]>(`/assessments/${id}/twins`); }
+  gaps(id: string) { return this.api.get<InformationCheck[]>(`/assessments/${id}/gaps`); }
   export(id: string, format: 'json' | 'csv') { return this.api.blob(`/assessments/${id}/export`, { format }); }
 }

@@ -123,3 +123,37 @@ export const WEIGHT_LABEL: Record<string, string> = {
   subsector: 'Podsektor', work_type: 'Rodzaj prac', function: 'Funkcja obiektu', technical: 'Parametry techniczne',
   organization: 'Organizacja i strony', cost: 'Koszt', schedule: 'Harmonogram', location: 'Lokalizacja', text: 'Podobieństwo tekstu',
 };
+
+/* Nowa inwestycja i analiza (1F) */
+export const WORK_TYPE_LABEL: Record<string, string> = {
+  construction_or_extension: 'Budowa lub rozbudowa', reconstruction_or_renovation: 'Przebudowa lub remont', mixed: 'Zakres mieszany',
+};
+export const THREAT_LEVEL: Record<string, StatusMeta> = {
+  low: { label: 'Niskie', icon: 'pi pi-check-circle', tone: 'success' },
+  moderate: { label: 'Umiarkowane', icon: 'pi pi-minus-circle', tone: 'warn' },
+  high: { label: 'Wysokie', icon: 'pi pi-exclamation-triangle', tone: 'danger' },
+  critical: { label: 'Krytyczne', icon: 'pi pi-exclamation-circle', tone: 'danger' },
+  insufficient_evidence: { label: 'Niewystarczające dowody', icon: 'pi pi-question-circle', tone: 'secondary' },
+};
+export const CONFIDENCE_META: Record<string, StatusMeta> = {
+  low: { label: 'Niska', icon: 'pi pi-minus-circle', tone: 'warn' },
+  moderate: { label: 'Umiarkowana', icon: 'pi pi-minus-circle', tone: 'info' },
+  high: { label: 'Wysoka', icon: 'pi pi-check-circle', tone: 'success' },
+  insufficient_evidence: { label: 'Niewystarczające dowody', icon: 'pi pi-question-circle', tone: 'secondary' },
+};
+export const DEVIATION_DIMENSION: Record<string, string> = { cost: 'Koszt', time: 'Czas' };
+export const RECOMMENDATION_KIND: Record<string, string> = {
+  investigate: 'Zbadaj', provide_information: 'Uzupełnij informacje', mitigate: 'Zaplanuj działanie zapobiegawcze', proposed_clause: 'Proponowany zapis',
+};
+export const TWIN_DIRECTION: Record<string, StatusMeta> = {
+  similar: { label: 'Podobne', icon: 'pi pi-equals', tone: 'success' },
+  different: { label: 'Różne', icon: 'pi pi-arrows-h', tone: 'warn' },
+};
+export const DEVIATION_UNIT: Record<string, string> = { days: 'dni', percent: '%', PLN: 'PLN' };
+export const API_ERROR_HINT: Record<string, string> = {
+  stale_revision: 'Projekt został zmieniony przez kogoś innego. Wczytaj aktualną wersję i ponów zapis.',
+  unsupported_document_type: 'Obsługiwane są tylko pliki PDF i DOCX.',
+  payload_too_large: 'Plik jest za duży.',
+  insufficient_input: 'Do analizy brakuje informacji. Uzupełnij poniższe pola.',
+  assessment_not_ready: 'Wersja dokumentu nie jest jeszcze gotowa do analizy (trwa ekstrakcja).',
+};
