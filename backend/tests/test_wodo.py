@@ -189,3 +189,22 @@ def test_unknown_crop_is_accepted_and_neutral():
     stage_id, kc = phenology(CROPS[UNKNOWN_CROP], date(2024, 12, 31))
     assert stage_id != 4 and kc == 1.0
     assert phenology(CROPS[UNKNOWN_CROP], date(2024, 1, 1))[1] == 1.0
+
+
+def test_polygon_with_hole_validates():
+    from wodo.geo import validate_geometry
+
+    outer = [[21.0, 52.0], [21.01, 52.0], [21.01, 52.01], [21.0, 52.01], [21.0, 52.0]]
+    hole = [[21.002, 52.002], [21.004, 52.002], [21.004, 52.004], [21.002, 52.004], [21.002, 52.002]]
+    assert validate_geometry({"type": "Polygon", "coordinates": [outer, hole]})["geometry"]
+
+
+def test_oversized_parcel_is_shown_but_not_analyzable():
+    import pytest as _pt
+    from wodo.geo import validate_geometry
+
+    big = {"type": "Polygon", "coordinates": [[[20.0, 50.0], [20.2, 50.0], [20.2, 50.2], [20.0, 50.2], [20.0, 50.0]]]}
+    parcel = validate_geometry(big, strict=False)
+    assert parcel["analyzable"] is False and "fragment" in parcel["warning"]
+    with _pt.raises(ValueError, match="fragment"):
+        validate_geometry(big)

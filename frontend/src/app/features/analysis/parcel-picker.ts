@@ -41,6 +41,7 @@ import { ParcelStore } from '../../core/state/parcel.store';
           <p-button icon="pi pi-times" [text]="true" [rounded]="true" severity="secondary" size="small"
             ariaLabel="Odznacz działkę" (onClick)="store.clear()" />
         </div>
+        @if (parcel.warning) { <p-message severity="warn" role="status">{{parcel.warning}}</p-message> }
       }
 
       <div>

@@ -23,12 +23,16 @@ export class ApiService {
    * Analiza ze strumieniem postępu przez WebSocket (/api/ws/analysis).
    * Gdy WebSocket jest niedostępny (np. proxy go blokuje), wraca do zwykłego POST bez postępu.
    */
-  analyzeWithProgress(request: AnalysisRequest, onProgress: (progress: AnalysisProgress) => void): Promise<Report> {
+  analyzeWithProgress(request: AnalysisRequest, onProgress: (progress: AnalysisProgress) => void, signal?: AbortSignal): Promise<Report> {
     return new Promise<Report>((resolve, reject) => {
       const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
       let settled = false, opened = false;
       const socket = new WebSocket(`${scheme}://${location.host}/api/ws/analysis`);
       const finish = (action: () => void) => { if (!settled) { settled = true; action(); } };
+      signal?.addEventListener('abort', () => {
+        finish(() => reject(new DOMException('Anulowano', 'AbortError')));
+        socket.close();
+      }, {once: true});
       socket.onopen = () => { opened = true; socket.send(JSON.stringify(request)); };
       socket.onmessage = (message) => {
         const event = JSON.parse(message.data as string) as AnalysisEvent;

@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { SkeletonModule } from 'primeng/skeleton';
 import { AnalysisStore } from '../../core/state/analysis.store';
 import { ParcelStore } from '../../core/state/parcel.store';
+import { ProgressOverlay } from '../../shared/ui/progress-overlay';
 import { WodoMap } from '../../shared/map/wodo-map';
 import { AnalysisForm } from './analysis-form';
 import { ParcelPicker } from './parcel-picker';
@@ -10,18 +11,21 @@ import { ReportDashboard } from './dashboard/report-dashboard';
 
 @Component({
   selector: 'app-analysis-page',
-  imports: [ParcelPicker, AnalysisForm, WodoMap, ReportDashboard, SkeletonModule],
+  imports: [ParcelPicker, AnalysisForm, WodoMap, ReportDashboard, SkeletonModule, ProgressOverlay],
   template: `
     <h1 class="mb-1 text-2xl font-bold tracking-tight">Zatrzymaj wodę. Chroń plony.</h1>
     <p class="mb-4 max-w-2xl text-muted-color">Sprawdź, jak opady, gleba i ukształtowanie terenu wpływają na zapas wody na Twojej działce.</p>
     <div class="grid gap-4 lg:grid-cols-[380px_1fr]">
-      <aside class="print:hidden order-2 space-y-6 rounded-xl border border-surface bg-surface-0 p-4 lg:order-1 dark:bg-surface-900">
+      <aside [attr.inert]="analysis.analyzing() ? '' : null" class="print:hidden order-2 space-y-6 rounded-xl border border-surface bg-surface-0 p-4 lg:order-1 dark:bg-surface-900">
         <app-parcel-picker />
         <app-analysis-form />
       </aside>
-      <div class="print:hidden order-1 h-[48vh] min-h-[320px] overflow-hidden rounded-xl border border-surface lg:order-2 lg:sticky lg:top-16 lg:h-[calc(100vh-11rem)]">
+      <div class="print:hidden relative order-1 h-[48vh] min-h-[320px] overflow-hidden rounded-xl border border-surface lg:order-2 lg:sticky lg:top-16 lg:h-[calc(100vh-11rem)]">
         <app-wodo-map [locateUser]="true" [geometry]="parcels.parcel()?.geometry ?? null" [waterPoint]="analysis.waterPoint()"
           (pointClicked)="parcels.searchPoint($event.lat, $event.lon)" (polygonDrawn)="parcels.importGeometry($event)" />
+        @if (analysis.analyzing()) {
+          <app-progress-overlay [message]="analysis.progress()" [percent]="analysis.percent()" (cancelled)="analysis.cancel()" />
+        }
       </div>
     </div>
     @if (analysis.running() && !analysis.report()) {

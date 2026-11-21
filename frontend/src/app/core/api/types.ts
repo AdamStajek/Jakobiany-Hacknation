@@ -6,6 +6,9 @@ export type Parcel = {
   commune: string | null;
   region: string | null;
   area_ha: number;
+  /** false: obiekt za duży/mały na analizę; `warning` mówi użytkownikowi, co zrobić. */
+  analyzable?: boolean;
+  warning?: string | null;
   centroid: [number, number];
   geometry: Geometry;
 };

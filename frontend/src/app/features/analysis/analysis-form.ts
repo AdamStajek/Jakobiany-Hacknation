@@ -5,7 +5,6 @@ import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
 import { MessageModule } from 'primeng/message';
 import { PanelModule } from 'primeng/panel';
-import { ProgressBarModule } from 'primeng/progressbar';
 import { SelectModule } from 'primeng/select';
 import { AnalysisStore } from '../../core/state/analysis.store';
 import { ParcelStore } from '../../core/state/parcel.store';
@@ -14,7 +13,7 @@ const STAGES = ['Początek wzrostu', 'Rozwój', 'Pełnia wzrostu', 'Dojrzewanie'
 
 @Component({
   selector: 'app-analysis-form',
-  imports: [ReactiveFormsModule, ButtonModule, CheckboxModule, MessageModule, PanelModule, ProgressBarModule, SelectModule],
+  imports: [ReactiveFormsModule, ButtonModule, CheckboxModule, MessageModule, PanelModule, SelectModule],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3" aria-labelledby="form-title">
       <h2 id="form-title" class="text-lg font-semibold">2. Podaj uprawę i datę</h2>
@@ -73,12 +72,8 @@ const STAGES = ['Początek wzrostu', 'Rozwój', 'Pełnia wzrostu', 'Dojrzewanie'
       </p-panel>
 
       <p-button type="submit" styleClass="w-full" icon="pi pi-chart-line" label="Analizuj gospodarowanie wodą"
-        [loading]="store.running()" [disabled]="!parcels.parcel() || form.invalid || store.running() || parcels.loading()" />
+        [loading]="store.running()" [disabled]="!parcels.parcel() || parcels.parcel()?.analyzable === false || form.invalid || store.running() || parcels.loading()" />
       @if (!parcels.parcel()) { <p class="text-xs text-muted-color">Najpierw wybierz działkę (krok 1).</p> }
-      @if (store.running()) {
-        <div role="status" aria-live="polite" class="space-y-2">@if (store.percent() === null) { <p-progressbar mode="indeterminate" [style]="{height: '6px'}" /> }
-          @else { <p-progressbar [value]="store.percent()" [showValue]="false" [style]="{height: '6px'}" /> }<p class="text-sm text-muted-color">{{store.progress()}}</p></div>
-      }
       @if (store.error()) { <p-message severity="error" role="alert">{{store.error()}}</p-message> }
     </form>
   `,

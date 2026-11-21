@@ -23,7 +23,8 @@ PARCEL_NAME = re.compile(
 )
 
 
-def validate_geometry(geom):
+def validate_geometry(geom, strict=True):
+    """strict=False: obiekt za duży/mały do analizy jest zwracany z analyzable=False i ostrzeżeniem."""
     if not isinstance(geom, dict) or geom.get("type") not in (
         "Polygon",
         "MultiPolygon",
@@ -41,7 +42,7 @@ def validate_geometry(geom):
         or polygon.has_z
         or not PL.covers(polygon)
         or sum(
-            len(p.exterior.coords) + sum(map(len, p.interiors))
+            len(p.exterior.coords) + sum(len(ring.coords) for ring in p.interiors)
             for p in (
                 polygon.geoms if polygon.geom_type == "MultiPolygon" else [polygon]
             )
@@ -50,13 +51,18 @@ def validate_geometry(geom):
     ):
         raise ValueError("Granica jest niepoprawna lub leży poza zasięgiem Polski.")
     local = transform(polygon, TO_PL, interleaved=False)
+    warning = None
     if not 1 <= local.area <= 20_000_000 or any(
         hi - lo > 12_000
         for lo, hi in zip(local.bounds[:2], local.bounds[2:], strict=True)
     ):
-        raise ValueError(
-            "Analiza przyjmuje działki od 1 m² do 2000 ha o rozpiętości do 12 km."
+        warning = (
+            "Ten obiekt jest za duży lub za mały na jedną analizę (obsługujemy od 1 m² do 2000 ha "
+            "i do 12 km rozpiętości). Zaznacz na mapie wybrany fragment narzędziem rysowania wielokąta "
+            "albo wczytaj własną granicę z GeoJSON."
         )
+        if strict:
+            raise ValueError(warning)
     center = polygon.centroid
     point = polygon.representative_point()
     return {
@@ -65,6 +71,8 @@ def validate_geometry(geom):
         "centroid": [center.x, center.y],
         "sample_point": [point.x, point.y],
         "area_ha": round(local.area / 10000, 5),
+        "analyzable": warning is None,
+        "warning": warning,
     }
 
 
@@ -307,9 +315,11 @@ def from_rows(rows, meta):
                 ]
                 geom = max(polygons, key=lambda g: g.area)
             geom = transform(geom, file_to_gps, interleaved=False)
-            parcel = validate_geometry(mapping(geom))
+            parcel = validate_geometry(mapping(geom), strict=False)
         except (ValueError, TypeError, GEOSException) as problem:
-            error = error or problem
+            # Tylko nasze komunikaty (ValueError z validate_geometry) trafiają do użytkownika.
+            known = isinstance(problem, ValueError) and not isinstance(problem, GEOSException)
+            error = error or (problem if known and problem.__cause__ is None else None)
             continue
         parcels.append(
             {
@@ -323,7 +333,7 @@ def from_rows(rows, meta):
             }
         )
     if rows and not parcels:
-        raise ValueError(str(error) if error else "Geometria działki jest niepoprawna.")
+        raise error or ValueError("Geometria działki jest niepoprawna.")
     return parcels
 
 

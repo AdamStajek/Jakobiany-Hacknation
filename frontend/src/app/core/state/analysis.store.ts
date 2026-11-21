@@ -57,12 +57,21 @@ export class AnalysisStore {
     }
   }
 
+  private abort: AbortController | null = null;
+  /** true tylko podczas analizy z serwera (nie przy wczytywaniu zapisanego raportu). */
+  readonly analyzing = signal(false);
+
+  /** Przerywa trwającą analizę (serwer dokończy ją w tle i zwolni slot). */
+  cancel() { this.abort?.abort(); }
+
   async analyze(form: AnalysisForm) {
     const parcel = this.parcels.parcel();
     if (!parcel || this.running()) return;
     this.error.set('');
     this.report.set(null);
     this.percent.set(null);
+    this.abort = new AbortController();
+    this.analyzing.set(true);
     this.progress.set('Łączymy się z serwerem analizy…');
     try {
       const geojson = this.parcels.importedGeometry();
@@ -72,10 +81,12 @@ export class AnalysisStore {
         // Ostatnie ~10% to składanie raportu po zebraniu źródeł.
         this.percent.set(Math.round((done / total) * 90));
         this.progress.set(done < total ? `Pobrano: ${label} (${done}/${total})` : 'Łączymy dane i przygotowujemy zalecenia…');
-      }));
+      }, this.abort.signal));
     } catch (error) {
-      this.error.set(errorMessage(error));
+      if (!(error instanceof DOMException && error.name === 'AbortError')) this.error.set(errorMessage(error));
     } finally {
+      this.abort = null;
+      this.analyzing.set(false);
       this.percent.set(null);
       this.progress.set('');
     }

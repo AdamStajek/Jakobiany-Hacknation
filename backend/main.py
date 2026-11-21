@@ -127,6 +127,15 @@ async def provider_error(_request, error):
     return JSONResponse(status_code=503, content={"detail": str(error)})
 
 
+@app.exception_handler(Exception)
+async def unexpected_error(_request, error):
+    logging.getLogger(__name__).exception("Unhandled error", exc_info=error)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Coś poszło nie tak po naszej stronie. Spróbuj ponownie za chwilę."},
+    )
+
+
 @app.exception_handler(ValueError)
 async def input_error(_request, error):
     return JSONResponse(status_code=422, content={"detail": str(error)})
@@ -273,6 +282,7 @@ def build_passport(parcel_id, geojson, as_of, crop, sowing, stage, irrigation_mm
                 [item for item in lookup(parcel_id) if item["id"] == parcel_id]
             )["parcels"][0]
         )
+        ensure_analyzable(parcel)
         passport = collect(parcel, day, crop, sowing, stage, irrigation_mm)
         return {
             **passport,
@@ -280,6 +290,11 @@ def build_passport(parcel_id, geojson, as_of, crop, sowing, stage, irrigation_mm
         }
     finally:
         analysis_slots.release()
+
+
+def ensure_analyzable(parcel):
+    if parcel.get("analyzable") is False:
+        raise ValueError(parcel["warning"])
 
 
 def execute_analysis(request: AnalysisRequest, on_progress=None):
@@ -297,6 +312,7 @@ def execute_analysis(request: AnalysisRequest, on_progress=None):
             if request.geojson is not None
             else matches(lookup(request.parcel_id))["parcels"][0]
         )
+        ensure_analyzable(parcel)
         result = run(parcel, request, on_progress)
         result["situation"] = report_message(result)
         analysis_id = uuid4().hex
