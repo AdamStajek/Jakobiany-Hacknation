@@ -2,6 +2,9 @@
 @import "tailwindcss-primeui";
 @import "primeicons/primeicons.css";
 
+/* Tailwind `dark:` ma reagować na klasę .dark (jak PrimeNG), a nie na ustawienie systemu. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Brand accents, mapped to Aura palette tokens. */
 :root {
   --brand-navy: var(--p-blue-950);   
@@ -40,4 +43,12 @@ body {
 
 .dark body {
   background: var(--p-surface-950);
+}
+
+/* Widoczny fokus dla nawigacji klawiaturą (linki menu, przyciski, pola). */
+a:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--p-primary-color);
+  outline-offset: 2px;
 }
