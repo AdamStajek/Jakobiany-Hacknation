@@ -87,7 +87,7 @@ export type PassportField = {
 /** Paszport pola z /api/passport; frontend pokazuje z niego tylko krótkie podsumowanie. */
 export type Passport = {
   parcel_id: string; analysis_as_of: string; fields: PassportField[];
-  farmer_report?: {situation: string; next_check?: string | null; steps?: Recommendation[]};
+  farmer_report?: {situation: string; next_check: string | null; steps: Recommendation[]};
 };
 export type Health = {status: string; analysis_date_min: string; analysis_date_max: string};
 export type Crop = {id: string; label: string};

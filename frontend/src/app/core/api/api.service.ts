@@ -32,7 +32,6 @@ export class ApiService {
   saveExperiments(analysisId: string, results: Record<string, string>) {
     return firstValueFrom(this.http.post<Report>(`/api/analysis/${encodeURIComponent(analysisId)}/experiments`, results));
   }
-  passportForRequest(field_request: AnalysisRequest) { return firstValueFrom(this.http.post<Passport>('/api/passport', {field_request})); }
   analyze(request: AnalysisRequest) { return firstValueFrom(this.http.post<Report>('/api/analysis', request)); }
 
   // Konta (ciasteczko sesji HttpOnly, ten sam origin przez proxy).
