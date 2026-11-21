@@ -4,6 +4,7 @@ COPY frontend/package*.json ./
 RUN npm ci
 COPY frontend/angular.json frontend/tsconfig.json frontend/.postcssrc.json ./
 COPY frontend/src ./src
+COPY frontend/public ./public
 RUN npm run build
 
 FROM ghcr.io/astral-sh/uv:0.13.9 AS uv
