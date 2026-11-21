@@ -140,6 +140,25 @@ def indices(bands, footprint):
             "clear_share": round(share, 3), "pixels": number}
 
 
+def passport_stats(bands, footprint):
+    scl = bands[-1]
+    clear = footprint & np.isin(scl, [2, 4, 5, 6, 7])
+    red, nir, green, swir = (band[clear] for band in bands[:4])
+    values = {"clear_pixel_pct": float(100 * clear.sum() / footprint.sum())}
+    for key, a, b in (("ndvi", nir, red), ("ndmi", nir, swir), ("ndwi", green, nir), ("mndwi", green, swir)):
+        valid = np.isfinite(a) & np.isfinite(b) & (a >= 0) & (b >= 0) & (a + b > 0)
+        if valid.any():
+            index = (a[valid] - b[valid]) / (a[valid] + b[valid])
+            values[f"{key}_mean"] = float(np.mean(index))
+            if key in ("ndvi", "ndmi"):
+                values[f"{key}_p10"] = float(np.percentile(index, 10))
+                values[f"{key}_std"] = float(np.std(index))
+            if key == "ndvi":
+                values["ndvi_p90"] = float(np.percentile(index, 90))
+                values["valid_pixel_count"] = int(valid.sum())
+    return values
+
+
 def azure_scene(scene):
     keys = ("B04", "B08", "B03", "B11", "SCL")
     props = scene["properties"]
@@ -150,7 +169,7 @@ def azure_scene(scene):
     return scene
 
 
-def scene_metrics(scene, local):
+def scene_metrics(scene, local, for_passport=False):
     assets = scene["assets"]
     asset_urls = [assets[key]["href"] for key in SENTINEL_BANDS]
     affine, dimensions = grid(local, 20)
@@ -169,13 +188,17 @@ def scene_metrics(scene, local):
     output = indices([*bands, scl], footprint)
     if output:
         props = scene["properties"]
+        if for_passport:
+            output["passport_stats"] = passport_stats([*bands, scl], footprint)
+            if rgb := assets.get("visual", {}).get("href"):
+                output["passport_stats"]["s2_rgb_asset_uri"] = rgb
         return {**output, "scene": scene["id"], "date": props["datetime"][:10],
                 "tile_cloud_pct": props.get("eo:cloud_cover"), "publication_date": props.get("created"),
                 "asset_urls": asset_urls}
     return None
 
 
-def satellite(geometry, day, baseline=False):
+def satellite(geometry, day, baseline=False, *, earth_search_only=False):
     polygon = shape(geometry)
     local = transform(polygon, TO_PL, interleaved=False)
     if local.area < 1200:
@@ -185,10 +208,12 @@ def satellite(geometry, day, baseline=False):
         window = 22 if baseline else 38
         period = (day - timedelta(days=window), day)
         endpoint = MS_STAC
-        try:
-            candidates = [azure_scene(scene) for scene in stac("sentinel-2-l2a", polygon.bounds, 28, period, MS_STAC)]
-        except (SourceError, ValueError, KeyError):
-            candidates = []
+        candidates = []
+        if not earth_search_only:
+            try:
+                candidates = [azure_scene(scene) for scene in stac("sentinel-2-l2a", polygon.bounds, 28, period, MS_STAC)]
+            except (SourceError, ValueError, KeyError):
+                pass
         if not candidates:
             endpoint = STAC
             candidates = stac("sentinel-2-c1-l2a,sentinel-2-l2a,sentinel-2-pre-c1-l2a", polygon.bounds, 36, period)
@@ -206,7 +231,7 @@ def satellite(geometry, day, baseline=False):
         if not pending_candidates:
             return {"scene": None, "searched": len(candidates), "read_failures": 0, "endpoint": endpoint}
         pool = ThreadPoolExecutor(max_workers=len(pending_candidates))
-        futures = [pool.submit(scene_metrics, candidate, local) for candidate in pending_candidates]
+        futures = [pool.submit(scene_metrics, candidate, local, earth_search_only) for candidate in pending_candidates]
         done, pending = wait(futures, timeout=19 if not baseline else 13)
         pool.shutdown(wait=False, cancel_futures=True)
         rejected = len(pending)
@@ -224,7 +249,8 @@ def satellite(geometry, day, baseline=False):
             raise SourceError("Część scen była nieużyteczna lub przekroczyła limit odczytu rastrów.")
         return {"scene": None, "searched": len(candidates), "read_failures": rejected, "endpoint": endpoint}
 
-    return cached("sentinel-baseline" if baseline else "sentinel", [geometry, day.isoformat()],
+    cache_name = "passport-sentinel" if earth_search_only else ("sentinel-baseline" if baseline else "sentinel")
+    return cached(cache_name, [geometry, day.isoformat()],
                   .25 if day >= date.today() - timedelta(days=5) else 45, download)
 
 
@@ -267,7 +293,10 @@ def soil_coverage(prop, depth, bounds, polygon):
                 p = projected.representative_point()
                 selected = next(src.sample([(p.x, p.y)], masked=True)).compressed()
                 support = "piksel w punkcie wewnętrznym"
-            selected = selected[(selected > 0) & (selected <= 1000)]
+            if prop in ("wv0033", "wv1500"):
+                selected = selected[(selected > 0) & (selected <= 1000)]
+            else:
+                selected = selected[np.isfinite(selected) & (selected >= 0)]
             return (round(float(np.mean(selected)), 1), support) if selected.size else (None, None)
     except (RasterioIOError, SourceError):
         return None, None

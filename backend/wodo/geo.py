@@ -1,4 +1,8 @@
+import os
 import re
+import sqlite3
+from contextlib import closing
+from pathlib import Path
 
 from pyproj import Transformer
 from shapely import from_wkb, from_wkt, get_srid, transform
@@ -40,8 +44,14 @@ def imported(geojson):
     if geojson.get("crs"):
         raise ValueError("GeoJSON musi używać współrzędnych WGS 84 (długość, szerokość).")
     geom = geojson.get("geometry") if geojson.get("type") == "Feature" else geojson
-    return {**validate_geometry(geom), "id": "Działka z GeoJSON", "source": "Import użytkownika",
-            "commune": None, "region": None, "land_use_declared": True}
+    props = geojson.get("properties")
+    props = props if isinstance(props, dict) and geojson.get("type") == "Feature" else {}
+    identifier = props.get("parcel_id") or geojson.get("id")
+    declared_id = identifier.upper() if isinstance(identifier, str) and PARCEL_ID.fullmatch(identifier) else None
+    commune = props.get("commune")
+    commune = commune.strip() if isinstance(commune, str) and 0 < len(commune.strip()) <= 90 else None
+    return {**validate_geometry(geom), "id": declared_id or "Działka z GeoJSON", "source": "Import użytkownika",
+            "declared_parcel_id": declared_id, "commune": commune, "region": None, "land_use_declared": True}
 
 
 def parse_row(row):
@@ -90,9 +100,53 @@ def parse_reply(raw):
     return parcels
 
 
+def local_parcels(parcel_id=None, point=None):
+    default = Path(__file__).resolve().parents[2] / ".wodo-cache/egib/ostrowiecki-2607.gpkg"
+    path = Path(os.environ.get("WODO_EGIB_GPKG") or default)
+    if not path.is_file():
+        return []
+    try:
+        with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)) as db:
+            columns = "SELECT id_dzialki, geom, gmina, obreb, data FROM dzialki"
+            if point is not None:
+                extent = db.execute(
+                    "SELECT min_x,min_y,max_x,max_y FROM gpkg_contents WHERE table_name='dzialki' AND srs_id=2180"
+                ).fetchone()
+                if not extent or not box(*extent).covers(point):
+                    return []
+                rows = db.execute(columns)
+            else:
+                rows = db.execute(columns + " WHERE id_dzialki=?", (parcel_id.upper(),))
+            for identifier, blob, commune, region, day in rows:
+                # The local export has a GeoPackage header without a bounding envelope.
+                if blob[:8] != b"GP\x00\x01\x84\x08\x00\x00":
+                    raise SourceError("Nieobsługiwany zapis geometrii w lokalnej kopii EGiB.")
+                geom = from_wkb(blob[8:])
+                if point is None or geom.covers(point):
+                    geometry = mapping(transform(geom, TO_GPS, interleaved=False))
+                    return [{**validate_geometry(geometry), "id": identifier, "source": "EGiB / kopia lokalna",
+                             "commune": commune, "region": region, "retrieved_at": day,
+                             "source_url": "https://ostrowiec.geoportal2.pl/map/geoportal/wfs.php"}]
+    except (sqlite3.Error, GEOSException, TypeError, ValueError) as error:
+        raise SourceError("Nie udało się odczytać lokalnej kopii EGiB.") from error
+    return []
+
+
+def lookup_with_fallback(operation, filters, **local):
+    try:
+        parcels = uldk(operation, filters)
+    except SourceError:
+        if parcels := local_parcels(**local):
+            return parcels
+        raise
+    return parcels or local_parcels(**local)
+
+
 def lookup(query):
     query = query.strip()
     if PARCEL_ID.fullmatch(query):
+        if query.startswith("2607"):
+            return lookup_with_fallback("GetParcelById", {"id": query}, parcel_id=query)
         operation = "GetParcelById"
     elif PARCEL_NAME.fullmatch(query):
         operation = "GetParcelByIdOrNr"
@@ -105,7 +159,7 @@ def by_point(lon, lat):
     if not PL.covers(Point(lon, lat)):
         raise ValueError("Wskaż punkt na terenie Polski.")
     x, y = TO_PL(lon, lat)
-    return uldk("GetParcelByXY", {"xy": f"{x:.2f},{y:.2f}"})
+    return lookup_with_fallback("GetParcelByXY", {"xy": f"{x:.2f},{y:.2f}"}, point=Point(x, y))
 
 
 def uldk(operation, filters):

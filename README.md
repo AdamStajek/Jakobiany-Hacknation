@@ -53,6 +53,18 @@ Geometria pochodzi z GUGiK. NASA POWER i IMGW dostarczają meteorologię, Sentin
 - [Macierz wymagań](docs/REQUIREMENTS_MATRIX.md)
 - [Lista zgłoszeniowa](SUBMISSION_CHECKLIST.md)
 
+### Lokalna kopia granic działek
+
+Jeśli ULDK zwróci błąd lub pusty wynik, aplikacja sprawdza lokalny GeoPackage dla pełnych identyfikatorów EGiB zaczynających się od `2607` i dla kliknięć na mapie w zasięgu kopii. Szuka pliku `.wodo-cache/egib/ostrowiecki-2607.gpkg`. Docker Compose montuje katalog `.wodo-cache/egib` tylko do odczytu. Przy uruchomieniu bez Compose ścieżkę można ustawić przez `WODO_EGIB_GPKG`.
+
+### Paszport pola na żądanie
+
+[Konfiguracja źródeł i referencji dla pól P0](docs/PASSPORT_P0.md).
+
+Wybierz działkę EGiB i datę w aplikacji, a następnie kliknij **Pokaż paszport pola**. Dane można rozwinąć na ekranie lub zapisać jako JSON. To uruchamia `GET /api/passport?parcel_id=301103_2.0009.549%2F7&as_of=2024-07-05`. Domyślna data to dziś. API pobiera dane równolegle i korzysta z istniejącej pamięci podręcznej SQLite.
+
+Paszport zawiera wartości, metadane i statusy dla katalogu CSV. `unsupported` oznacza brak implementacji pola, `error` błąd źródła, a `missing` brak wartości dla działki lub daty. Konektory obejmują dane EGiB i administracyjne z ULDK, wysokość i nachylenie z NMT, profil gleby i retencję z SoilGrids, Sentinel‑2 oraz pogodę i wilgotność modelową z Open‑Meteo. Wybrana uprawa, data siewu, faza i dawka nawadniania z formularza trafiają do bilansu FAO‑56. Wartość ubytku odpowiada początkowo pełnemu zapasowi wody, a metadane zawierają zakres obu scenariuszy początkowych. Zmienna `WODO_NONCOMMERCIAL_OPEN_METEO=1` w środowisku backendu włącza bezpłatne API Open‑Meteo do użytku niekomercyjnego.
+
 Kod, testy, dokumentację i materiały przygotowano z pomocą OpenAI Codex. W działającej aplikacji wnioskowanie jest deterministyczne. Użytkownik może odtworzyć powód zalecenia na podstawie danych i reguły.
 
 ## Testy i walidacja

@@ -54,6 +54,7 @@ input::placeholder{color:#63786c}
 .matches{margin-top:9px;display:grid;gap:5px}
 .second{border-top:1px solid var(--line);margin-top:18px;padding-top:18px}
 .analysis-form{margin-top:15px}
+.analysis-form fieldset{min-width:0;border:1px solid #dbe7df;border-radius:8px;padding:10px}
 .form-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:9px}
 .wide{grid-column:1/-1}
 .check{display:flex;gap:8px;align-items:center}
@@ -120,15 +121,42 @@ summary{cursor:pointer;color:var(--green);font-weight:700;font-size:14px}
 .evidence details{padding:8px 0;border-top:1px solid var(--line)}
 .evidence summary span{color:var(--muted);font-weight:500;margin-left:7px}
 .evidence ul{padding-left:20px}
-.methods{margin:36px 0;max-width:735px;scroll-margin-top:15px}
-.methods h2{margin-bottom:8px}
-.methods p+p{margin-top:7px}
+.model-page{max-width:790px;margin:0 auto 3rem}
+.model-page .intro h1{font-size:clamp(40px,7vw,72px);line-height:1.05}
+.model-page .panel{margin-bottom:1rem;font-size:1.0625rem}
+.model-page h2{font-size:1.5rem;margin-bottom:.75rem}
+.model-page dd{margin:0 0 .85rem;color:var(--muted)}
+.model-page dt{font-weight:750}
+.model-page dl,.model-page ul{margin-bottom:0}
+.model-page li+li{margin-top:.6rem}
+.model-page details{margin-top:1rem}
+.model-page details summary{font-size:1rem}
 .footer{border-top:1px solid var(--line);padding:15px 0;color:var(--muted);font-size:13px}
 .footer .shell{display:flex;gap:14px;flex-wrap:wrap}
 @media(max-width:900px){.shell{width:calc(100% - 44px)}.workspace{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.setup{padding:16px}.figures{gap:5px}}
-@media(max-width:690px){.shell{width:calc(100% - 26px)}.topbar-inner{min-height:56px}.wordmark{font-size:19px}.topbar nav a:first-child{display:none}.intro{padding:32px 0 24px}.intro>p:last-child{font-size:16px}.workspace,.risk-card,.report-grid,.context-grid{grid-template-columns:1fr}.map-card{min-height:355px}.map{min-height:260px}.report-heading{align-items:flex-start;flex-direction:column}.panel,.risk-card{padding:15px}.map-head,.map-footer{padding-inline:11px}}
+@media(max-width:690px){.shell{width:calc(100% - 26px)}.topbar-inner{min-height:56px}.wordmark{font-size:19px}.topbar-inner{flex-wrap:wrap;padding-block:10px}.topbar nav{gap:clamp(8px,3vw,22px);flex-wrap:wrap}.intro{padding:32px 0 24px}.intro>p:last-child{font-size:16px}.workspace,.risk-card,.report-grid,.context-grid{grid-template-columns:1fr}.map-card{min-height:355px}.map{min-height:260px}.report-heading{align-items:flex-start;flex-direction:column}.panel,.risk-card{padding:15px}.map-head,.map-footer{padding-inline:11px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.spinner{animation:none}}
-@media print{.topbar,.intro,.workspace,.actions,.methods,.footer{display:none}.shell{width:100%}.results{margin:0}.card,.risk-card{box-shadow:none;break-inside:avoid}.risk-card{background:white;color:var(--ink);border:1px solid var(--line)}.risk-card p{color:var(--ink)}.report-grid,.context-grid{display:block}.panel,.context-grid>div{margin-bottom:12px}}
+@media print{.topbar,.intro,.workspace,.actions,.footer{display:none}.shell{width:100%}.results{margin:0}.card,.risk-card{box-shadow:none;break-inside:avoid}.risk-card{background:white;color:var(--ink);border:1px solid var(--line)}.risk-card p{color:var(--ink)}.report-grid,.context-grid{display:block}.panel,.context-grid>div{margin-bottom:12px}}
 .report-grid>*,.context-grid>*,.figures>div{min-width:0}
 .report-heading,.evidence{overflow-wrap:anywhere}
 @media(max-width:420px){.timeline{max-width:100%}.figures small{font-size:11px}.map-footer{flex-wrap:wrap}.form-grid select{font-size:14px}}
+
+.field-passport { margin-block: 1.5rem; padding: clamp(1rem, 4vw, 2rem); }
+.field-passport summary { cursor: pointer; padding-block: .5rem; }
+.field-passport dl > div { padding-block: .75rem; border-top: 1px solid #d5e4dc; }
+.field-passport dt { font-weight: 700; }
+.field-passport dd { margin: .25rem 0 0; overflow-wrap: anywhere; }
+.field-passport small { display: block; }
+.field-passport pre { max-height: 20rem; overflow: auto; white-space: pre-wrap; }
+.passport-source { font-size: .9rem; }
+.field-passport h3 { margin-top: 1.25rem; }
+.passport-overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: .75rem; }
+.field-passport .passport-overview > div { padding: 1rem; border: 1px solid var(--line); border-radius: 10px; }
+.passport-overview dd:first-of-type { font-size: 1.25rem; }
+.field-passport > details { margin-block: 1rem; }
+
+.topbar nav a[aria-current="page"] { color: var(--green); text-decoration: underline; text-underline-offset: .3em; }
+.farmer-plan{max-width:68ch;margin:1.25rem 0;font-size:1.125rem;line-height:1.55}
+.farmer-plan h4,.farmer-plan button{margin-top:1rem}
+.farmer-plan p{margin-top:.5rem}
+@media print{.field-passport button{display:none}.field-passport{break-inside:auto}}

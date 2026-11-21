@@ -1,0 +1,722 @@
+{
+  "farmer_report": {
+    "situation": "Wybrana data wypada poza okresem wzrostu tej uprawy według typowego kalendarza. Brakuje danych o wilgotności przy korzeniach.",
+    "next_check": "Jeśli rośliny nadal rosną, wpisz ich obecną fazę rozwoju i ponów ocenę. Po zbiorze możesz od razu zaplanować prace na następny sezon.",
+    "steps": [
+      {
+        "evidence": "historical_drought_frequency_pct",
+        "when": "W czerwcu podczas kolejnej uprawy",
+        "action": "W kilku miejscach pola wykop mały dołek obok rośliny. Sprawdź dłonią, czy ziemia przy żywych korzeniach jest jeszcze wilgotna.",
+        "why": "W 8 z 10 sezonów z niedoborem wody pierwszy taki okres zaczął się właśnie w tym miesiącu.",
+        "condition": "Obliczenia zakładają tę samą uprawę w każdym sezonie, bez podlewania."
+      },
+      {
+        "evidence": "historical_drought_frequency_pct",
+        "when": "Po zbiorze, jeśli masz zdrowe resztki pożniwne",
+        "action": "Na próbę zostaw pas gleby przykryty rozdrobnionymi resztkami. Obok zostaw pas uprawiony jak zwykle. Po kilku suchych dniach porównaj wilgotność na tej samej głębokości.",
+        "why": "W poprzednich sezonach uprawie mogło brakować wody. Osłona może ograniczyć wysychanie ziemi.",
+        "condition": "Wybierz miejsce, gdzie resztki nie utrudnią kolejnego siewu lub sadzenia."
+      }
+    ]
+  },
+  "schema_version": "1.0",
+  "field_id": "301103_2.0009.549/7",
+  "analysis_date": "2026-11-21",
+  "crop_context": {
+    "crop": "potato",
+    "stage": null,
+    "sowing": null
+  },
+  "data_quality": {
+    "passport_rows": 213,
+    "accepted_fields": 57
+  },
+  "water_balance": {
+    "status": "brak kompletnych 30 par opad–ET0"
+  },
+  "soil_water_availability": {
+    "status": "brak spójnego bilansu i wariantów stanu początkowego",
+    "taw_mm": 115.05,
+    "raw_mm": 40.2675
+  },
+  "retention_potential": {
+    "status": "brak objętości zagłębień lub powierzchni"
+  },
+  "historical_analysis": {
+    "complete_months_p_minus_et0_mm": {
+      "2025-12": 14.974,
+      "2026-01": 13.888,
+      "2026-02": 16.691,
+      "2026-03": -36.731,
+      "2026-04": -64.894,
+      "2026-05": -62.22,
+      "2026-06": -59.992,
+      "2026-07": -62.278,
+      "2026-08": -26.687,
+      "2026-09": -35.458,
+      "2026-10": -4.872000000000001
+    },
+    "empirical_stressed_seasons_pct": 100.0,
+    "scenario": {
+      "episodes": [
+        {
+          "start": "2016-06-06",
+          "duration_days": 38,
+          "unmet_mm": 61.9302312675551,
+          "end": "2016-07-13"
+        },
+        {
+          "start": "2016-07-23",
+          "duration_days": 36,
+          "unmet_mm": 31.214804615515614,
+          "end": "2016-08-27"
+        },
+        {
+          "start": "2017-06-10",
+          "duration_days": 45,
+          "unmet_mm": 63.75606661146767,
+          "end": "2017-07-24"
+        },
+        {
+          "start": "2017-08-01",
+          "duration_days": 1,
+          "unmet_mm": 0.08348511539134407,
+          "end": "2017-08-01"
+        },
+        {
+          "start": "2017-08-04",
+          "duration_days": 8,
+          "unmet_mm": 4.369359573949718,
+          "end": "2017-08-11"
+        },
+        {
+          "start": "2017-08-13",
+          "duration_days": 15,
+          "unmet_mm": 5.971574048367666,
+          "end": "2017-08-27"
+        },
+        {
+          "start": "2018-05-31",
+          "duration_days": 89,
+          "unmet_mm": 245.81623871201316,
+          "end": "2018-08-27"
+        },
+        {
+          "start": "2019-06-09",
+          "duration_days": 80,
+          "unmet_mm": 276.46362460972784,
+          "end": "2019-08-27"
+        },
+        {
+          "start": "2020-07-05",
+          "duration_days": 54,
+          "unmet_mm": 110.27324642023031,
+          "end": "2020-08-27"
+        },
+        {
+          "start": "2021-06-10",
+          "duration_days": 2,
+          "unmet_mm": 0.36442011514605355,
+          "end": "2021-06-11"
+        },
+        {
+          "start": "2021-06-13",
+          "duration_days": 11,
+          "unmet_mm": 16.438230354776188,
+          "end": "2021-06-23"
+        },
+        {
+          "start": "2021-06-27",
+          "duration_days": 62,
+          "unmet_mm": 77.61324356567616,
+          "end": "2021-08-27"
+        },
+        {
+          "start": "2022-06-01",
+          "duration_days": 83,
+          "unmet_mm": 267.5031459626295,
+          "end": "2022-08-22"
+        },
+        {
+          "start": "2022-08-25",
+          "duration_days": 3,
+          "unmet_mm": 0.5098158262684618,
+          "end": "2022-08-27"
+        },
+        {
+          "start": "2023-06-04",
+          "duration_days": 63,
+          "unmet_mm": 158.56544902671445,
+          "end": "2023-08-05"
+        },
+        {
+          "start": "2023-08-20",
+          "duration_days": 7,
+          "unmet_mm": 1.3612748206320324,
+          "end": "2023-08-26"
+        },
+        {
+          "start": "2024-06-16",
+          "duration_days": 26,
+          "unmet_mm": 37.92941271011732,
+          "end": "2024-07-11"
+        },
+        {
+          "start": "2024-07-18",
+          "duration_days": 41,
+          "unmet_mm": 48.88745634725831,
+          "end": "2024-08-27"
+        },
+        {
+          "start": "2025-06-15",
+          "duration_days": 74,
+          "unmet_mm": 146.91844609490573,
+          "end": "2025-08-27"
+        }
+      ],
+      "unmet_et_mm_by_season": {
+        "2016": 93.1,
+        "2017": 74.2,
+        "2018": 245.8,
+        "2019": 276.5,
+        "2020": 110.3,
+        "2021": 94.4,
+        "2022": 268.0,
+        "2023": 159.9,
+        "2024": 86.8,
+        "2025": 146.9
+      },
+      "years": [
+        2016,
+        2025
+      ],
+      "weather": "NASA POWER / MERRA-2, GEOS i CERES",
+      "criterion": "ET niezaspokojona >0 mm, stała uprawa, pełny zapas na start sezonu, bez nawadniania"
+    }
+  },
+  "modelled_soil_profile": {
+    "layer_storage_mm": {},
+    "total_water_0_100_cm_mm": null
+  },
+  "water_status": "Brak podstaw do oceny.",
+  "root_cause_analysis": [],
+  "scenario_analysis": {
+    "status": "brak wariantów wyczerpania"
+  },
+  "satellite_context": {
+    "anomalies": {},
+    "interpretation": "Odchylenia od tła uprawy i fazy. Możliwy wpływ chorób i terminu siewu."
+  },
+  "irrigation_recommendations": {
+    "dose_mm": null,
+    "reason": "Brak pomiaru profilu, sprawności instalacji i potwierdzonej dostępności wody."
+  },
+  "prioritized_action_plan": [
+    {
+      "evidence": "historical_drought_frequency_pct",
+      "when": "W czerwcu podczas kolejnej uprawy",
+      "action": "W kilku miejscach pola wykop mały dołek obok rośliny. Sprawdź dłonią, czy ziemia przy żywych korzeniach jest jeszcze wilgotna.",
+      "why": "W 8 z 10 sezonów z niedoborem wody pierwszy taki okres zaczął się właśnie w tym miesiącu.",
+      "condition": "Obliczenia zakładają tę samą uprawę w każdym sezonie, bez podlewania."
+    },
+    {
+      "evidence": "historical_drought_frequency_pct",
+      "when": "Po zbiorze, jeśli masz zdrowe resztki pożniwne",
+      "action": "Na próbę zostaw pas gleby przykryty rozdrobnionymi resztkami. Obok zostaw pas uprawiony jak zwykle. Po kilku suchych dniach porównaj wilgotność na tej samej głębokości.",
+      "why": "W poprzednich sezonach uprawie mogło brakować wody. Osłona może ograniczyć wysychanie ziemi.",
+      "condition": "Wybierz miejsce, gdzie resztki nie utrudnią kolejnego siewu lub sadzenia."
+    }
+  ],
+  "missing_data": {
+    "neighbor_count": "GeoParquet; import krajowy / ULDK na żądanie",
+    "crop_type_clms": "Brak konfiguracji OAuth klienta Sentinel Hub CDSE.",
+    "crop_type_confidence_pct": "Brak konfiguracji OAuth klienta Sentinel Hub CDSE.",
+    "crop_type_shares": "S3 / OData / katalog CDSE; krajowy mosaic",
+    "cropping_seasons_count": "S3 / OData / katalog CDSE; krajowy mosaic",
+    "secondary_crop_type": "S3 / OData / katalog CDSE; krajowy mosaic",
+    "crop_rotation_diversity": "S3 / OData / katalog CDSE; krajowy mosaic",
+    "bare_soil_days": "S3 / OData / katalog CDSE; krajowy mosaic",
+    "emergence_doy": "S3 / OData / katalog CDSE; krajowy mosaic",
+    "harvest_doy": "S3 / OData / katalog CDSE; krajowy mosaic",
+    "field_geometry_declared": "eksport warstw / WFS jeżeli udostępniony",
+    "crop_type_declared": "eksport warstw / WFS jeżeli udostępniony",
+    "crop_area_declared_ha": "eksport warstw / WFS jeżeli udostępniony",
+    "lpis_reference_id": "eksport warstw / WFS jeżeli udostępniony",
+    "eligible_area_ha": "eksport warstw / WFS jeżeli udostępniony",
+    "permanent_grassland_pct": "eksport warstw / WFS jeżeli udostępniony",
+    "valuable_grassland_pct": "eksport warstw / WFS jeżeli udostępniony",
+    "lpis_land_cover": "eksport warstw / WFS jeżeli udostępniony",
+    "nitrogen_g_kg": "WebDAV/VRT; GDAL wycinek PL; statystyka strefowa",
+    "bulk_density_g_cm3": "WebDAV/VRT; GDAL wycinek PL; statystyka strefowa",
+    "coarse_fragments_pct": "WebDAV/VRT; GDAL wycinek PL; statystyka strefowa",
+    "cec_cmol_kg": "WebDAV/VRT; GDAL wycinek PL; statystyka strefowa",
+    "soc_stock_t_ha": "WebDAV/VRT; GDAL wycinek PL; statystyka strefowa",
+    "organic_matter_pct_est": "WebDAV/VRT; GDAL wycinek PL; statystyka strefowa",
+    "soil_porosity_est": "WebDAV/VRT; GDAL wycinek PL; statystyka strefowa",
+    "soil_prediction_quantiles": "WebDAV/VRT; GDAL wycinek PL; statystyka strefowa",
+    "saturated_hydraulic_conductivity": "rastry retencji jeśli dostępne w wersji; w przeciwnym razie PTF z tekstury i SOC",
+    "dewpoint_c": "CDS API; NetCDF/GRIB; wspólna siatka kraju",
+    "wind_speed_m_s": "CDS API; NetCDF/GRIB; wspólna siatka kraju",
+    "wind_direction_deg": "CDS API; NetCDF/GRIB; wspólna siatka kraju",
+    "surface_pressure_hpa": "CDS API; NetCDF/GRIB; wspólna siatka kraju",
+    "actual_et_mm": "CDS API; NetCDF/GRIB; wspólna siatka kraju",
+    "snow_water_equivalent_mm": "CDS API; NetCDF/GRIB; wspólna siatka kraju",
+    "snowmelt_mm": "CDS API; NetCDF/GRIB; wspólna siatka kraju",
+    "surface_runoff_mm": "CDS API; NetCDF/GRIB; wspólna siatka kraju",
+    "subsurface_runoff_mm": "CDS API; NetCDF/GRIB; wspólna siatka kraju",
+    "skin_temp_c": "CDS API; NetCDF/GRIB; wspólna siatka kraju",
+    "soil_moisture_0_7_cm": "Open-Meteo wymaga WODO_NONCOMMERCIAL_OPEN_METEO=1 dla bezpłatnego użycia niekomercyjnego.",
+    "soil_temp_0_7_cm": "CDS API; NetCDF/GRIB; wspólna siatka kraju",
+    "soil_moisture_7_28_cm": "Open-Meteo wymaga WODO_NONCOMMERCIAL_OPEN_METEO=1 dla bezpłatnego użycia niekomercyjnego.",
+    "soil_temp_7_28_cm": "CDS API; NetCDF/GRIB; wspólna siatka kraju",
+    "soil_moisture_28_100_cm": "Open-Meteo wymaga WODO_NONCOMMERCIAL_OPEN_METEO=1 dla bezpłatnego użycia niekomercyjnego.",
+    "soil_temp_28_100_cm": "CDS API; NetCDF/GRIB; wspólna siatka kraju",
+    "soil_moisture_100_289_cm": "Skonfiguruj CDSAPI_KEY lub eksport CSV ERA5-Land.",
+    "soil_temp_100_289_cm": "CDS API; NetCDF/GRIB; wspólna siatka kraju",
+    "precip_sum_7d_mm": "Open-Meteo wymaga WODO_NONCOMMERCIAL_OPEN_METEO=1 dla bezpłatnego użycia niekomercyjnego.",
+    "precip_sum_30d_mm": "Open-Meteo wymaga WODO_NONCOMMERCIAL_OPEN_METEO=1 dla bezpłatnego użycia niekomercyjnego.",
+    "precip_sum_90d_mm": "CDS API; NetCDF/GRIB; wspólna siatka kraju",
+    "consecutive_dry_days": "Open-Meteo wymaga WODO_NONCOMMERCIAL_OPEN_METEO=1 dla bezpłatnego użycia niekomercyjnego.",
+    "precip_anomaly_30d_mm": "Open-Meteo wymaga WODO_NONCOMMERCIAL_OPEN_METEO=1 dla bezpłatnego użycia niekomercyjnego.",
+    "precip_percentile_30d": "CDS API; NetCDF/GRIB; wspólna siatka kraju",
+    "hot_days_30d": "CDS API; NetCDF/GRIB; wspólna siatka kraju",
+    "frost_days_30d": "CDS API; NetCDF/GRIB; wspólna siatka kraju",
+    "spi_3": "CDS API; NetCDF/GRIB; wspólna siatka kraju",
+    "soil_moisture_percentile": "Skonfiguruj CDSAPI_KEY lub eksport CSV ERA5-Land.",
+    "rain_mm": "Open-Meteo wymaga WODO_NONCOMMERCIAL_OPEN_METEO=1 dla bezpłatnego użycia niekomercyjnego.",
+    "relative_humidity_pct": "Open-Meteo wymaga WODO_NONCOMMERCIAL_OPEN_METEO=1 dla bezpłatnego użycia niekomercyjnego.",
+    "wind_gust_max_m_s": "Open-Meteo wymaga WODO_NONCOMMERCIAL_OPEN_METEO=1 dla bezpłatnego użycia niekomercyjnego.",
+    "sunshine_duration_h": "Open-Meteo wymaga WODO_NONCOMMERCIAL_OPEN_METEO=1 dla bezpłatnego użycia niekomercyjnego.",
+    "cloud_cover_pct": "Open-Meteo wymaga WODO_NONCOMMERCIAL_OPEN_METEO=1 dla bezpłatnego użycia niekomercyjnego.",
+    "vpd_kpa": "Open-Meteo wymaga WODO_NONCOMMERCIAL_OPEN_METEO=1 dla bezpłatnego użycia niekomercyjnego.",
+    "snow_depth_m": "Open-Meteo wymaga WODO_NONCOMMERCIAL_OPEN_METEO=1 dla bezpłatnego użycia niekomercyjnego.",
+    "climatic_water_balance_30d_mm": "Open-Meteo wymaga WODO_NONCOMMERCIAL_OPEN_METEO=1 dla bezpłatnego użycia niekomercyjnego.",
+    "climatic_water_balance_60d_mm": "Open-Meteo wymaga WODO_NONCOMMERCIAL_OPEN_METEO=1 dla bezpłatnego użycia niekomercyjnego.",
+    "spei_3": "JSON dla komórek siatki; produkcyjnie CDS + własne obliczenia",
+    "forecast_precipitation_mm": "Open-Meteo wymaga WODO_NONCOMMERCIAL_OPEN_METEO=1 dla bezpłatnego użycia niekomercyjnego.",
+    "forecast_precip_probability_pct": "Open-Meteo wymaga WODO_NONCOMMERCIAL_OPEN_METEO=1 dla bezpłatnego użycia niekomercyjnego.",
+    "forecast_temp_max_c": "Open-Meteo wymaga WODO_NONCOMMERCIAL_OPEN_METEO=1 dla bezpłatnego użycia niekomercyjnego.",
+    "forecast_temp_min_c": "Open-Meteo wymaga WODO_NONCOMMERCIAL_OPEN_METEO=1 dla bezpłatnego użycia niekomercyjnego.",
+    "forecast_et0_mm": "Open-Meteo wymaga WODO_NONCOMMERCIAL_OPEN_METEO=1 dla bezpłatnego użycia niekomercyjnego.",
+    "forecast_wind_speed_m_s": "Open-Meteo wymaga WODO_NONCOMMERCIAL_OPEN_METEO=1 dla bezpłatnego użycia niekomercyjnego.",
+    "forecast_soil_moisture": "Open-Meteo wymaga WODO_NONCOMMERCIAL_OPEN_METEO=1 dla bezpłatnego użycia niekomercyjnego.",
+    "evi_mean": "STAC /search; COG; rasterio window; maska SCL; scale/offset",
+    "savi_mean": "STAC /search; COG; rasterio window; maska SCL; scale/offset",
+    "ndre_mean": "STAC /search; COG; rasterio window; maska SCL; scale/offset",
+    "msi_mean": "STAC /search; COG; rasterio window; maska SCL; scale/offset",
+    "bsi_mean": "STAC /search; COG; rasterio window; maska SCL; scale/offset",
+    "vegetation_cover_pct": "STAC /search; COG; rasterio window; maska SCL; scale/offset",
+    "surface_water_pct": "STAC /search; COG; rasterio window; maska SCL; scale/offset",
+    "ndvi_anomaly": "Brak porównywalnej sceny lub trzech sezonów referencyjnych.",
+    "ndmi_anomaly": "Brak porównywalnej sceny lub trzech sezonów referencyjnych.",
+    "ndmi_low_area_pct": "STAC /search; COG; rasterio window; maska SCL; scale/offset",
+    "sar_vv_db": "STAC; GRD; kalibracja radiometryczna i korekcja terenowa",
+    "sar_vh_db": "STAC; GRD; kalibracja radiometryczna i korekcja terenowa",
+    "sar_vh_vv_ratio_db": "STAC; GRD; kalibracja radiometryczna i korekcja terenowa",
+    "sar_relative_orbit": "STAC; GRD; kalibracja radiometryczna i korekcja terenowa",
+    "land_surface_temp_c": "katalog; GeoTIFF; maska QA i przeliczenie skali",
+    "elevation_mean_m": "Brak połączenia ze źródłem.",
+    "elevation_min_m": "WCS GetCoverage lub arkusze; mozaika i GIS",
+    "elevation_max_m": "WCS GetCoverage lub arkusze; mozaika i GIS",
+    "elevation_range_m": "WCS GetCoverage lub arkusze; mozaika i GIS",
+    "slope_mean_deg": "Brak połączenia ze źródłem.",
+    "slope_p90_deg": "WCS GetCoverage lub arkusze; mozaika i GIS",
+    "slope_gt_5deg_pct": "WCS GetCoverage lub arkusze; mozaika i GIS",
+    "aspect_dominant_deg": "WCS GetCoverage lub arkusze; mozaika i GIS",
+    "flow_direction_raster_uri": "Brak NMT obejmującego pełną zlewnię działki.",
+    "flow_accumulation_raster_uri": "Brak NMT obejmującego pełną zlewnię działki.",
+    "upstream_area_ha": "WCS GetCoverage lub arkusze; mozaika i GIS",
+    "potential_depression_area_m2": "Brak połączenia ze źródłem.",
+    "potential_depression_volume_m3": "Brak połączenia ze źródłem.",
+    "potential_depression_geometry": "Brak połączenia ze źródłem.",
+    "potential_runoff_exit_points": "WCS GetCoverage lub arkusze; mozaika i GIS",
+    "wetness_index_mean": "WCS GetCoverage lub arkusze; mozaika i GIS",
+    "terrain_curvature": "WCS GetCoverage lub arkusze; mozaika i GIS",
+    "object_height_mean_m": "WCS; wyrównaj rastry i odejmij NMT",
+    "nearest_stream_distance_m": "Brak warstw hydrograficznych BDOT10k w GeoPackage.",
+    "nearest_stream_name": "GetFeatureInfo zwraca link paczki; import GML/GPKG; spatial join",
+    "nearest_ditch_distance_m": "Brak warstw hydrograficznych BDOT10k w GeoPackage.",
+    "nearest_pond_distance_m": "Brak warstw hydrograficznych BDOT10k w GeoPackage.",
+    "nearest_waterbody_distance_m": "GetFeatureInfo zwraca link paczki; import GML/GPKG; spatial join",
+    "stream_length_500m_m": "GetFeatureInfo zwraca link paczki; import GML/GPKG; spatial join",
+    "water_area_500m_pct": "GetFeatureInfo zwraca link paczki; import GML/GPKG; spatial join",
+    "wetland_area_500m_pct": "GetFeatureInfo zwraca link paczki; import GML/GPKG; spatial join",
+    "nearest_forest_distance_m": "GetFeatureInfo zwraca link paczki; import GML/GPKG; spatial join",
+    "forest_area_500m_pct": "GetFeatureInfo zwraca link paczki; import GML/GPKG; spatial join",
+    "nearest_road_distance_m": "GetFeatureInfo zwraca link paczki; import GML/GPKG; spatial join",
+    "builtup_area_500m_pct": "GetFeatureInfo zwraca link paczki; import GML/GPKG; spatial join",
+    "surface_water_occurrence_pct": "paczki rastrowe; mozaika PL",
+    "surface_water_seasonality": "paczki rastrowe; mozaika PL",
+    "catchment_code": "metadane; pobranie wektorów jeśli dostępne; WMS pomocniczo",
+    "surface_water_body_id": "metadane; pobranie wektorów jeśli dostępne; WMS pomocniczo",
+    "surface_water_status": "metadane; pobranie wektorów jeśli dostępne; WMS pomocniczo",
+    "flood_zone_1pct_area_pct": "metadane; pobranie wektorów jeśli dostępne; WMS pomocniczo",
+    "flood_zone_10pct_area_pct": "metadane; pobranie wektorów jeśli dostępne; WMS pomocniczo",
+    "flood_zone_01pct_area_pct": "metadane; pobranie wektorów jeśli dostępne; WMS pomocniczo",
+    "groundwater_body_id": "pliki GIS lub usługi; dla części danych wniosek",
+    "groundwater_reservoir_id": "pliki GIS lub usługi; dla części danych wniosek",
+    "groundwater_flooding_pct": "pliki GIS lub usługi; dla części danych wniosek",
+    "groundwater_depth_class": "pliki GIS lub usługi; dla części danych wniosek",
+    "hydro_station_id": "JSON; archiwum pomiarowe; przypisz właściwy ciek/stację",
+    "river_stage_cm": "JSON; archiwum pomiarowe; przypisz właściwy ciek/stację",
+    "river_discharge_m3_s": "JSON; archiwum pomiarowe; przypisz właściwy ciek/stację",
+    "natura2000_overlap_pct": "WFS GetCapabilities/GetFeature; przecięcie geometrii",
+    "national_park_overlap_pct": "WFS GetCapabilities/GetFeature; przecięcie geometrii",
+    "nature_reserve_overlap_pct": "WFS GetCapabilities/GetFeature; przecięcie geometrii",
+    "landscape_park_overlap_pct": "WFS GetCapabilities/GetFeature; przecięcie geometrii",
+    "protected_landscape_overlap_pct": "WFS GetCapabilities/GetFeature; przecięcie geometrii",
+    "ecological_site_overlap_pct": "WFS GetCapabilities/GetFeature; przecięcie geometrii",
+    "protected_area_ids": "WFS GetCapabilities/GetFeature; przecięcie geometrii",
+    "imperviousness_500m_pct": "S3/OData; rastry i spatial join",
+    "forest_cover_pct": "S3/OData; rastry i spatial join",
+    "iung_soil_drought_category": "tabele/mapy; zapytania działkowe; bulk do uzgodnienia",
+    "iung_agricultural_drought_flag": "tabele/mapy; zapytania działkowe; bulk do uzgodnienia",
+    "regional_climatic_water_balance_mm": "tabele/mapy; zapytania działkowe; bulk do uzgodnienia",
+    "edo_cdi_class": "katalog i pliki rastrowe; WMS do wizualizacji",
+    "edo_spi": "katalog i pliki rastrowe; WMS do wizualizacji",
+    "edo_soil_moisture_anomaly": "katalog i pliki rastrowe; WMS do wizualizacji",
+    "edo_fapar_anomaly": "katalog i pliki rastrowe; WMS do wizualizacji",
+    "water_stress_days_per_year": "własne obliczenia z danych źródłowych; parametry uprawy",
+    "crop_et_mm": "Brak wartości.",
+    "root_zone_depletion_mm": "Brak wartości.",
+    "irrigation_need_mm": "własne obliczenia z danych źródłowych; parametry uprawy",
+    "historical_high_risk_month": "własne obliczenia z danych źródłowych; parametry uprawy",
+    "uncertainty": "Brak wartości.",
+    "grid_cell_id": "Brak wartości.",
+    "forecast_issued_at": "Brak wartości."
+  },
+  "calculation_trace": {
+    "voivodeship": {
+      "path": "/fields/1",
+      "source": "GUS TERC",
+      "available_by": "2026-11-21"
+    },
+    "county": {
+      "path": "/fields/2",
+      "source": "GUS TERC",
+      "available_by": "2026-11-21"
+    },
+    "municipality": {
+      "path": "/fields/3",
+      "source": "Import użytkownika",
+      "available_by": "2026-11-21"
+    },
+    "municipality_teryt": {
+      "path": "/fields/4",
+      "source": "Import użytkownika",
+      "available_by": "2026-11-21"
+    },
+    "sand_pct": {
+      "path": "/fields/22",
+      "source": "ISRIC SoilGrids",
+      "available_by": "2026-11-21"
+    },
+    "silt_pct": {
+      "path": "/fields/23",
+      "source": "ISRIC SoilGrids",
+      "available_by": "2026-11-21"
+    },
+    "clay_pct": {
+      "path": "/fields/24",
+      "source": "ISRIC SoilGrids",
+      "available_by": "2026-11-21"
+    },
+    "soil_ph_h2o": {
+      "path": "/fields/25",
+      "source": "ISRIC SoilGrids",
+      "available_by": "2026-11-21"
+    },
+    "soc_g_kg": {
+      "path": "/fields/26",
+      "source": "ISRIC SoilGrids",
+      "available_by": "2026-11-21"
+    },
+    "soil_texture_class": {
+      "path": "/fields/32",
+      "source": "ISRIC SoilGrids",
+      "available_by": "2026-11-21"
+    },
+    "field_capacity": {
+      "path": "/fields/36",
+      "source": "ISRIC SoilGrids / funkcje pedotransferowe",
+      "available_by": "2026-11-21"
+    },
+    "wilting_point": {
+      "path": "/fields/37",
+      "source": "ISRIC SoilGrids / funkcje pedotransferowe",
+      "available_by": "2026-11-21"
+    },
+    "available_water_capacity": {
+      "path": "/fields/38",
+      "source": "ISRIC SoilGrids / funkcje pedotransferowe",
+      "available_by": "2026-11-21"
+    },
+    "precipitation_mm": {
+      "path": "/fields/40",
+      "source": "NASA POWER / MERRA-2, GEOS i CERES",
+      "available_by": "2026-11-21"
+    },
+    "temp_mean_c": {
+      "path": "/fields/41",
+      "source": "NASA POWER / MERRA-2, GEOS i CERES",
+      "available_by": "2026-11-21"
+    },
+    "temp_min_c": {
+      "path": "/fields/42",
+      "source": "NASA POWER / MERRA-2, GEOS i CERES",
+      "available_by": "2026-11-21"
+    },
+    "temp_max_c": {
+      "path": "/fields/43",
+      "source": "NASA POWER / MERRA-2, GEOS i CERES",
+      "available_by": "2026-11-21"
+    },
+    "shortwave_radiation_mj_m2": {
+      "path": "/fields/48",
+      "source": "NASA POWER / MERRA-2, GEOS i CERES",
+      "available_by": "2026-11-21"
+    },
+    "et0_mm": {
+      "path": "/fields/78",
+      "source": "NASA POWER / MERRA-2, GEOS i CERES",
+      "available_by": "2026-11-21"
+    },
+    "s2_scene_id": {
+      "path": "/fields/91",
+      "source": "Sentinel-2 L2A / Earth Search",
+      "available_by": "2026-11-05"
+    },
+    "clear_pixel_pct": {
+      "path": "/fields/92",
+      "source": "Sentinel-2 L2A / Earth Search",
+      "available_by": "2026-11-05"
+    },
+    "ndvi_mean": {
+      "path": "/fields/93",
+      "source": "Sentinel-2 L2A / Earth Search",
+      "available_by": "2026-11-05"
+    },
+    "ndvi_p10": {
+      "path": "/fields/94",
+      "source": "Sentinel-2 L2A / Earth Search",
+      "available_by": "2026-11-05"
+    },
+    "ndvi_p90": {
+      "path": "/fields/95",
+      "source": "Sentinel-2 L2A / Earth Search",
+      "available_by": "2026-11-05"
+    },
+    "ndvi_std": {
+      "path": "/fields/96",
+      "source": "Sentinel-2 L2A / Earth Search",
+      "available_by": "2026-11-05"
+    },
+    "ndmi_mean": {
+      "path": "/fields/97",
+      "source": "Sentinel-2 L2A / Earth Search",
+      "available_by": "2026-11-05"
+    },
+    "ndmi_p10": {
+      "path": "/fields/98",
+      "source": "Sentinel-2 L2A / Earth Search",
+      "available_by": "2026-11-05"
+    },
+    "ndmi_std": {
+      "path": "/fields/99",
+      "source": "Sentinel-2 L2A / Earth Search",
+      "available_by": "2026-11-05"
+    },
+    "ndwi_mean": {
+      "path": "/fields/100",
+      "source": "Sentinel-2 L2A / Earth Search",
+      "available_by": "2026-11-05"
+    },
+    "mndwi_mean": {
+      "path": "/fields/101",
+      "source": "Sentinel-2 L2A / Earth Search",
+      "available_by": "2026-11-05"
+    },
+    "s2_rgb_asset_uri": {
+      "path": "/fields/109",
+      "source": "Sentinel-2 L2A / Earth Search",
+      "available_by": "2026-11-05"
+    },
+    "valid_pixel_count": {
+      "path": "/fields/110",
+      "source": "Sentinel-2 L2A / Earth Search",
+      "available_by": "2026-11-05"
+    },
+    "root_zone_taw_mm": {
+      "path": "/fields/181",
+      "source": "FAO 56 + dane pogodowe/glebowe",
+      "available_by": "2026-11-21"
+    },
+    "root_zone_raw_mm": {
+      "path": "/fields/182",
+      "source": "FAO 56 + dane pogodowe/glebowe",
+      "available_by": "2026-11-21"
+    },
+    "historical_drought_frequency_pct": {
+      "path": "/fields/186",
+      "source": "FAO 56 + dane pogodowe/glebowe",
+      "available_by": "2026-11-21"
+    },
+    "source_id": {
+      "path": "/fields/188",
+      "source": "Własny pipeline",
+      "available_by": "2026-11-21"
+    },
+    "source_version": {
+      "path": "/fields/189",
+      "source": "Własny pipeline",
+      "available_by": "2026-11-21"
+    },
+    "observed_at": {
+      "path": "/fields/190",
+      "source": "Własny pipeline",
+      "available_by": "2026-11-21"
+    },
+    "available_at": {
+      "path": "/fields/191",
+      "source": "Własny pipeline",
+      "available_by": "2026-11-21"
+    },
+    "fetched_at": {
+      "path": "/fields/192",
+      "source": "Własny pipeline",
+      "available_by": "2026-11-21"
+    },
+    "analysis_as_of": {
+      "path": "/fields/193",
+      "source": "Własny pipeline",
+      "available_by": "2026-11-21"
+    },
+    "spatial_resolution_m": {
+      "path": "/fields/194",
+      "source": "Własny pipeline",
+      "available_by": "2026-11-21"
+    },
+    "coverage_fraction": {
+      "path": "/fields/195",
+      "source": "Własny pipeline",
+      "available_by": "2026-11-21"
+    },
+    "quality_status": {
+      "path": "/fields/197",
+      "source": "Własny pipeline",
+      "available_by": "2026-11-21"
+    },
+    "method_version": {
+      "path": "/fields/198",
+      "source": "Własny pipeline",
+      "available_by": "2026-11-21"
+    },
+    "source_asset_id": {
+      "path": "/fields/199",
+      "source": "Własny pipeline",
+      "available_by": "2026-11-21"
+    },
+    "depth_top_cm": {
+      "path": "/fields/200",
+      "source": "Własny pipeline",
+      "available_by": "2026-11-21"
+    },
+    "depth_bottom_cm": {
+      "path": "/fields/201",
+      "source": "Własny pipeline",
+      "available_by": "2026-11-21"
+    },
+    "parcel_id": {
+      "path": "/fields/204",
+      "source": "Import użytkownika",
+      "available_by": "2026-11-21"
+    },
+    "parcel_number": {
+      "path": "/fields/205",
+      "source": "Import użytkownika",
+      "available_by": "2026-11-21"
+    },
+    "parcel_geometry": {
+      "path": "/fields/206",
+      "source": "Import użytkownika",
+      "available_by": "2026-11-21"
+    },
+    "parcel_area_ha": {
+      "path": "/fields/207",
+      "source": "Import użytkownika",
+      "available_by": "2026-11-21"
+    },
+    "parcel_perimeter_m": {
+      "path": "/fields/208",
+      "source": "Import użytkownika",
+      "available_by": "2026-11-21"
+    },
+    "centroid_lat": {
+      "path": "/fields/209",
+      "source": "Import użytkownika",
+      "available_by": "2026-11-21"
+    },
+    "centroid_lon": {
+      "path": "/fields/210",
+      "source": "Import użytkownika",
+      "available_by": "2026-11-21"
+    },
+    "compactness": {
+      "path": "/fields/211",
+      "source": "Import użytkownika",
+      "available_by": "2026-11-21"
+    },
+    "cadastral_district_id": {
+      "path": "/fields/212",
+      "source": "Import użytkownika",
+      "available_by": "2026-11-21"
+    }
+  },
+  "methods": {
+    "root": {
+      "reference": "https://www.fao.org/4/x0490e/x0490e0e.htm",
+      "inputs": [
+        "root_zone_taw_mm",
+        "root_zone_raw_mm",
+        "root_zone_depletion_mm"
+      ],
+      "equations": [
+        "S = TAW - Dr",
+        "Ks = min(1, S / (TAW - RAW))"
+      ]
+    },
+    "climate": {
+      "inputs": [
+        "precipitation_mm",
+        "et0_mm"
+      ],
+      "equations": [
+        "B = sum(P - ET0)"
+      ]
+    },
+    "profile": {
+      "inputs": [
+        "soil_moisture_0_7_cm",
+        "soil_moisture_7_28_cm",
+        "soil_moisture_28_100_cm"
+      ],
+      "equations": [
+        "W_mm = 10 * sum(theta * thickness_cm)"
+      ]
+    },
+    "storage": {
+      "inputs": [
+        "potential_depression_volume_m3",
+        "parcel_area_ha"
+      ],
+      "equations": [
+        "h_mm = V_m3 / (10 * A_ha)"
+      ]
+    }
+  },
+  "uncertainty": "Zakres modelu obejmuje dwa stany początkowe. Brak kalibracji polowej.",
+  "limitations": [
+    "P−ET0 opisuje atmosferę. Brak rozdzielenia odpływu, infiltracji i drenażu.",
+    "Pojemność geometryczna wymaga potwierdzenia dopływu i wolnej objętości."
+  ]
+}

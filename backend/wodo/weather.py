@@ -50,7 +50,7 @@ def nasa(lon, lat):
             elif None not in (temp, low, high) and (today - d).days <= 100:
                 et = round(et0_hargreaves(d, lat, temp, low, high), 3)
                 fallback_days.append(d.isoformat())
-            rows[d.isoformat()] = [rain if rain is not None and rain >= 0 else None, et, temp]
+            rows[d.isoformat()] = [rain if rain is not None and rain >= 0 else None, et, temp, low, high, solar]
         if not any(None not in row[:2] for row in rows.values()):
             raise SourceError("Brak wspólnych dni z opadem i ET₀.")
         return {"name": "NASA POWER / MERRA-2, GEOS i CERES", "url": NASA, "kind": "reanaliza i dane satelitarne",
@@ -58,7 +58,7 @@ def nasa(lon, lat):
                 "parameters": params, "provider_version": data["header"]["api"]["version"],
                 "publication_date": None, "et0_fallback_days": fallback_days, "rows": rows}
 
-    return cached("nasa", [lon, lat], .33, download)
+    return cached("nasa-extrema-v1", [lon, lat], .33, download)
 
 
 def open_meteo(lon, lat):

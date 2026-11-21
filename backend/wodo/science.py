@@ -107,7 +107,7 @@ def retention(layers, depth):
     return taw or None
 
 
-def bucket(start, taw, p, rows):
+def bucket(start, taw, p, rows, *, daily_unmet=None):
     """Bucket uses rain + net irrigation first, clips drainage and applies FAO-56 Ks."""
     store = start
     drainage = effective = actual = unmet = 0.0
@@ -123,6 +123,8 @@ def bucket(start, taw, p, rows):
         effective += min(rain, max(0, taw - (incoming - rain)))
         actual += used
         unmet += etc - used
+        if daily_unmet is not None:
+            daily_unmet.append(etc - used)
     return {"storage_mm": round(store, 1), "depletion_mm": round(taw - store, 1),
             "drainage_mm": round(drainage, 1), "effective_rain_mm": round(effective, 1),
             "eta_mm": round(actual, 1), "unmet_mm": round(unmet, 1)}

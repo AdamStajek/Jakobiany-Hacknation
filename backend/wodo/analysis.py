@@ -31,12 +31,12 @@ def recommendations(metrics, inputs, irrigation_available, agricultural, soil_ob
     weather_need = recent and recent["crop_balance_mm"] < 0
     if not agricultural or not (recent or hist["seasons"] or root):
         return hints
-    if root and root["initially_wet"]["depletion_mm"] > root["raw_mm"]:
+    if soil_observation != "wet" and root and root["initially_wet"]["depletion_mm"] > root["raw_mm"]:
         low = root["initially_wet"]["depletion_mm"]
-        add("Agrotechnika", "Sprawdź wilgotność przy korzeniach", "W kilku punktach pola sprawdź profil glebowy do głębokości aktywnych korzeni.",
+        add("Agrotechnika", "Sprawdź wilgotność przy korzeniach", "Odkop ziemię obok kilku roślin w różnych częściach pola. Sprawdź, czy jest wilgotna tam, gdzie sięgają żywe korzenie.",
             f"Model wskazuje przekroczenie progu łatwo dostępnej wody w fazie «{metrics['stage'].lower()}».",
             f"Ubytek modelowy co najmniej {low:g} mm przy progu {root['raw_mm']:g} mm.",
-            "Przy najbliższej lustracji pola", "umiarkowana",
+            "Przy najbliższym obchodzie pola", "umiarkowana",
             "Pogoda jest uśredniona przestrzennie, a pojemność gleby pochodzi z modelu.")
     if weather_need or (root and root["taw_mm"] / metrics["crop"]["root_m"] < 100):
         evidence = (f"Opad minus zapotrzebowanie uprawy w oknie 30 dni do {recent['end']}: {recent['crop_balance_mm']:+g} mm."
@@ -49,17 +49,17 @@ def recommendations(metrics, inputs, irrigation_available, agricultural, soil_ob
     if hist["riskiest_months"]:
         months = ", ".join(hist["riskiest_months"])
         add("Agrotechnika", f"Obserwuj uprawę w okresie «{metrics['crop']['sensitive']}»",
-            "Zaplanuj regularne lustracje. Międzyplon dobierz do zapasu wody, a przy suchym profilu rozważ jego wcześniejsze zakończenie.",
+            "Sprawdź ziemię przy korzeniach w kilku miejscach. Jeśli masz międzyplon, a gleba pod nim przesycha, rozważ wcześniejsze zakończenie jego uprawy.",
             "W okresach powtarzalnego deficytu wcześniejsze sprawdzenie gleby pomaga dostosować zabiegi.",
             f"Miesiące o najniższej medianie opad − ET₀: {months}. Pełne sezony: {len(hist['seasons'])}.",
-            "Wskazane miesiące i okres wrażliwości uprawy", "umiarkowana",
+            f"Miesiące, na które warto zaplanować obchód pola: {months}.", "umiarkowana",
             "Bilans klimatyczny i kalendarz uprawy są przybliżone.")
     if terrain and terrain["slope_pct"] is not None and terrain["slope_pct"] >= 3 and (weather_need or hist["riskiest_months"]):
         add("Retencja krajobrazowa", "Spowolnij odpływ ze stoku",
             "Przejdź pole po deszczu. W miejscach zaobserwowanego spływu rozważ pas roślinności i dostosuj kierunek prac do stoku.",
             "Spadek powierzchni sprzyja szybkiemu odpływowi niezależnie od bilansu opadów.",
             f"Mediana nachylenia z modelu 30 m: {terrain['slope_pct']:g}%. Próg przesiewowy: 3%.",
-            "Przed kolejnym siewem lub po większym deszczu", "wstępna",
+            "Po większym deszczu, przed kolejnym siewem", "wstępna",
             "Teren i ślady spływu sprawdź w terenie. Model obejmuje również wysokość roślin i zabudowy.")
     if land and land["nearest_water_m"] is not None and (weather_need or hist["riskiest_months"]):
         add("Retencja krajobrazowa", "Sprawdź istniejące miejsca zatrzymywania wody",
@@ -87,7 +87,7 @@ def recommendations(metrics, inputs, irrigation_available, agricultural, soil_ob
             "Przy mokrej glebie kolejny dopływ wody może zwiększać odpływ i ugniatanie.",
             "Obserwacja użytkownika: mokra gleba.", "Przed nawodnieniem i wjazdem w pole",
             "wstępna", "Sprawdź wilgotność w kilku miejscach i na głębokości korzeni.")
-    if irrigation_available and soil_observation != "wet":
+    if irrigation_available and soil_observation != "wet" and metrics.get("stage_id") != 4:
         supported = root and root["initially_wet"]["depletion_mm"] > root["raw_mm"]
         add("Nawadnianie", "Zweryfikuj potrzebę nawodnienia" if supported else "Zacznij od pomiaru wilgotności",
             "Zmierz wilgotność w kilku punktach i sprawdź przewidywany deszcz przed ustaleniem terminu.",
@@ -97,6 +97,8 @@ def recommendations(metrics, inputs, irrigation_available, agricultural, soil_ob
             if root else "Brak kompletnego dziennego bilansu glebowego.",
             "Przed decyzją o nawadnianiu", "wstępna",
             "Sprawdź zasoby, uprawnienia, infiltrację i sprawność instalacji. Ocena nie wyznacza dawki ani prognozy.")
+    if soil_observation == "wet":
+        hints.sort(key=lambda item: item["title"] != "Sprawdź odpływ po deszczu")
     return hints
 
 

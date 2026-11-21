@@ -1,0 +1,64 @@
+<article class="model-page" aria-labelledby="model-title">
+  <header class="intro">
+    <h1 id="model-title" tabindex="-1">Jak działa model?</h1>
+    <p>WodoStrażnik sprawdza, ile wody może zatrzymać gleba, ile potrzebuje uprawa i kiedy korzeniom może zacząć brakować wody. Z tych obliczeń wynikają zalecenia dla konkretnej działki.</p>
+  </header>
+
+  <section class="card panel">
+    <h2>Jakie dane opisują pole?</h2>
+    <dl>
+      <dt>Pogoda i uprawa</dt>
+      <dd>Opad zasila glebę. Temperatura, nasłonecznienie, wiatr i wilgotność powietrza pomagają oszacować tempo utraty wody. Gatunek, faza wzrostu i typowa głębokość korzeni określają, ile wody roślina potrzebuje i do jakiej części gleby może sięgnąć.</dd>
+      <dt>Gleba</dt>
+      <dd>Mapy SoilGrids pomagają oszacować, ile wody zostaje po odcieknięciu nadmiaru i ile roślina może jeszcze pobrać. Dane opisują obszary rzędu 250 m. Dwie części tej samej działki mogą w rzeczywistości mieć różne gleby.</dd>
+      <dt>Zdjęcia satelitarne i rzeźba terenu</dt>
+      <dd>Sentinel‑2 pokazuje stan roślinności na obszarze widocznym bez chmur. Paszport porównuje go z wcześniejszymi sezonami, jeśli ma dane dla tej samej uprawy i fazy wzrostu. Słabszy sygnał może wynikać także z choroby albo zbioru. Mapa wysokości pomaga znaleźć stoki i zagłębienia. Warstwy hydrologiczne pokazują otoczenie pola, w tym pobliskie cieki i zbiorniki.</dd>
+    </dl>
+  </section>
+
+  <section class="card panel">
+    <h2>Jak model liczy wodę przy korzeniach?</h2>
+    <p>Wyobraź sobie glebę w zasięgu korzeni jako zbiornik o ograniczonej pojemności. Model każdego dnia dodaje deszcz i podaną ilość wody z nawadniania. Nadwyżkę ponad pojemność traktuje jako przepełnienie. Potem odejmuje wodę zużytą przez uprawę i utraconą przez parowanie. Gdy zapas spada poniżej progu, model zmniejsza tempo poboru wody przez rośliny.</p>
+    <p><strong>Przykład.</strong> Przy zapasie 40 mm, deszczu 10 mm i zużyciu 4 mm pozostaje 46 mm, jeśli cała woda zmieściła się w glebie. Jeden milimetr to jeden litr na metr kwadratowy. To przykład rachunku, a nie wynik pomiaru na polu.</p>
+    <details>
+      <summary>Co oznaczają skróty w dokumentacji naukowej?</summary>
+      <dl>
+        <dt>ET₀ i ETc</dt><dd>ET₀ to dzienna utrata wody z dobrze nawodnionej trawy referencyjnej. FAO opisuje jej szacowanie metodą Penmana–Monteitha. Pomnożenie ET₀ przez współczynnik dla gatunku i fazy wzrostu daje ETc, czyli zapotrzebowanie uprawy przy dostatku wody.</dd>
+        <dt>TAW i RAW</dt><dd>TAW to maksymalny zapas, który korzenie mogą pobrać z gleby. RAW to część tego zapasu, którą roślina może zużyć, zanim pobór zacznie zwalniać.</dd>
+      </dl>
+      <p>Podstawę obliczeń opisuje <a href="https://www.fao.org/4/x0490e/x0490e0e.htm">FAO‑56, rozdział o bilansie wody i stresie upraw</a>.</p>
+    </details>
+  </section>
+
+  <section class="card panel">
+    <h2>Co mówi historia pogody?</h2>
+    <p>Model porównuje opad z wodą, która mogłaby uciec przez parowanie i rośliny. Gdy opadu jest mniej, pole może korzystać z wcześniej zgromadzonej wody. Dlatego sam ujemny bilans pogody nie wystarcza do rozpoznania niedoboru przy korzeniach.</p>
+    <p>Jeśli paszport ma dane z dziesięciu pełnych sezonów, model odtwarza każdy z nich dla tej samej uprawy, z pełnym zapasem wody na starcie i bez nawadniania. Raport podaje początek, długość i wielkość modelowanych niedoborów. To pomaga zaplanować kontrole pola. Wynik zależy od przyjętych warunków i dostępnych lat.</p>
+  </section>
+
+  <section class="card panel">
+    <h2>Skąd biorą się zalecenia?</h2>
+    <ul>
+      <li><strong>Sprawdzenie wilgotności.</strong> Gdy model wskazuje możliwy niedobór, warto zajrzeć do ziemi na głębokości żywych korzeni w kilku częściach pola. Historia pomaga wybrać miesiąc kontroli.</li>
+      <li><strong>Zatrzymanie wody.</strong> Gdy mapa pokazuje zagłębienia, obchód po deszczu pomaga sprawdzić, gdzie zbiera się woda i którędy odpływa. Objętość zagłębienia opisuje jego wielkość. Faktyczna retencja zależy od dopływu, odpływu i tego, czy zagłębienie jest już pełne.</li>
+      <li><strong>Ochrona gleby.</strong> Przy powtarzających się niedoborach można porównać pas osłonięty resztkami pożniwnymi z sąsiednim pasem prowadzonym jak zwykle. Międzyplon może osłonić glebę, ale rosnąc, sam pobiera wodę. Efekt zależy m.in. od pogody i terminu zakończenia uprawy międzyplonu.</li>
+      <li><strong>Nawadnianie.</strong> Przed decyzją liczy się wilgotność przy korzeniach, zapowiadany deszcz i dostęp do wody. Model może oszacować wpływ hipotetycznego dopływu na zapas w glebie. Ustalenie dawki wymaga danych z pola i znajomości instalacji.</li>
+    </ul>
+  </section>
+
+  <section class="card panel">
+    <h2>Jak czytać niepewność wyniku?</h2>
+    <p>Model liczy bilans dla dwóch punktów wyjścia: bardzo suchej gleby i pełnego zapasu wody dostępnej dla roślin. Jeśli oba wyniki wskazują niedobór, wniosek jest odporny na tę jedną niewiadomą. Przedział między wynikami pokazuje wpływ stanu początkowego. Dokładność zależy także od lokalnego opadu, danych glebowych i faktycznej głębokości korzeni.</p>
+    <p>W analizie archiwalnego paszportu znaczenie ma data dostępności danych. Na przykład zdjęcie opublikowane po dacie analizy zostaje pominięte. Przy brakach raport pokazuje, czego można dowiedzieć się z dostępnych danych i co trzeba sprawdzić w terenie. Obliczenia przeszły testy wzorów i scenariuszy. Dokładność na konkretnych działkach wymaga porównania z pomiarami polowymi.</p>
+  </section>
+
+  <section class="card panel">
+    <h2>Podstawy naukowe i dalsza lektura</h2>
+    <ul>
+      <li>Allen i współautorzy opisują obliczanie zapotrzebowania na wodę, pojemności gleby i stresu wodnego roślin. <a href="https://www.fao.org/4/x0490e/x0490e0e.htm">Wytyczne FAO‑56</a></li>
+      <li>Poggio i współautorzy wyjaśniają, jak powstały globalne mapy właściwości gleb i jak oceniono ich dokładność. <a href="https://soil.copernicus.org/articles/7/217/2021/index.html">SoilGrids 2.0</a></li>
+      <li>Kröcher i współautorzy porównują szacunki parowania z pomiarami terenowymi na Łużycach. Rozbieżności zależą od pokrycia terenu. <a href="https://doi.org/10.1007/s10661-026-15120-8">Badanie ewapotranspiracji w Niemczech, 2026</a></li>
+      <li>Przegląd 117 badań porównuje wpływ międzyplonów na wilgotność gleby, plon kolejnej uprawy i wykorzystanie wody. <a href="https://www.sciencedirect.com/science/article/pii/S0378377421003504">Metaanaliza międzyplonów i zasobów wody</a></li>
+    </ul>
+  </section>
+</article>

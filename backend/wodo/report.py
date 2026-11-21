@@ -20,7 +20,9 @@ from reportlab.platypus import (
 from shapely import transform
 from shapely.geometry import shape
 
+from wodo.farmer_report import report_message
 from wodo.geo import TO_PL
+from wodo.science import CROPS
 
 FONT_DIR = Path("/usr/share/fonts/truetype/dejavu")
 INK = colors.HexColor("#153b30")
@@ -110,6 +112,20 @@ def pdf(report):
         canvas.drawString(52, 25, "WodoStrażnik  •  Raport działki")
         canvas.drawRightString(543, 25, str(doc.page))
 
+    reading = ParagraphStyle("reading", parent=body, fontSize=12, leading=18, spaceAfter=7)
+    if "field_id" in report and "farmer_report" in report:
+        plan = report["farmer_report"]
+        crop = CROPS.get(report["crop_context"]["crop"])
+        flows = [p("Woda na Twoim polu", title), p(f"Działka {report['field_id']} · {report['analysis_date']}"),
+                 p(crop.label, sub) if crop else Spacer(1, 4), p(plan["situation"], reading)]
+        if plan["next_check"]:
+            flows.append(p(plan["next_check"], reading))
+        for step in plan["steps"]:
+            flows.append(KeepTogether([p(step["when"], section), p(step["action"], reading),
+                                       p(step["why"], reading), p(step.get("condition", ""))]))
+        document.build(flows, onFirstPage=footer, onLaterPages=footer)
+        return buf.getvalue()
+
     parcel, metrics = report["parcel"], report["metrics"]
     flows = [p("WODOSTRAŻNIK / RAPORT DZIAŁKI", tiny), p("Stan wody na Twojej działce", title),
              p(f"Analiza {report['date']} · {metrics['crop']['label']} · {metrics['stage']}"), Spacer(1, 8)]
@@ -119,13 +135,18 @@ def pdf(report):
     table = Table([[ParcelMap(parcel), context]], colWidths=[185, 300])
     table.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
     flows.append(table)
+    flows.append(p(report.get("situation") or report_message(report), reading))
+    if report["recommendations"]:
+        flows.append(p("Co możesz zrobić?", section))
+    for rec in report["recommendations"]:
+        flows.append(KeepTogether([p(rec["title"], sub), p(rec["when"]), p(rec["action"], reading)]))
     if recent := metrics["recent"]:
         flows.extend([p("Sytuacja wodna", section),
                       p(f'{recent["start"]} – {recent["end"]}. Opad {recent["rain_mm"]:g} mm. ET₀ {recent["et0_mm"]:g} mm. '
                         f'Zapotrzebowanie uprawy ETc {recent["etc_mm"]:g} mm. Bilans opad − ETc {recent["crop_balance_mm"]:+g} mm. '
                         f'Najdłuższy ciąg z opadem <1 mm: {recent["dry_spell_days"]} dni. Dni z kompletem danych: {recent["samples"]}/{recent["days"]}.')])
     if root := metrics["root"]:
-        flows.append(p(f'Woda dostępna w strefie korzeni: {root["taw_mm"]:g} mm. Próg łatwej dostępności: {root["raw_mm"]:g} mm. '
+        flows.append(p(f'Maksymalny zapas dostępny dla korzeni: {root["taw_mm"]:g} mm. Próg łatwej dostępności: {root["raw_mm"]:g} mm. '
                        f'Ubytek w dwóch wariantach początkowych: {root["initially_wet"]["depletion_mm"]:g}–'
                        f'{root["initially_dry"]["depletion_mm"]:g} mm.'))
     history = metrics["history"]
@@ -154,11 +175,10 @@ def pdf(report):
         if src["key"] == "gauge":
             flows.append(p(f'Wodowskaz {src["station"]}, {src["river"]}: {src["gauge_cm"]:g} cm. '
                            f'Odległość {src["distance_km"]:g} km. Punktowy odczyt kontekstowy.'))
-    flows.append(p("Co możesz zrobić?", section))
-    if not report["recommendations"]:
-        flows.append(p("Brak wystarczających podstaw do zaleceń dla wybranych danych i użytkowania."))
+    if report["recommendations"]:
+        flows.append(p("Podstawa zaleceń", section))
     for rec in report["recommendations"]:
-        flows.append(KeepTogether([p(rec["title"], sub), p(rec["action"]), p(rec["why"]),
+        flows.append(KeepTogether([p(rec["title"], sub), p(rec["why"]),
                                     p(rec["evidence"]), p(f'{rec["when"]} · Pewność {rec["confidence"]}. {rec["limits"]}', tiny)]))
     if scenario := report["scenario"]:
         low, high = scenario["depletion_reduction_mm"]

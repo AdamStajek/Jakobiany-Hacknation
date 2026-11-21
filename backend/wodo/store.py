@@ -23,9 +23,10 @@ STAC = "https://earth-search.aws.element84.com/v1/search"
 ISRIC = "https://maps.isric.org/mapserv"
 WORLD = "https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/map/"
 MS_STAC = "https://planetarycomputer.microsoft.com/api/stac/v1/search"
+NMT = "https://mapy.geoportal.gov.pl/wss/service/PZGIK/NMT/GRID1/WCS/DigitalTerrainModelFormatTIFF"
 TOPO = "https://api.opentopodata.org/v1/eudem25m"
 HOSTS = {
-    httpx.URL(url).host for url in (ULDK, NASA, IMGW, STAC, ISRIC, WORLD, TOPO, MS_STAC)
+    httpx.URL(url).host for url in (ULDK, NASA, IMGW, STAC, ISRIC, WORLD, TOPO, MS_STAC, NMT)
 } | {"archive-api.open-meteo.com", "api.open-meteo.com"}
 INIT_LOCK = Lock()
 INITIALIZED = set()

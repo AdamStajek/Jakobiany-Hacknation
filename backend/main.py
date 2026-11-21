@@ -14,7 +14,10 @@ from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from wodo.analysis import SOURCE_LABELS, run
-from wodo.geo import by_point, imported, lookup
+from wodo.farmer_report import report_message
+from wodo.field_analysis import analyze_field
+from wodo.geo import PARCEL_ID, by_point, imported, lookup
+from wodo.passport import collect, farmer_questions
 from wodo.report import pdf
 from wodo.science import CROPS, years_ago
 from wodo.store import SourceError, read, timestamp, write
@@ -82,7 +85,7 @@ async def request_limits(request: Request, call_next):
         history.append(now)
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
-    if request.url.path.startswith("/api/analysis"):
+    if request.url.path.startswith("/api/analysis") or request.url.path == "/api/passport":
         response.headers["Cache-Control"] = "no-store"
     return response
 
@@ -147,6 +150,53 @@ def matches(parcels):
     return {"parcels": parcels}
 
 
+@app.post("/api/analysis/passport")
+def analyze_passport(passport: dict, as_of: date, format: Literal["json", "pdf"] = "json"):
+    try:
+        result = analyze_field(passport, as_of)
+        if format == "pdf":
+            return Response(pdf(result), media_type="application/pdf",
+                            headers={"Content-Disposition": f'attachment; filename="raport-pola-{as_of}.pdf"'})
+        return result
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from error
+
+
+@app.get("/api/passport/questions")
+def passport_questions():
+    return farmer_questions()
+
+
+@app.get("/api/passport")
+def passport(parcel_id: str = Query(max_length=90), as_of: date | None = None, crop: str | None = None,
+             sowing: date | None = None, stage: int | None = None, irrigation_mm: float = 0):
+    return build_passport(parcel_id, None, as_of, crop, sowing, stage, irrigation_mm)
+
+
+@app.post("/api/passport")
+def passport_from_geojson(geojson: dict, as_of: date | None = None, crop: str | None = None,
+                          sowing: date | None = None, stage: int | None = None, irrigation_mm: float = 0):
+    return build_passport(None, geojson, as_of, crop, sowing, stage, irrigation_mm)
+
+
+def build_passport(parcel_id, geojson, as_of, crop, sowing, stage, irrigation_mm):
+    day = as_of or today()
+    if ((crop is not None and crop not in CROPS) or (stage is not None and stage not in range(5))
+            or not 0 <= irrigation_mm <= 150 or (sowing and not 0 <= (day - sowing).days <= 370)):
+        raise HTTPException(422, "Nieprawidłowe parametry uprawy.")
+    if not years_ago(today(), 10) <= day <= today() or (parcel_id is not None and not PARCEL_ID.fullmatch(parcel_id)):
+        raise HTTPException(422, "Podaj pełny identyfikator EGiB i datę z ostatnich dziesięciu lat.")
+    if not analysis_slots.acquire(blocking=False):
+        raise HTTPException(429, "Trwają inne analizy. Spróbuj ponownie za chwilę.", headers={"Retry-After": "8"})
+    try:
+        parcel = imported(geojson) if geojson is not None else matches(
+            [item for item in lookup(parcel_id) if item["id"] == parcel_id])["parcels"][0]
+        passport = collect(parcel, day, crop, sowing, stage, irrigation_mm)
+        return {**passport, "farmer_report": analyze_field(passport, day)["farmer_report"]}
+    finally:
+        analysis_slots.release()
+
+
 @app.post("/api/analysis")
 def analyze(request: AnalysisRequest):
     if not analysis_slots.acquire(blocking=False):
@@ -155,6 +205,7 @@ def analyze(request: AnalysisRequest):
     try:
         parcel = imported(request.geojson) if request.geojson is not None else matches(lookup(request.parcel_id))["parcels"][0]
         result = run(parcel, request)
+        result["situation"] = report_message(result)
         analysis_id = uuid4().hex
         report = {**result, "analysis_id": analysis_id, "created_at": timestamp(),
                   "elapsed_ms": round((time.monotonic() - start) * 1000)}
@@ -174,6 +225,8 @@ def get_report(analysis_id):
     report = read(f"report:{analysis_id}", 14 * 86400)
     if report is None:
         raise HTTPException(404, "Raport nie istnieje lub wygasł.")
+    if "situation" not in report:
+        report["situation"] = report_message(report)
     return report
 
 

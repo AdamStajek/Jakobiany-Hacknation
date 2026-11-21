@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends libexpat1 \
   && rm -rf /var/lib/apt/lists/*
 COPY backend/main.py ./
 COPY backend/wodo ./wodo
+COPY docs/paszport_pola_katalog_danych.csv docs/paszport_pola_15_danych_od_rolnika.csv /docs/
 COPY --from=web /build/dist/frontend/browser ./site
 ENV WODO_CACHE_DIR=/var/lib/wodo WODO_SITE_DIR=/app/site TZ=Europe/Warsaw PYTHONUNBUFFERED=1
 USER wodo

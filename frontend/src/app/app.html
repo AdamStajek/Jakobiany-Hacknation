@@ -1,17 +1,33 @@
 <header class="topbar">
   <div class="shell topbar-inner">
     <a class="wordmark" href="#" aria-label="WodoStrażnik — strona główna"><span class="drop" aria-hidden="true"></span>WodoStrażnik</a>
-    <nav aria-label="Nawigacja główna"><a href="#analiza">Analiza działki</a><a href="#metody">Jak to działa</a></nav>
+    <nav aria-label="Nawigacja główna">
+      <a href="#analiza" [attr.aria-current]="passportsTab() || modelTab() ? null : 'page'">Analiza działki</a>
+      <a href="#paszporty" [attr.aria-current]="passportsTab() ? 'page' : null">Paszporty pól</a>
+      <a href="#metody" [attr.aria-current]="modelTab() ? 'page' : null">Jak działa model</a>
+    </nav>
   </div>
 </header>
 
 <main class="shell">
+  @if (modelTab()) {
+    <app-model-page />
+  }
+  <div [hidden]="modelTab()">
+  @if (passportsTab()) {
+    <section class="intro" aria-labelledby="passport-title">
+      <h1 id="passport-title">Paszporty pól</h1>
+      <p>Wybierz działkę, uzupełnij informacje o polu i otwórz paszport.</p>
+    </section>
+  } @else {
   <section class="intro" aria-labelledby="tytul">
     <p class="eyebrow"><span></span> Asystent gospodarowania wodą w rolnictwie</p>
     <h1 id="tytul">Zatrzymaj wodę.<br><em>Chroń plony.</em></h1>
     <p>Sprawdź, jak opady, gleba i ukształtowanie terenu wpływają na zapas wody na Twojej działce. Zobacz, które działania warto podjąć i kiedy.</p>
   </section>
-  <section id="analiza" class="workspace" aria-label="Analiza działki">
+  }
+  <section [id]="passportsTab() ? 'paszporty' : 'analiza'" class="workspace"
+    [attr.aria-label]="passportsTab() ? 'Przygotuj paszport pola' : 'Analiza działki'">
     <div class="card setup">
       <div class="section-head"><span class="step">1</span><div><h2>Wybierz działkę</h2><p>Wpisz identyfikator lub kliknij na mapie.</p></div></div>
       <form class="search" (ngSubmit)="find()">
@@ -32,11 +48,14 @@
           <div><strong>{{selected.id}}</strong><br><small>{{selected.area_ha | number:'1.0-4'}} ha @if (selected.commune) { · gmina {{selected.commune}} } @if (selected.region) { · obręb {{selected.region}} }</small></div>
         </div>
       }
+      @if (passportsTab() && parcel(); as selected) {
+        <button type="button" class="secondary" (click)="downloadParcelGeoJson(selected)">Pobierz granicę działki (GeoJSON)</button>
+      }
       <label class="upload"><input type="file" accept=".geojson,.json,application/geo+json,application/json"
         (change)="importFile($event)" [disabled]="loadingParcel() || !!progress()"><span>Wczytaj granicę z GeoJSON</span></label>
 
       <div class="section-head second"><span class="step">2</span><div><h2>Podaj uprawę i datę</h2><p>Wybierz dziś lub dzień z ostatnich 10 lat.</p></div></div>
-      <form (ngSubmit)="analyze()" class="analysis-form">
+      <form (ngSubmit)="passportsTab() ? openPassport() : analyze()" class="analysis-form">
         <div class="form-grid">
           <label for="crop">Rodzaj uprawy<select id="crop" name="crop" [(ngModel)]="crop">
             @for (item of crops(); track item.id) { <option [value]="item.id">{{item.label}}</option> }
@@ -57,19 +76,100 @@
               <label class="wide" for="irrigation-mm">Woda z nawadniania, która dotarła do gleby w dniu analizy [mm]
                 <input id="irrigation-mm" type="number" min="0" max="150" step="0.1" name="irrigationMm" [(ngModel)]="irrigationMm"></label>
             }
-            <label class="wide" for="soil-observation">Co widzisz po sprawdzeniu gleby?<select id="soil-observation" name="soilObservation" [(ngModel)]="soilObservation">
-              <option [ngValue]="null">Nie sprawdzono</option><option value="dry">Sucha</option>
-              <option value="moist">Wilgotna</option><option value="wet">Mokra lub miejscami stoi woda</option>
-            </select></label>
-            <label class="check wide"><input type="checkbox" name="confirmLand" [(ngModel)]="confirmLand"> Potwierdzam uprawę, jeśli mapa wskazuje inne użytkowanie</label>
-            <label class="wide" for="scenario">Co jeśli zatrzymam dodatkowy opad? [mm]
-              <input id="scenario" type="number" min="0" max="50" step="0.5" name="scenario" [(ngModel)]="scenario" placeholder="np. 10"></label>
+            @if (!passportsTab()) {
+              <label class="wide" for="soil-observation">Co widzisz po sprawdzeniu gleby?<select id="soil-observation" name="soilObservation" [(ngModel)]="soilObservation">
+                <option [ngValue]="null">Nie sprawdzono</option><option value="dry">Sucha</option>
+                <option value="moist">Wilgotna</option><option value="wet">Mokra lub miejscami stoi woda</option>
+              </select></label>
+              <label class="check wide"><input type="checkbox" name="confirmLand" [(ngModel)]="confirmLand"> Potwierdzam uprawę, jeśli mapa wskazuje inne użytkowanie</label>
+              <label class="wide" for="scenario">Co jeśli zatrzymam dodatkowy opad? [mm]
+                <input id="scenario" type="number" min="0" max="50" step="0.5" name="scenario" [(ngModel)]="scenario" placeholder="np. 10"></label>
+            }
           </div>
         </details>
+        @if (passportsTab() && parcel() && questions().length) {
+          <fieldset>
+            <legend>Dane rolnika do paszportu pola</legend>
+            <div class="form-grid">
+              @for (item of questions(); track item.field) {
+                @switch (item.field) {
+                  @case ('problem_zones') {
+                    <div class="wide" role="group" [attr.aria-label]="item.label">
+                      <p>{{item.question}}</p>
+                      <button type="button" class="secondary" (click)="markingZone = !markingZone">
+                        {{markingZone ? 'Anuluj zaznaczanie' : 'Zaznacz punkt na mapie'}}
+                      </button>
+                      @if (markingZone) { <p role="status">Kliknij wewnątrz granicy wybranej działki.</p> }
+                      @for (zone of zones; track zone; let i = $index) {
+                        <div class="form-grid">
+                          <label>Typ strefy<select [name]="'zone-type-' + i" [(ngModel)]="zone.type">
+                            <option value="">Wybierz typ</option>
+                            @for (type of ['Przesuszenie', 'Zastoiska', 'Erozja', 'Słaby plon', 'Inne']; track type) {
+                              <option [value]="type">{{type}}</option>
+                            }
+                          </select></label>
+                          <label>Data obserwacji<input type="date" [name]="'zone-date-' + i" [(ngModel)]="zone.date"></label>
+                          <label>Opis strefy (opcjonalnie)<input [name]="'zone-description-' + i" [(ngModel)]="zone.description"></label>
+                          <button type="button" class="secondary" (click)="zones.splice(i, 1); refreshZoneMarkers()">Usuń punkt</button>
+                        </div>
+                      }
+                    </div>
+                  }
+                  @case ('irrigation_events') {
+                    <div class="wide">
+                      <label>{{item.question}}<select name="irrigationHistory" [(ngModel)]="irrigationHistory">
+                        <option value="">Wybierz odpowiedź</option><option value="none">Brak nawadniania</option>
+                        <option value="unknown">Nie wiem</option><option value="events">Podam zdarzenia</option>
+                      </select></label>
+                      @if (irrigationHistory === 'events') {
+                        @for (event of watering; track event; let i = $index) {
+                          <div class="form-grid">
+                            <label>Data nawadniania<input type="date" [name]="'water-date-' + i" [(ngModel)]="event.date" [max]="day"></label>
+                            <label>Dawka [mm] (opcjonalnie)<input type="number" min="0" step="any" [name]="'water-dose-' + i" [(ngModel)]="event.dose_mm"></label>
+                            <button type="button" class="secondary" (click)="watering.splice(i, 1)">Usuń zdarzenie</button>
+                          </div>
+                        }
+                        <button type="button" class="secondary" (click)="watering.push({date: '', dose_mm: null})">Dodaj nawadnianie</button>
+                      }
+                    </div>
+                  }
+                  @case ('irrigation_water_source') {
+                    <label>{{item.question}}<select multiple [name]="item.field" [(ngModel)]="waterSources">
+                      @for (option of item.format.replace(' (wielokrotny wybór)', '').split('; '); track option) {
+                        <option [value]="option">{{option}}</option>
+                      }
+                    </select></label>
+                  }
+                  @default {
+                    <label>{{item.question}}
+                      @if (item.format.includes(';') && !['current_crop', 'previous_crop', 'sowing_date'].includes(item.field)) {
+                        <select [name]="item.field" [(ngModel)]="answers[item.field]">
+                          <option value="">Wybierz odpowiedź</option>
+                          @for (option of item.format.split('; '); track option) {
+                            <option [value]="option">{{option}}</option>
+                          }
+                        </select>
+                      } @else {
+                        <input [name]="item.field" [(ngModel)]="answers[item.field]" maxlength="150" [attr.aria-describedby]="'hint-' + item.field">
+                        <small [id]="'hint-' + item.field">{{item.format}}</small>
+                      }
+                    </label>
+                  }
+                }
+              }
+            </div>
+          </fieldset>
+        }
+        @if (!passportsTab()) {
         <button type="submit" class="primary run" [disabled]="!parcel() || !day || !crops().length || loadingParcel() || !!progress()">
           @if (progress()) { <span class="spinner" aria-hidden="true"></span> Analiza w toku } @else { Analizuj gospodarowanie wodą <span aria-hidden="true">→</span> }
         </button>
         @if (progress()) { <p role="status" class="progress">{{progress()}}</p> }
+        } @else {
+          <button type="submit" class="primary"
+            [disabled]="!parcel() || !questions().length || !day || loadingParcel() || loadingPassport() || !!progress()">Pokaż paszport pola</button>
+          @if (loadingPassport()) { <p role="status" class="progress">Pobieramy dane paszportu…</p> }
+        }
         @if (error()) { <p role="alert" class="error">{{error()}}</p> }
       </form>
     </div>
@@ -82,6 +182,96 @@
     </div>
   </section>
 
+  @if (passportsTab()) {
+  @if (passport(); as data) {
+    <section class="card field-passport" aria-labelledby="passport-summary">
+      <h2 id="passport-summary" tabindex="-1">Paszport pola</h2>
+      <p>Działka <strong>{{data.parcel_id}}</strong>
+        @if (parcel()?.commune; as commune) { · gmina {{commune}} }
+      </p>
+      <p>Stan na {{data.analysis_as_of | date:'dd.MM.yyyy'}}</p>
+
+      @if (data.farmer_report; as plan) {
+        <section class="farmer-plan" aria-labelledby="field-actions">
+          <h3 id="field-actions">Co zrobić na tym polu?</h3>
+          <p>{{plan.situation}}</p>
+          @if (plan.next_check) { <p>{{plan.next_check}}</p> }
+          @for (step of plan.steps; track step.action) {
+            <h4>{{step.when}}</h4>
+            <p>{{step.action}}</p>
+            <p>{{step.why}} {{step.condition}}</p>
+          }
+          <button type="button" class="secondary" (click)="print()">Drukuj raport</button>
+        </section>
+      }
+
+      @if (passportOverview().length) {
+        <dl class="passport-overview">
+          @for (item of passportOverview(); track item.key) {
+            <div>
+              <dt>{{item.label}}</dt>
+              <dd><strong>{{passportValue(item.value)}}</strong> {{item.unit}}</dd>
+              @if (item.hint) { <dd>{{item.hint}}</dd> }
+            </div>
+          }
+        </dl>
+      }
+
+      @if (farmerDeclarations().length) {
+        <h3>Co podajesz o swoim polu</h3>
+        <dl>
+          @for (field of farmerDeclarations(); track field.field) {
+            <div>
+              <dt>{{field.label}}</dt>
+              @for (line of declarationLines(field); track $index) { <dd>{{line}}</dd> }
+            </div>
+          }
+        </dl>
+      }
+
+      <ng-template #passportEntry let-value>
+        @if (structuredPassportValue(value); as entries) {
+          @if ((entries | keyvalue).length) {
+            <ul>
+              @for (entry of entries | keyvalue: null; track entry.key) {
+                <li><strong>{{entry.key}}</strong> <ng-container *ngTemplateOutlet="passportEntry; context: {$implicit: entry.value}" /></li>
+              }
+            </ul>
+          } @else { Brak wpisów }
+        } @else { {{passportValue(value)}} }
+      </ng-template>
+      @if (availablePassportFields().length) {
+      <details>
+        <summary>Wszystkie dane i ich źródła</summary>
+        <dl>
+          @for (field of availablePassportFields(); track field.source + '/' + field.field) {
+            <div>
+              <dt>{{field.label}}</dt>
+              <dd>
+                @if (field.provenance && 'declared_at' in field.provenance) {
+                  @for (line of declarationLines(field); track $index) { <div>{{line}}</div> }
+                } @else if (structuredPassportValue(field.value)) {
+                  <details #valueDetails (toggle)="valueDetails.open"><summary>Pokaż dane {{field.unit}}</summary>
+                    @if (valueDetails.open) { <ng-container *ngTemplateOutlet="passportEntry; context: {$implicit: field.value}" /> }
+                  </details>
+                } @else {
+                  {{passportValue(field.value)}} {{field.unit}}
+                }
+                <details class="passport-source"><summary>Źródło danych</summary>
+                  <p>{{field.provenance?.source_id ?? field.source}}</p>
+                  @if (field.provenance) { <pre>{{field.provenance | json}}</pre> }
+                </details>
+              </dd>
+            </div>
+          }
+        </dl>
+      </details>
+      }
+      <button type="button" class="secondary" (click)="downloadPassport()">Zapisz paszport (JSON)</button>
+    </section>
+  }
+
+  } @else {
   @if (report(); as result) {
     <section class="results" aria-labelledby="wynik">
       <div class="report-heading">
@@ -94,21 +284,32 @@
         </div>
       </div>
       <section class="risk-card">
-        <div><p class="eyebrow light">Ryzyko niedoboru wody</p><h3>{{result.metrics.risk}}</h3>
+        <div><p class="eyebrow light">Ryzyko niedoboru wody</p><h3>{{result.situation ?? result.metrics.risk}}</h3>
           <p>Pewność oceny: <strong>{{result.confidence.toLowerCase()}}</strong></p>
           @if (result.metrics.weather_last_day !== result.date) { <p>Ostatnia pełna doba danych: {{result.metrics.weather_last_day ?? 'brak'}}</p> }
         </div>
         @if (result.metrics.recent; as recent) {
           <div class="figures">
-            <div><small>Bilans uprawy · 30 dni</small><strong>{{recent.crop_balance_mm | number:'1.0-1'}} <span>mm</span></strong></div>
+            <div><small>Deszcz minus potrzeby uprawy · 30 dni</small><strong>{{recent.crop_balance_mm | number:'1.0-1'}} <span>mm</span></strong></div>
             <div><small>Opad · 30 dni</small><strong>{{recent.rain_mm | number:'1.0-1'}} <span>mm</span></strong></div>
-            <div><small>Najdłuższy okres &lt;1 mm</small><strong>{{recent.dry_spell_days}} <span>dni</span></strong></div>
+            <div><small>Najdłuższa seria dni z opadem poniżej 1 mm</small><strong>{{recent.dry_spell_days}} <span>dni</span></strong></div>
           </div>
         }
       </section>
       @if (!result.agricultural) {
         <p class="error">Mapa z 2021 r. wskazuje głównie inne użytkowanie. Sprawdź pole. Jeśli rzeczywiście prowadzisz tu uprawę, potwierdź ją w dodatkowych informacjach i ponów analizę.</p>
       }
+      <section class="recommendations">
+        <h3>Co możesz zrobić?</h3>
+        @for (item of result.recommendations; track item.title; let n = $index) {
+          <article class="card recommendation"><span class="rank">{{n + 1}}</span>
+            <div><h4>{{item.title}}</h4>
+              <p>{{item.action}}</p><p class="when"><strong>Kiedy?</strong> {{item.when}}</p>
+              <details><summary>Dlaczego na tej działce?</summary><p>{{item.why}}</p><p>{{item.evidence}}</p><p>{{item.limits}} Pewność oceny: {{item.confidence}}.</p></details>
+            </div>
+          </article>
+        } @empty { <p>Brak wystarczających podstaw do zaleceń dla wybranej działki i daty.</p> }
+      </section>
       <div class="report-grid">
         <section class="card panel">
           <h3>Dlaczego występuje takie ryzyko?</h3>
@@ -116,10 +317,12 @@
             <p>W okresie {{r.start}} – {{r.end}} spadło <strong>{{r.rain_mm | number:'1.0-1'}} mm</strong> deszczu przy zapotrzebowaniu uprawy <strong>{{r.etc_mm | number:'1.0-1'}} mm</strong>. Dni z kompletem danych: {{r.samples}}/{{r.days}}.</p>
             @if (r.rain_anomaly_mm !== undefined) { <p>Różnica opadu względem mediany tych samych 30 dni w poprzednich latach: <strong>{{r.rain_anomaly_mm | number:'1.0-1'}} mm</strong>.</p> }
           } @else { <p>Brak wystarczających danych pogodowych dla ostatnich 30 dni.</p> }
+          <details><summary>Jak obliczono zapas wody?</summary>
           <p>Współczynnik uprawy dla wybranej daty <strong>{{result.metrics.kc | number:'1.2-3'}}</strong>.</p>
           @if (result.metrics.root; as root) {
             <p>Szacowana pojemność korzeniowa <strong>{{root.taw_mm | number:'1.0-1'}} mm</strong>. Próg łatwo dostępnej wody <strong>{{root.raw_mm | number:'1.0-1'}} mm</strong>. Modelowany ubytek <strong>{{root.initially_wet.depletion_mm | number:'1.0-1'}}–{{root.initially_dry.depletion_mm | number:'1.0-1'}} mm</strong> po {{root.days}} dniach.</p>
           } @else { <p>Brak modelowanego ubytku w strefie korzeni dla tej daty.</p> }
+          </details>
           @if (result.daily.rain_mm !== null) { <p>Opad w dniu analizy <strong>{{result.daily.rain_mm | number:'1.0-1'}} mm</strong>.</p> }
         </section>
         <section class="card panel">
@@ -145,8 +348,8 @@
         </section>
       </div>
 
-      <section class="card panel context">
-        <h3>Gleba, roślinność i otoczenie</h3>
+      <details class="card panel context">
+        <summary>Szczegółowe dane o glebie, roślinności i otoczeniu</summary>
         <div class="context-grid">
           <div><h4>Stan roślinności</h4>
             @if (source(result,'satellite'); as sat) {
@@ -182,19 +385,8 @@
             @if (source(result,'gauge'); as g) { <p>Wodowskaz {{g.station}}, {{g.river}} · {{g.gauge_cm}} cm · {{g.distance_km}} km od punktu analizy.</p> }
           </div>
         </div>
-      </section>
+      </details>
 
-      <section class="recommendations">
-        <h3>Co możesz zrobić?</h3>
-        @for (item of result.recommendations; track item.title; let n = $index) {
-          <article class="card recommendation"><span class="rank">{{n + 1}}</span>
-            <div><small>{{item.group}} · Pewność {{item.confidence}}</small><h4>{{item.title}}</h4>
-              <p>{{item.action}}</p><p class="when"><strong>Kiedy?</strong> {{item.when}}</p>
-              <details><summary>Dlaczego na tej działce?</summary><p>{{item.why}}</p><p>{{item.evidence}}</p><p>{{item.limits}}</p></details>
-            </div>
-          </article>
-        } @empty { <p>Brak wystarczających podstaw do zaleceń dla wybranej działki i daty.</p> }
-      </section>
       @if (result.scenario; as scenario) {
         <section class="panel card"><h3>Co jeśli zatrzymasz więcej wody?</h3>
           <p>Dodatkowe {{scenario.input_mm}} mm w scenariuszu zmniejsza modelowany ubytek o {{scenario.depletion_reduction_mm[0] | number:'1.0-1'}}–{{scenario.depletion_reduction_mm[1] | number:'1.0-1'}} mm. {{scenario.note}}</p>
@@ -223,10 +415,7 @@
     </section>
   }
 
-  <section id="metody" class="methods">
-    <h2>Jak to działa?</h2>
-    <p>Porównujemy opad z zapotrzebowaniem uprawy na wodę. Wykorzystujemy dane historyczne o pogodzie, obrazy Sentinel-2, model gleby oraz informacje o rzeźbie terenu i powierzchni wód. Jeśli któregoś źródła brakuje, zobaczysz to w raporcie.</p>
-    <p>Wyniki pomagają zdecydować, co sprawdzić na polu. Przed nawadnianiem lub pracami retencyjnymi potwierdź warunki w terenie.</p>
-  </section>
+  }
+  </div>
 </main>
 <footer class="footer"><div class="shell"><strong>WodoStrażnik</strong> <span>Prototyp zespołu Jakobiany · HackNation 2026 / KOWR</span></div></footer>
