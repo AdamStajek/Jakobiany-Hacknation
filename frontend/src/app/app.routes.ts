@@ -10,7 +10,6 @@ export const routes: Routes = [
     loadComponent: () => import('./features/passport/passport-page').then((m) => m.PassportPage)},
   {path: 'dzialka/:id/paszport', title: 'Pole Widzenia · Paszport działki',
     loadComponent: () => import('./features/passport/passport-page').then((m) => m.PassportPage)},
-  {path: 'eksperymenty', loadChildren: () => import('./features/experiments/experiments-page').then((m) => m.experimentRoutes)},
   {path: 'metody', title: 'Pole Widzenia · Jak to działa', loadComponent: () => import('./features/methods/methods-page').then((m) => m.MethodsPage)},
   {path: '**', redirectTo: ''},
 ];

@@ -4,9 +4,6 @@ import { Component, OnInit, computed, inject, input, signal, viewChild } from '@
 import { FormsModule } from '@angular/forms';
 import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
 import { firstValueFrom } from 'rxjs';
-import { ButtonModule } from 'primeng/button';
-import { InputTextModule } from 'primeng/inputtext';
-import { MessageModule } from 'primeng/message';
 import type { Parcel } from '../../core/api/types';
 import { ParcelStore } from '../../core/state/parcel.store';
 import { WodoMap } from '../../shared/map/wodo-map';
@@ -25,7 +22,7 @@ type Zone = {geometry: {type: 'Point'; coordinates: [number, number]}; type: str
 type Watering = {date: string; dose_mm: number | null};
 @Component({
   selector: 'app-passport-page',
-  imports: [FormsModule, WodoMap, DatePipe, DecimalPipe, JsonPipe, KeyValuePipe, NgTemplateOutlet, ButtonModule, InputTextModule, MessageModule],
+  imports: [FormsModule, WodoMap, DatePipe, DecimalPipe, JsonPipe, KeyValuePipe, NgTemplateOutlet],
   templateUrl: './passport-page.html',
   styleUrl: './passport-page.css',
 })

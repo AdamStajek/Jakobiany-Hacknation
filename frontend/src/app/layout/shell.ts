@@ -4,13 +4,12 @@ import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter, map } from 'rxjs';
 import { ThemeService } from '../core/theme/theme';
 
-type Section = 'analiza' | 'paszport' | 'eksperymenty' | 'metody';
+type Section = 'analiza' | 'paszport' | 'metody';
 type NavItem = {id: Section; path: string; label: string; short: string; icon: string};
 
 const NAV: NavItem[] = [
   {id: 'analiza', path: '/', label: 'Analiza działki', short: 'Analiza', icon: 'pi-map'},
   {id: 'paszport', path: '/paszporty', label: 'Paszporty pól', short: 'Paszport', icon: 'pi-id-card'},
-  {id: 'eksperymenty', path: '/eksperymenty', label: 'Eksperymenty', short: 'Eksperymenty', icon: 'pi-list-check'},
   {id: 'metody', path: '/metody', label: 'Jak to działa', short: 'Metody', icon: 'pi-book'},
 ];
 
@@ -57,7 +56,7 @@ const NAV: NavItem[] = [
 
     <main id="tresc" class="lg:pl-60"><ng-content /></main>
 
-    <nav aria-label="Nawigacja główna" class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-surface bg-surface-0/95 pb-[env(safe-area-inset-bottom)] backdrop-blur print:hidden lg:hidden dark:bg-surface-900/95">
+    <nav aria-label="Nawigacja główna" class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 border-t border-surface bg-surface-0/95 pb-[env(safe-area-inset-bottom)] backdrop-blur print:hidden lg:hidden dark:bg-surface-900/95">
       @for (item of nav; track item.path) {
         <a [routerLink]="item.path" [attr.aria-current]="section() === item.id ? 'page' : null"
            class="flex h-16 flex-col items-center justify-center gap-1 text-xs"
@@ -79,7 +78,6 @@ export class Shell {
   /** Aktywna sekcja nawigacji (paszport działki leży pod /dzialka/:id/paszport). */
   protected readonly section = computed<Section>(() => {
     const url = this.url().split(/[?#]/)[0];
-    if (url.startsWith('/eksperymenty')) return 'eksperymenty';
     if (url.startsWith('/metody')) return 'metody';
     return url.startsWith('/paszporty') || url.endsWith('/paszport') ? 'paszport' : 'analiza';
   });

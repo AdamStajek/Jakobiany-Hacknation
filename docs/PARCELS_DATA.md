@@ -23,15 +23,14 @@ Przewodnik dla deweloperów i operatorów. Opisuje, skąd aplikacja bierze geome
 docker compose up --build
 ```
 
-Compose uruchamia trzy usługi:
+Compose uruchamia dwie usługi:
 
 | Usługa | Rola |
 |---|---|
 | `wodo` | API i aplikacja, port 8080. Katalog `data/parcels/` jest zamontowany tylko do odczytu w `/var/lib/wodo-parcels`. Startuje od razu. |
-| `parcels-init` | Ustawia właściciela katalogu danych i jego zawartości na `WODO_UID:WODO_GID` (domyślnie `1000:1000`) przed startem aktualizatora. |
 | `parcels-updater` | Pętla `python -m wodo.parcels_data loop`. Pobiera plik, buduje indeks, publikuje go i usypia na `WODO_PARCELS_REFRESH_HOURS` (domyślnie 24 h). |
 
-Dane leżą w katalogu hosta `data/parcels/` (zmienna `WODO_PARCELS_HOST_DIR`), montowanym do wszystkich trzech kontenerów jako `/var/lib/wodo-parcels`. Nie trafiają do gita ani do obrazu, przeżywają `docker compose down -v` i są wspólne dla uruchomienia z Dockerem i lokalnego backendu. Ponowne `./start.sh` nie pobiera niczego, jeśli ETag się zgadza.
+Dane leżą w katalogu hosta `data/parcels/` (zmienna `WODO_PARCELS_HOST_DIR`), montowanym do obu kontenerów jako `/var/lib/wodo-parcels`. Nie trafiają do gita ani do obrazu, przeżywają `docker compose down -v` i są wspólne dla uruchomienia z Dockerem i lokalnego backendu. Ponowne `./start.sh` nie pobiera niczego, jeśli ETag się zgadza.
 
 ## Jak sprawdzić postęp i gotowość
 
