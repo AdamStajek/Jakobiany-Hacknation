@@ -34,3 +34,7 @@
 !**/.env.example
 !**/.env.sample
 !**/.env.template
+
+# Keep local data and the organizer mirror out of the image context
+/data
+/bzp

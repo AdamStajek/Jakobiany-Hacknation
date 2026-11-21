@@ -1,6 +1,6 @@
 # Backend Risk Miner
 
-Rozwijaj `backend/` w Pythonie 3.13, FastAPI i `uv`. `backend/main.py` jest punktem wejścia i udostępnia `GET /api/hello`. Rejestruj routery domenowe pod `/api/v1`, zgodnie z [OpenAPI](../openapi.yaml). Podziel kod według odpowiedzialności na obsługę HTTP, zadania i analizę oraz zapis SQLite. Po wydzieleniu modułów i migracji dodaj je do obrazu, bo `backend/Dockerfile` kopiuje dziś tylko `main.py`.
+Backend działa w Pythonie 3.13, FastAPI i `uv`. `backend/main.py` obsługuje HTTP i udostępnia trasy pod `/api/v1` oraz `GET /api/hello`. Moduły domenowe odpowiadają za import, wzbogacanie, przetwarzanie plików, decyzje, analizy i zapis SQLite. Obraz Dockera zawiera moduły, adaptery i współdzielony kontrakt. [OpenAPI](../openapi.yaml)
 
 ## 1. Start aplikacji i baza
 
@@ -41,4 +41,49 @@ Weryfikuj bearer token, rolę i dostęp do każdego projektu, zadania, dowodu, p
 - Powtórz import arkusza. Liczba rekordów wejściowych pozostaje 22. Sprawdź ponowienie z tym samym kluczem, konflikt po zmianie danych i częściowy wynik przy wadliwym wierszu.
 - Wykonaj decyzję i spróbuj skorygować nieaktualną rewizję. Sprawdź źródło cytatu, `409` oraz historię. Dodaj wersję dokumentu, uruchom kolejną ocenę i porównaj eksport starej migawki. Sprawdź odmowę dostępu do obcego dowodu, pliku i eksportu.
 
-Po P0 dodaj Risk DNA i testy Chaos Lab przypięte do zatwierdzonej wersji wzorca. [Wymagania konkursowe](../MFiPR_-_Pena_tre_zadania_konkursowego.md) · [Katalog R01–R15 i fazy](../Risk_Miner_material_porady_fazy_dokumenty_ryzyka_ciekawostki.md) · [Checklista wodociągowa](../Risk_Miner_material_ekspercki_przygotowanie_inw_wodociagowej.md) · [Frontend](frontend.md)
+Ścieżka P1 dodaje Risk DNA oraz testy Chaos Lab przypięte do zatwierdzonej wersji wzorca. [Wymagania konkursowe](../MFiPR_-_Pena_tre_zadania_konkursowego.md) · [Katalog R01–R15 i fazy](../Risk_Miner_material_porady_fazy_dokumenty_ryzyka_ciekawostki.md) · [Checklista wodociągowa](../Risk_Miner_material_ekspercki_przygotowanie_inw_wodociagowej.md) · [Frontend](frontend.md)
+
+## 6. Uruchomienie i odbiór implementacji
+
+Z katalogu repozytorium uruchom backend w Pythonie 3.13. Przy braku bazy rzeczywistej aplikacja otworzy osobną bazę demonstracyjną z przypadkiem historycznym, dowodami i kolejką eksperta.
+
+```bash
+RISK_MINER_OFFLINE=1 uv run --project backend --locked uvicorn --app-dir backend main:app
+curl -H 'Authorization: Bearer demo' http://127.0.0.1:8000/api/v1/projects
+```
+
+- Kontrakt jest dostępny pod `/openapi.json`, a interfejs do wywoływania API pod `/docs`. `GET /api/hello` służy dotychczasowemu ekranowi startowemu.
+- Baza demonstracyjna rozpoznaje tokeny `demo-analyst`, `demo-expert`, `demo-operator` oraz `demo` do przetestowania całej ścieżki jedną tożsamością. Projekty planowane, analizy, dokumenty i dowody dziedziczą dostęp właściciela projektu. Projekty historyczne są wspólne dla uwierzytelnionych użytkowników. Baza rzeczywista wymaga ustawienia `RISK_MINER_TOKENS` jako mapy tokenów na identyfikatory i role.
+- Compose utrwala pliki w lokalnym `data/`. Uruchomienie `docker compose up --build backend` udostępnia port 8000. Wdrożenie korzysta z jednego procesu aplikacji na plik SQLite. Lekki worker wznawia przerwane zadania po restarcie. Konfigurację lokalną można wczytać przez `uv run --env-file`. [Przykładowa konfiguracja](../../backend/.env.example)
+- P0 obejmuje import XLSX/CSV, adaptery BZP i TED, wersje PDF/DOCX, dowody, decyzje, analizę i eksport. `GET /documents/{document_id}/versions/{version_id}/content` dostarcza uwierzytelniony załącznik pod adresem `content_url`. P1 obejmuje Risk DNA, testy Chaos Lab, graf, porównanie migawek i Epidemic Radar grupujący zatwierdzone zdarzenia według kodu. Okresowe wzbogacanie można włączyć dla projektu w realizacji.
+- Domyślna ekstrakcja stosuje lokalne reguły i zachowuje dosłowne cytaty. Opcjonalny model zgodny z Chat Completions otrzymuje ograniczone fragmenty przesłanego dokumentu i katalog ryzyk. Backend zwraca wnioski modelu do weryfikacji po potwierdzeniu cytatu w odpowiedniej wersji. Przy wyłączonym modelu dokumenty są przetwarzane w środowisku wdrożenia. Przy włączonym modelu region i licencja wynikają z wybranego wdrożenia i modelu. Główne biblioteki to FastAPI, openpyxl, jsonschema i PyYAML (MIT), Uvicorn i pypdf (BSD-3-Clause), defusedxml (PSFL) oraz python-multipart (Apache-2.0).
+
+### Zasilenie bazy rzeczywistej
+
+Uruchom kopię organizatora w osobnym procesie poleceniem `python3 bzp/bzp_mirror.py`. Sprawdź adres wypisany przez serwer. Poniższe polecenie pobiera ogłoszenia wyłącznie z tej kopii. Po utworzeniu bazy ustaw tokeny i uruchom ponownie backend.
+
+```bash
+RISK_MINER_OFFLINE=0 RISK_MINER_BZP_URL=http://127.0.0.1:8010 RISK_MINER_TED_URL= \
+  uv run --project backend --locked python backend/scrape.py --input docs/Risk_Miner_dane_projekty.xlsx
+```
+
+Adresy dostawców definiuje operator wdrożenia. Przy włączonym TED adapter przyjmuje numery publikacji przez `references`. `RISK_MINER_TED_CONTEXT=1` uruchamia też wyszukiwanie na podstawie publicznych tytułów i nazw zamawiających projektów historycznych. BZP używa numeru ogłoszenia, wspólnego OCID i zgodności zamawiającego oraz przedmiotu. W przypadkach bez wystarczającego klucza zapisuje kandydatów. [Oficjalna dokumentacja BZP](https://ezamowienia.gov.pl/pl/integracja/) · [Dokumentacja TED Search API](https://docs.ted.europa.eu/api/latest/search.html)
+
+### Metoda i granice pilotażu
+
+- Wzmianka tekstowa daje częściowe pokrycie. Pełne potwierdzenie, udokumentowane niewykonanie i brak zastosowania można wyrazić zatwierdzonym faktem z kluczem `check.<kod wymagania>` i polem `value.state`. Metoda startowa obejmuje checklistę sieci wodociągowej dla planowania i przygotowania. Sektorowe reguły uruchamiają się po dopasowaniu dosłownej frazy lub warunku `kod_wymagania=stan`.
+- Bliźniaki porównują cechy strukturalne i tekst według zatwierdzonych wag. Zakres odchyleń wymaga minimum trzech porównywalnych przypadków z wynikiem podobieństwa co najmniej 0,35. Porównanie kosztów wymaga jednej identyfikowalnej umowy, zgodnej waluty i ustalonego VAT. Brak porównywalnej próby daje `insufficient_evidence` z liczebnością i odsetkiem braków.
+- Chaos Lab porównuje założone opóźnienie dostępu z zatwierdzonym faktem `land_access_schedule_buffer_days` z migawki. Bez udokumentowanego zapasu raportuje brak potwierdzenia w pakiecie.
+- Ekstrakcja BZP normalizuje udokumentowane daty, części postępowań, umowy i aneksy z odczytanych sekcji ogłoszeń. Rekordy bez potwierdzenia umowy zachowują podstawę `notice_only`. Pakiet demonstracyjny ma dane syntetyczne. OCR, rozpoznawanie załączników na zewnętrznych platformach oraz dane GIS pozostają kolejnymi etapami.
+
+### Testy
+
+```bash
+PYTHONPATH=backend uv run --project backend --locked python -m unittest discover -s backend/tests -v
+uv run --project backend --locked ruff check backend
+uv run --project backend --locked ruff format --check backend
+```
+
+Testy uruchamiają rzeczywiste trasy FastAPI na tymczasowej bazie. Obejmują 22 wiersze XLSX, błędny wiersz CSV i idempotencję, cytat i plik DOCX, nową wersję PDF, izolację dostępu, eksport migawki, trwałą decyzję eksperta, konflikt rewizji, aktywację reguł i przypięcie rewizji Risk DNA.
+
+W próbie z lokalną kopią BZP dwa importy utrzymały 22 rekordy arkusza. Pobranie odnalezionych 67 ogłoszeń dało 54 wpisy raportu `matched` i 13 wpisów `needs_review`. Projekt `RM-2026-009` zachował dwie części i dwie umowy z odrębnymi datami wykonania. Adapter TED sprawdzono po numerze publicznego ogłoszenia `109169-2019`. Wyniki dopasowania raportują zastosowaną metodę. Ocena trafności wymaga zbioru referencyjnego.

@@ -4,5 +4,8 @@ COPY --from=uv /uv /bin/uv
 WORKDIR /app
 COPY backend/pyproject.toml backend/uv.lock ./
 RUN uv sync --locked --no-dev
-COPY backend/main.py ./
+COPY backend/*.py ./
+COPY backend/connectors ./connectors
+COPY docs/openapi.yaml ./openapi.yaml
+ENV RISK_MINER_DB_PATH=/app/data/risk-miner.db
 CMD ["/app/.venv/bin/uvicorn", "main:app", "--host", "0.0.0.0"]

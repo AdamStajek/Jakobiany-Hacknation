@@ -16,3 +16,17 @@ services:
       dockerfile: backend/Dockerfile
     ports:
       - "127.0.0.1:8000:8000"
+    environment:
+      RISK_MINER_DB_PATH: /app/data/risk-miner.db
+      RISK_MINER_TOKENS: "${RISK_MINER_TOKENS:-}"
+      RISK_MINER_OFFLINE: "${RISK_MINER_OFFLINE:-0}"
+      RISK_MINER_BZP_URL: "${RISK_MINER_BZP_URL:-https://ezamowienia.gov.pl}"
+      RISK_MINER_TED_URL: "${RISK_MINER_TED_URL-https://api.ted.europa.eu/v3/notices/search}"
+      RISK_MINER_TED_CONTEXT: "${RISK_MINER_TED_CONTEXT:-0}"
+      RISK_MINER_MAX_FILE_BYTES: "${RISK_MINER_MAX_FILE_BYTES:-10485760}"
+      RISK_MINER_MONITOR_SECONDS: "${RISK_MINER_MONITOR_SECONDS:-3600}"
+      RISK_MINER_MODEL_URL: "${RISK_MINER_MODEL_URL:-}"
+      RISK_MINER_MODEL: "${RISK_MINER_MODEL:-}"
+      RISK_MINER_MODEL_KEY: "${RISK_MINER_MODEL_KEY:-}"
+    volumes:
+      - ./data:/app/data
