@@ -113,14 +113,66 @@ export const PART_OUTCOME: Record<string, string> = {
   awarded: 'Udzielono', unawarded: 'Nie udzielono', cancelled: 'Unieważniono', unknown: 'Nieustalone',
 };
 
-export const PHASE_LABEL = {
-  planning: 'Planowanie', preparation: 'Przygotowanie', procurement: 'Postępowanie',
-  contract_start: 'Rozpoczęcie umowy', post_contract_design: 'Projektowanie po zawarciu umowy',
-  execution: 'Realizacja', commissioning: 'Rozruch i odbiory', closeout_and_warranty: 'Rozliczenie i gwarancja',
+export const PHASE_LABEL: Record<Schemas['Phase'], string> = {
+  planning: 'Planowanie', preparation: 'Przygotowanie', procurement: 'Zamówienie', contract_start: 'Start umowy',
+  post_contract_design: 'Projektowanie po umowie', execution: 'Realizacja', commissioning: 'Odbiór i uruchomienie',
+  closeout_and_warranty: 'Rozliczenie i gwarancja',
+};
+/** Cechy porównania projektów (klucze `comparison_weights`). */
+export const WEIGHT_LABEL: Record<string, string> = {
+  subsector: 'Podsektor', work_type: 'Rodzaj prac', function: 'Funkcja obiektu', technical: 'Parametry techniczne',
+  organization: 'Organizacja i strony', cost: 'Koszt', schedule: 'Harmonogram', location: 'Lokalizacja', text: 'Podobieństwo tekstu',
 };
 
-export const WORK_TYPE_LABEL = {
-  construction_or_extension: 'Budowa lub rozbudowa',
-  reconstruction_or_renovation: 'Przebudowa lub remont',
-  mixed: 'Zakres mieszany',
+/* Nowa inwestycja i analiza (1F) */
+export const WORK_TYPE_LABEL: Record<string, string> = {
+  construction_or_extension: 'Budowa lub rozbudowa', reconstruction_or_renovation: 'Przebudowa lub remont', mixed: 'Zakres mieszany',
+};
+export const THREAT_LEVEL: Record<string, StatusMeta> = {
+  low: { label: 'Niskie', icon: 'pi pi-check-circle', tone: 'success' },
+  moderate: { label: 'Umiarkowane', icon: 'pi pi-minus-circle', tone: 'warn' },
+  high: { label: 'Wysokie', icon: 'pi pi-exclamation-triangle', tone: 'danger' },
+  critical: { label: 'Krytyczne', icon: 'pi pi-exclamation-circle', tone: 'danger' },
+  insufficient_evidence: { label: 'Niewystarczające dowody', icon: 'pi pi-question-circle', tone: 'secondary' },
+};
+export const CONFIDENCE_META: Record<string, StatusMeta> = {
+  low: { label: 'Niska', icon: 'pi pi-minus-circle', tone: 'warn' },
+  moderate: { label: 'Umiarkowana', icon: 'pi pi-minus-circle', tone: 'info' },
+  high: { label: 'Wysoka', icon: 'pi pi-check-circle', tone: 'success' },
+  insufficient_evidence: { label: 'Niewystarczające dowody', icon: 'pi pi-question-circle', tone: 'secondary' },
+};
+export const DEVIATION_DIMENSION: Record<string, string> = { cost: 'Koszt', time: 'Czas' };
+export const RECOMMENDATION_KIND: Record<string, string> = {
+  investigate: 'Zbadaj', provide_information: 'Uzupełnij informacje', mitigate: 'Zaplanuj działanie zapobiegawcze', proposed_clause: 'Proponowany zapis',
+};
+export const TWIN_DIRECTION: Record<string, StatusMeta> = {
+  similar: { label: 'Podobne', icon: 'pi pi-equals', tone: 'success' },
+  different: { label: 'Różne', icon: 'pi pi-arrows-h', tone: 'warn' },
+};
+export const DEVIATION_UNIT: Record<string, string> = { days: 'dni', percent: '%', PLN: 'PLN' };
+export const API_ERROR_HINT: Record<string, string> = {
+  stale_revision: 'Projekt został zmieniony przez kogoś innego. Wczytaj aktualną wersję i ponów zapis.',
+  unsupported_document_type: 'Obsługiwane są tylko pliki PDF i DOCX.',
+  payload_too_large: 'Plik jest za duży.',
+  insufficient_input: 'Do analizy brakuje informacji. Uzupełnij poniższe pola.',
+  stale_sector_rules: 'Reguły sektorowe zostały zmienione przez kogoś innego. Wczytaj aktualną wersję i ponów zapis.',
+  idempotency_conflict: 'To żądanie zostało już wysłane z innymi danymi. Odśwież widok i ponów operację.',
+  assessment_not_ready: 'Wersja dokumentu nie jest jeszcze gotowa do analizy (trwa ekstrakcja).',
+};
+
+/* Expert Studio (1D) */
+export const TARGET_TYPE_LABEL: Record<string, string> = {
+  project: 'Projekt', procedure: 'Postępowanie', part: 'Część', notice: 'Ogłoszenie', contract: 'Umowa',
+  contract_change: 'Zmiana umowy', document: 'Dokument', fact: 'Fakt', link: 'Powiązanie', risk: 'Ryzyko / zdarzenie',
+  recommendation: 'Rekomendacja', sector_rules: 'Reguły sektorowe', risk_dna: 'Risk DNA', pattern_candidate: 'Kandydat wzorca',
+};
+export interface ReviewActionMeta { label: string; icon: string; hint: string; }
+export const REVIEW_ACTION: Record<string, ReviewActionMeta> = {
+  approve: { label: 'Zatwierdź', icon: 'pi pi-check', hint: 'Dopuszcza wersję do dalszej analizy.' },
+  correct: { label: 'Popraw', icon: 'pi pi-pencil', hint: 'Zatwierdza wersję ze zmienionymi polami.' },
+  reject: { label: 'Odrzuć', icon: 'pi pi-times', hint: 'Wyklucza wersję z zatwierdzonej wiedzy; dane źródłowe zostają.' },
+  request_evidence: { label: 'Wymaga dowodów', icon: 'pi pi-question-circle', hint: 'Wyklucza wersję do czasu uzupełnienia dowodów.' },
+};
+export const CLAIM_TYPE_LABEL: Record<string, string> = {
+  SOURCE_FACT: 'Potwierdzone w źródle', CALCULATED: 'Obliczone', MODEL_INFERENCE: 'Wniosek modelu',
 };

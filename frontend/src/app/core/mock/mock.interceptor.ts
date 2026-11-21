@@ -3,6 +3,9 @@ import { of, delay, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { environment } from '../environment';
 import { DETAIL_EXTRAS, EVIDENCE, FACTS, JOBS, PROJECTS, RISKS } from './fixtures/projects';
+import { EVIDENCE_EXTRA, DOCUMENT_VERSIONS, DOCUMENT_COPY } from './fixtures/evidence';
+import { SECTOR_RULES } from './fixtures/sector-rules';
+import { DECISIONS, REVIEW_ITEMS, decide } from './fixtures/expert';
 
 const page = (items: any[], url: URL) => {
   const limit = Number(url.searchParams.get('limit') ?? 25);
@@ -59,10 +62,68 @@ export const mockInterceptor: HttpInterceptorFn = (req, next) => {
     return j ? ok(j) : notFound(req.url);
   }
   if (m === 'GET' && (r = path.match(/^\/evidence\/([^/]+)$/))) {
-    return EVIDENCE[r[1]] ? ok(EVIDENCE[r[1]]) : notFound(req.url);
+    const ev = EVIDENCE[r[1]] ?? EVIDENCE_EXTRA[r[1]];
+    return ev ? ok(ev) : notFound(req.url);
+  }
+  if (m === 'GET' && (r = path.match(/^\/documents\/([^/]+)\/versions\/([^/]+)(\/content)?$/))) {
+    const v = DOCUMENT_VERSIONS[`${r[1]}/${r[2]}`];
+    if (!v) return notFound(req.url);
+    if (!r[3]) return ok(v);
+    return v.content_url ? of(new HttpResponse({ status: 200, body: new Blob([DOCUMENT_COPY], { type: 'application/pdf' }) })).pipe(delay(200)) : notFound(req.url);
   }
   if (m === 'POST' && (path === '/imports' || /\/enrich$/.test(path))) {
     return of(new HttpResponse({ status: 202, body: JOBS['job-partial'], headers: new HttpHeaders({ Location: '/api/v1/jobs/job-partial' }) })).pipe(delay(300));
+  }
+  if (m === 'GET' && path === '/expert/reviews') {
+    const st = url.searchParams.get('review_status');
+    const ty = url.searchParams.get('target_type');
+    const pr = url.searchParams.get('project_id');
+    return ok(page(REVIEW_ITEMS.filter((i) =>
+      (st ? i.review_status === st : ['proposed', 'needs_evidence'].includes(i.review_status)) &&
+      (!ty || i.target_type === ty) && (!pr || i.project_id === pr)), url));
+  }
+  if (m === 'GET' && path === '/expert/decisions') {
+    return ok(page(DECISIONS.filter((d) => d.target_type === url.searchParams.get('target_type') && d.target_id === url.searchParams.get('target_id')), url));
+  }
+  if (m === 'POST' && path === '/expert/decisions') {
+    const body = req.body as Parameters<typeof decide>[0];
+    if (!body.reason?.trim()) {
+      return throwError(() => new HttpErrorResponse({ status: 422, url: req.url, error: { code: 'validation_error', message: 'Niepoprawne dane żądania.', details: [{ field: 'reason', message: "'' should be non-empty" }] } }));
+    }
+    const d = decide(body);
+    return d ? ok(d, 201) : throwError(() => new HttpErrorResponse({
+      status: 409, url: req.url, error: { code: 'stale_revision', message: 'Rekord ma nowszą rewizję.' },
+    }));
+  }
+  if (m === 'POST' && path === '/expert/records') {
+    const b = req.body as { target_type: string; project_id: string; value: Record<string, unknown> };
+    const evidence_ids = (b.value['evidence_ids'] as string[] | undefined) ?? [];
+    if (!evidence_ids.length) {
+      return throwError(() => new HttpErrorResponse({ status: 422, url: req.url, error: { code: 'evidence_required', message: 'Podaj dowód dla propozycji.' } }));
+    }
+    const id = `${b.target_type}-m${REVIEW_ITEMS.length + 1}`;
+    const item = { target_type: b.target_type, target_id: id, project_id: b.project_id, revision: 1, review_status: 'proposed', evidence_ids,
+      value: { ...b.value, id, revision: 1, review_status: 'proposed' } };
+    REVIEW_ITEMS.push(item);
+    return ok(item, 201);
+  }
+  if (path === '/sector-rules') {
+    if (m === 'GET') {
+      const withProposals = url.searchParams.get('include_proposals') === 'true';
+      return ok(SECTOR_RULES.filter((x) => withProposals || x.review_status !== 'proposed'));
+    }
+    if (m === 'POST') {
+      const body = req.body as { based_on_id?: string };
+      const current = SECTOR_RULES.find((x) => x.review_status === 'approved');
+      if (body.based_on_id !== current?.id) {
+        return throwError(() => new HttpErrorResponse({
+          status: 409, url: req.url, error: { code: 'stale_sector_rules', message: 'Wskaż aktualną wersję bazową wiedzy sektorowej.' },
+        }));
+      }
+      const created = { ...body, id: `water_and_sewerage_v${SECTOR_RULES.length + 1}`, revision: 1, review_status: 'proposed' };
+      SECTOR_RULES.push(created);
+      return ok(created, 201);
+    }
   }
   return next(req);
 };

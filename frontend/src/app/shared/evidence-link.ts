@@ -17,6 +17,6 @@ export class EvidenceLink {
   private readonly ev = inject(EvidenceService);
   open() {
     const id = this.evidenceId();
-    if (id) this.ev.open(id);
+    if (id) this.ev.open({ sourceId: id, title: `Dowód ${id}` });
   }
 }

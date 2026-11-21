@@ -1,8 +1,10 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { catchError, throwError } from 'rxjs';
+import { catchError, tap, throwError } from 'rxjs';
 import { AuthService } from '../auth.service';
+import { ErrorNotifier } from '../error-notifier.service';
 import { environment } from '../environment';
+import { ERROR_SCOPE, isContentError, isInfraError } from './error-policy';
 import { ApiError, Problem } from './types';
 
 const isApi = (url: string) => url.startsWith(environment.apiBase) || url.startsWith('/api/');
@@ -13,6 +15,24 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     req = req.clone({ setHeaders: { Authorization: `Bearer ${inject(AuthService).token()}` } });
   }
   return next(req);
+};
+
+/**
+ * Globalne uzupełnienie obsługi błędów (nie zmienia błędu przekazywanego widokowi).
+ * Stoi przed `errorInterceptor`, więc widzi już zmapowany `ApiError`.
+ */
+export const notifyInterceptor: HttpInterceptorFn = (req, next) => {
+  if (!isApi(req.url)) return next(req);
+  const notifier = inject(ErrorNotifier);
+  const scope = req.context.get(ERROR_SCOPE);
+  return next(req).pipe(
+    tap({ next: (ev) => { if (ev.type !== 0) notifier.markOnline(); } }),
+    catchError((e: ApiError) => {
+      const known = typeof e === 'object' && e !== null && 'status' in e;
+      if (known && scope !== 'none' && (isInfraError(e) || (scope === 'all' && isContentError(e)))) notifier.report(e);
+      return throwError(() => e);
+    }),
+  );
 };
 
 /** Mapuje Problem (RFC 7807) i błędy sieci na ApiError. */

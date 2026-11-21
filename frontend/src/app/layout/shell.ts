@@ -4,10 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { ToastModule } from 'primeng/toast';
 import { AuthService } from '../core/auth.service';
+import { ExpertQueueService } from '../core/expert-queue.service';
 import { ROLES, Role } from '../core/permissions';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { EvidenceDrawer } from '../shared/evidence-drawer';
+import { OfflineBanner } from '../shared/offline-banner';
 
 function readInitialDark(): boolean {
   try {
@@ -22,7 +24,7 @@ interface NavGroup { title: string; items: NavItem[]; }
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ButtonModule, EvidenceDrawer, FormsModule, SelectButtonModule, ToastModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ButtonModule, EvidenceDrawer, FormsModule, SelectButtonModule, ToastModule, OfflineBanner],
   template: `
     <div class="min-h-screen flex flex-col md:flex-row">
       <aside class="md:w-64 md:h-screen md:sticky md:top-0 md:overflow-y-auto shrink-0 flex flex-col gap-4 p-4 border-r border-surface bg-surface-0 dark:bg-surface-900">
@@ -42,6 +44,10 @@ interface NavGroup { title: string; items: NavItem[]; }
                 <a [routerLink]="i.link" routerLinkActive="bg-primary-50 dark:bg-primary-950 text-primary font-semibold"
                    class="flex items-center gap-3 px-3 py-2 rounded-lg no-underline text-color hover:bg-surface-100 dark:hover:bg-surface-800">
                   <i [class]="i.icon" aria-hidden="true"></i><span>{{ i.label }}</span>
+                  @if (i.link === '/ekspert' && queue.pending(); as n) {
+                    <span class="ml-auto min-w-6 px-1.5 text-center text-xs font-semibold rounded-full bg-primary text-primary-contrast"
+                          [attr.aria-label]="n + ' pozycji oczekuje na decyzję'">{{ n }}</span>
+                  }
                 </a>
               }
             </div>
@@ -67,7 +73,10 @@ interface NavGroup { title: string; items: NavItem[]; }
                   severity="secondary" [text]="true" (onClick)="toggleDark()" />
       </aside>
 
-      <main class="grow min-w-0 p-6 lg:p-8"><router-outlet /></main>
+      <div class="grow min-w-0 flex flex-col">
+        <app-offline-banner />
+        <main class="grow min-w-0 p-6 lg:p-8"><router-outlet /></main>
+      </div>
     </div>
     <app-evidence-drawer />
     <p-toast />
@@ -93,6 +102,7 @@ export class Shell {
   }
 
   protected readonly auth = inject(AuthService);
+  protected readonly queue = inject(ExpertQueueService);
   private readonly router = inject(Router);
   protected readonly roles = ROLES;
 
@@ -102,7 +112,7 @@ export class Shell {
       items: [
         { label: 'Projekty', icon: 'pi pi-folder', link: '/projekty', roles: ['analyst', 'expert', 'operator'] },
         { label: 'Import i źródła', icon: 'pi pi-cloud-download', link: '/import', roles: ['operator'] },
-        { label: 'Weryfikacja ekspercka', icon: 'pi pi-verified', link: '/ekspert', roles: ['expert'] },
+        { label: 'Expert Studio', icon: 'pi pi-verified', link: '/ekspert', roles: ['expert'] },
       ],
     },
     {
@@ -113,7 +123,7 @@ export class Shell {
     },
     {
       title: 'System',
-      items: [{ label: 'Wiedza sektorowa', icon: 'pi pi-cog', link: '/ustawienia', roles: ['expert'] }],
+      items: [{ label: 'Ustawienia', icon: 'pi pi-cog', link: '/ustawienia', roles: ['expert', 'operator'] }],
     },
   ];
 

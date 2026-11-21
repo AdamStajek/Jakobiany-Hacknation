@@ -76,7 +76,7 @@ export class ExpertApi {
   private readonly api = inject(ApiClient);
   reviews(q: PageQuery) { return this.api.page<ReviewItem>('/expert/reviews', q); }
   decide(body: DecisionInput, key?: string) { return this.api.post<Decision>('/expert/decisions', body, key ? { 'Idempotency-Key': key } : undefined); }
-  decisions(q: { target_type: string; target_id: string } & PageQuery) {
+  decisions(q: { target_type: string; target_id: string; project_id?: string } & PageQuery) {
     return this.api.page<Decision>('/expert/decisions', q);
   }
   createRecord(body: unknown) { return this.api.post<ReviewItem>('/expert/records', body); }
@@ -85,7 +85,8 @@ export class ExpertApi {
 @Injectable({ providedIn: 'root' })
 export class RulesApi {
   private readonly api = inject(ApiClient);
-  list(q: PageQuery = {}) { return this.api.get<SectorRules[]>('/sector-rules', q); }
+  /** Backend zwraca zwykłą tablicę (bez paginacji); `include_proposals` wymaga roli eksperta. */
+  list(q: { sector_code?: string; include_proposals?: boolean } = {}) { return this.api.get<SectorRules[]>('/sector-rules', q); }
   propose(body: SectorRulesInput) { return this.api.post<SectorRules>('/sector-rules', body); }
 }
 
@@ -96,6 +97,6 @@ export class AssessmentsApi {
   get(id: string) { return this.api.get<Assessment>(`/assessments/${id}`); }
   create(body: AssessmentInput, key?: string) { return this.api.postAccepted<Job>('/assessments', body, key).pipe(toAccepted); }
   twins(id: string) { return this.api.get<Twin[]>(`/assessments/${id}/twins`); }
-  gaps(id: string, q: PageQuery = {}) { return this.api.get<InformationCheck[]>(`/assessments/${id}/gaps`, q); }
+  gaps(id: string) { return this.api.get<InformationCheck[]>(`/assessments/${id}/gaps`); }
   export(id: string, format: 'json' | 'csv') { return this.api.blob(`/assessments/${id}/export`, { format }); }
 }
