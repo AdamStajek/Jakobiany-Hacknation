@@ -1,6 +1,6 @@
 import { TreeNode } from 'primeng/api';
 import { Contract, ContractChange, Notice, Procedure, ProcedurePart } from '../../../core/api/types';
-import { CHANGE_DIMENSION, CONTRACT_BASIS, NOTICE_KIND, PROCEDURE_STATUS } from '../../../core/labels';
+import { CHANGE_DIMENSION, CONTRACT_BASIS, NOTICE_KIND, PART_OUTCOME, PROCEDURE_STATUS } from '../../../core/labels';
 
 /** Dane węzła drzewa: etykieta, dodatkowy opis i dowody (do Evidence Lens). */
 export interface StructureData { kind: string; detail?: string; evidenceIds: string[]; }
@@ -27,7 +27,7 @@ const notice = (n: Notice): StructureNode =>
   });
 
 const part = (p: ProcedurePart): StructureNode =>
-  node(p.id, `Część ${p.number}${p.title ? ' – ' + p.title : ''}`, { kind: 'Część', detail: p.outcome, evidenceIds: p.evidence_ids });
+  node(p.id, `Część ${p.number}${p.title ? ' – ' + p.title : ''}`, { kind: 'Część', detail: p.outcome ? PART_OUTCOME[p.outcome] ?? p.outcome : undefined, evidenceIds: p.evidence_ids });
 
 /** Postępowanie → części, umowy (ze zmianami), ogłoszenia. */
 export function buildStructure(procedures: Procedure[]): StructureNode[] {

@@ -20,8 +20,8 @@ export class ProjectsApi {
   list(q: PageQuery) { return this.api.page<Project>('/projects', q); }
   get(id: string) { return this.api.get<ProjectDetail>(`/projects/${id}`); }
   create(body: ProjectInput) { return this.api.post<Project>('/projects', body); }
-  update(id: string, body: ProjectInput & { expected_revision: number }) {
-    return this.api.put<Project>(`/projects/${id}`, body);
+  update(id: string, project: ProjectInput, expectedRevision: number) {
+    return this.api.put<Project>(`/projects/${id}`, { expected_revision: expectedRevision, project });
   }
   enrich(id: string, key?: string) { return this.api.postAccepted<Job>(`/projects/${id}/enrich`, {}, key).pipe(toAccepted); }
   uploadDocument(id: string, file: File, opts: { documentId?: string; documentType?: string } = {}, key?: string) {

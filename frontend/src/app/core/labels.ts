@@ -108,3 +108,7 @@ export const PROVIDER_LABEL: Record<string, string> = {
 export const GEO_METRIC: Record<string, string> = { population_density: 'Gęstość zaludnienia' };
 export const GEO_UNIT: Record<string, string> = { people_per_km2: 'osób/km²' };
 export const GEO_LEVEL: Record<string, string> = { municipality: 'gmina', county: 'powiat', voivodeship: 'województwo' };
+
+export const PART_OUTCOME: Record<string, string> = {
+  awarded: 'Udzielono', unawarded: 'Nie udzielono', cancelled: 'Unieważniono', unknown: 'Nieustalone',
+};
