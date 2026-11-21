@@ -2,12 +2,12 @@ import { definePreset } from '@primeuix/themes';
 import Aura from '@primeuix/themes/aura';
 
 /**
- * Risk Miner brand preset, built on Aura and mapped to Aura's default palettes:
- *  - logo "MINER" blue   -> primary = {blue.*} (shade 600 in light mode, closer to the logo)
- *  - logo "RISK" navy    -> surfaces = {slate.*} in both modes (navy-tinted greys, dark mode on slate.950)
- *  - logo green / orange -> Aura's default success (green) and warn (orange) severities, left unchanged
+ * App preset, built on Aura and mapped to Aura's default palettes:
+ *  - brand blue         -> primary = {blue.*} (shade 600 in light mode)
+ *  - brand navy         -> surfaces = {slate.*} in both modes (navy-tinted greys, dark mode on slate.950)
+ *  - green / orange     -> Aura's default success (green) and warn (orange) severities, left unchanged
  */
-export const RiskMinerPreset = definePreset(Aura, {
+export const AppPreset = definePreset(Aura, {
   semantic: {
     primary: {
       50: '{blue.50}',

@@ -2,33 +2,33 @@
 @import "tailwindcss-primeui";
 @import "primeicons/primeicons.css";
 
-/* Risk Miner brand accents (from the logo), mapped to Aura palette tokens. */
+/* Brand accents, mapped to Aura palette tokens. */
 :root {
-  --rm-navy: var(--p-blue-950);   /* "RISK" */
-  --rm-blue: var(--p-blue-600);   /* "MINER" = primary */
-  --rm-green: var(--p-green-600);
-  --rm-orange: var(--p-orange-500);
+  --brand-navy: var(--p-blue-950);   
+  --brand-blue: var(--p-blue-600);   /* = primary */
+  --brand-green: var(--p-green-600);
+  --brand-orange: var(--p-orange-500);
 }
 
 .dark {
-  --rm-navy: var(--p-blue-200);   /* navy text would vanish on dark surfaces */
-  --rm-blue: var(--p-blue-400);
-  --rm-green: var(--p-green-400);
-  --rm-orange: var(--p-orange-400);
+  --brand-navy: var(--p-blue-200);   /* navy text would vanish on dark surfaces */
+  --brand-blue: var(--p-blue-400);
+  --brand-green: var(--p-green-400);
+  --brand-orange: var(--p-orange-400);
 }
 
 @theme inline {
-  --color-rm-navy: var(--rm-navy);
-  --color-rm-blue: var(--rm-blue);
-  --color-rm-green: var(--rm-green);
-  --color-rm-orange: var(--rm-orange);
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-green: var(--brand-green);
+  --color-brand-orange: var(--brand-orange);
 }
 
-/* green -> blue -> orange line, as under the logo */
-.rm-brand-bar {
+/* green -> blue -> orange line, */
+.brand-bar {
   height: 3px;
   border-radius: 9999px;
-  background: linear-gradient(90deg, var(--rm-green), var(--rm-blue) 50%, var(--rm-orange));
+  background: linear-gradient(90deg, var(--brand-green), var(--brand-blue) 50%, var(--brand-orange));
 }
 
 body {

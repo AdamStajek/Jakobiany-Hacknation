@@ -5,6 +5,8 @@ services:
       dockerfile: frontend/Dockerfile
     ports:
       - "127.0.0.1:4200:4200"
+    environment:
+      - API_URL=http://backend:8000
     depends_on:
       - backend
 
@@ -12,3 +14,5 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+    ports:
+      - "127.0.0.1:8000:8000"
