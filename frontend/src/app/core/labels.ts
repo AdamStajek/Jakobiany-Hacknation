@@ -157,3 +157,20 @@ export const API_ERROR_HINT: Record<string, string> = {
   insufficient_input: 'Do analizy brakuje informacji. Uzupełnij poniższe pola.',
   assessment_not_ready: 'Wersja dokumentu nie jest jeszcze gotowa do analizy (trwa ekstrakcja).',
 };
+
+/* Expert Studio (1D) */
+export const TARGET_TYPE_LABEL: Record<string, string> = {
+  project: 'Projekt', procedure: 'Postępowanie', part: 'Część', notice: 'Ogłoszenie', contract: 'Umowa',
+  contract_change: 'Zmiana umowy', document: 'Dokument', fact: 'Fakt', link: 'Powiązanie', risk: 'Ryzyko / zdarzenie',
+  recommendation: 'Rekomendacja', sector_rules: 'Reguły sektorowe', risk_dna: 'Risk DNA', pattern_candidate: 'Kandydat wzorca',
+};
+export interface ReviewActionMeta { label: string; icon: string; hint: string; }
+export const REVIEW_ACTION: Record<string, ReviewActionMeta> = {
+  approve: { label: 'Zatwierdź', icon: 'pi pi-check', hint: 'Dopuszcza wersję do dalszej analizy.' },
+  correct: { label: 'Popraw', icon: 'pi pi-pencil', hint: 'Zatwierdza wersję ze zmienionymi polami.' },
+  reject: { label: 'Odrzuć', icon: 'pi pi-times', hint: 'Wyklucza wersję z zatwierdzonej wiedzy; dane źródłowe zostają.' },
+  request_evidence: { label: 'Wymaga dowodów', icon: 'pi pi-question-circle', hint: 'Wyklucza wersję do czasu uzupełnienia dowodów.' },
+};
+export const CLAIM_TYPE_LABEL: Record<string, string> = {
+  SOURCE_FACT: 'Potwierdzone w źródle', CALCULATED: 'Obliczone', MODEL_INFERENCE: 'Wniosek modelu',
+};

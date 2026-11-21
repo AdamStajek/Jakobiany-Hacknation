@@ -74,7 +74,7 @@ export class ExpertApi {
   private readonly api = inject(ApiClient);
   reviews(q: PageQuery) { return this.api.page<ReviewItem>('/expert/reviews', q); }
   decide(body: DecisionInput, key?: string) { return this.api.post<Decision>('/expert/decisions', body, key ? { 'Idempotency-Key': key } : undefined); }
-  decisions(q: { target_type: string; target_id: string; project_id: string } & PageQuery) {
+  decisions(q: { target_type: string; target_id: string; project_id?: string } & PageQuery) {
     return this.api.page<Decision>('/expert/decisions', q);
   }
   createRecord(body: unknown) { return this.api.post<ReviewItem>('/expert/records', body); }

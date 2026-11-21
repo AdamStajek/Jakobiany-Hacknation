@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { ToastModule } from 'primeng/toast';
 import { AuthService } from '../core/auth.service';
+import { ExpertQueueService } from '../core/expert-queue.service';
 import { ROLES, Role } from '../core/permissions';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -42,6 +43,10 @@ interface NavGroup { title: string; items: NavItem[]; }
                 <a [routerLink]="i.link" routerLinkActive="bg-primary-50 dark:bg-primary-950 text-primary font-semibold"
                    class="flex items-center gap-3 px-3 py-2 rounded-lg no-underline text-color hover:bg-surface-100 dark:hover:bg-surface-800">
                   <i [class]="i.icon"></i><span>{{ i.label }}</span>
+                  @if (i.link === '/ekspert' && queue.pending(); as n) {
+                    <span class="ml-auto min-w-6 px-1.5 text-center text-xs font-semibold rounded-full bg-primary text-primary-contrast"
+                          [attr.aria-label]="n + ' pozycji oczekuje na decyzję'">{{ n }}</span>
+                  }
                 </a>
               }
             </div>
@@ -83,6 +88,7 @@ export class Shell {
   }
 
   protected readonly auth = inject(AuthService);
+  protected readonly queue = inject(ExpertQueueService);
   private readonly router = inject(Router);
   protected readonly roles = ROLES;
 
