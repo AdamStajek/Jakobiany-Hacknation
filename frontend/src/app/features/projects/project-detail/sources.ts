@@ -42,7 +42,8 @@ export function buildSourceGroups(d: ProjectDetail, evidence: Evidence[]): Sourc
   for (const doc of d.documents) for (const v of doc.versions) {
     items.documents.push({ ...src(asSource(v.source)), text: `${doc.document_type}, wersja ${v.revision}` });
   }
-  const loc = d.works_location;
+  // Backend podaje region w lokalizacji robót lub, gdy jej brak, w siedzibie beneficjenta.
+  const loc = d.works_location?.region_code ? d.works_location : d.beneficiary?.seat;
   if (loc?.region_code) {
     items.teryt.push({
       text: `Kod regionu ${loc.region_code}${loc.region ? ' (' + loc.region + ')' : ''}${loc.locality ? ', ' + loc.locality : ''}${loc.area_code ? ', kod obszaru ' + loc.area_code : ''}`,
