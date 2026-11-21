@@ -6,7 +6,35 @@ services:
       - "127.0.0.1:${WODO_PORT:-8080}:8000"
     init: true
     restart: unless-stopped
+    environment:
+      WODO_PARCELS_DIR: /var/lib/wodo-parcels
+      WODO_PARCEL_SOURCE: ${WODO_PARCEL_SOURCE:-parquet}
     volumes:
       - wodo-cache:/var/lib/wodo
+      - ${WODO_PARCELS_HOST_DIR:-./data/parcels}:/var/lib/wodo-parcels:ro
+    # The API starts immediately; parcel endpoints answer 503 until the updater publishes the index.
+
+  parcels-updater:
+    build: .
+    command: ["/app/.venv/bin/python", "-m", "wodo.parcels_data", "loop"]
+    init: true
+    restart: unless-stopped
+    # Runs as the host user so it can write the bind-mounted data directory (start.sh exports these).
+    user: "${WODO_UID:-1000}:${WODO_GID:-1000}"
+    environment:
+      HOME: /tmp
+      WODO_PARCELS_DIR: /var/lib/wodo-parcels
+      WODO_PARCELS_REFRESH_HOURS: ${WODO_PARCELS_REFRESH_HOURS:-24}
+      WODO_PARCELS_CONNECTIONS: ${WODO_PARCELS_CONNECTIONS:-12}
+      WODO_PARCELS_MEMORY: ${WODO_PARCELS_MEMORY:-3GB}
+      WODO_PARCELS_URL: ${WODO_PARCELS_URL:-https://opendata.geoportal.gov.pl/InneDane/latest_exports/eziudp_wfs/PARQUET/0_dzialki.parquet}
+    volumes:
+      - ${WODO_PARCELS_HOST_DIR:-./data/parcels}:/var/lib/wodo-parcels
+    healthcheck:
+      test: ["CMD", "/app/.venv/bin/python", "-m", "wodo.parcels_data", "healthcheck"]
+      interval: 60s
+      timeout: 10s
+      start_period: 120s
+      retries: 3
 volumes:
   wodo-cache:

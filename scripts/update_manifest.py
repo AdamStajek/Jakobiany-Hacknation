@@ -16,7 +16,7 @@ terms = {
     "satellite": "https://ewds.climate.copernicus.eu/licences/ec-sentinel",
     "terrain": "https://www.opentopodata.org/datasets/eudem/",
     "land": "https://worldcover2021.esa.int/data/docs/WorldCover_PUM_V2.0.pdf",
-    "parcel": "https://uldk.gugik.gov.pl/opis.html",
+    "parcel": "https://opendata.geoportal.gov.pl/",
 }
 artifacts = [
     submission / "live-verification.json", submission / "WodoStraznik-prezentacja.pdf",

@@ -13,6 +13,7 @@ from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from wodo import parcels_data
 from wodo.analysis import SOURCE_LABELS, run
 from wodo.geo import by_point, imported, lookup
 from wodo.report import pdf
@@ -100,7 +101,8 @@ async def input_error(_request, error):
 @app.get("/health")
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "analysis_date_max": today(), "analysis_date_min": years_ago(today(), 10)}
+    return {"status": "ok", "analysis_date_max": today(), "analysis_date_min": years_ago(today(), 10),
+            "parcels": parcels_data.health_info()}
 
 
 @app.get("/api/hello")
@@ -198,5 +200,18 @@ def analysis_document(analysis_id: str, format: str = Query(default="pdf", patte
 
 site = os.environ.get("WODO_SITE_DIR")
 if site:
+    from starlette.exceptions import HTTPException as StarletteHTTPException
     from starlette.staticfiles import StaticFiles
-    app.mount("/", StaticFiles(directory=site, html=True), name="frontend")
+
+    class SinglePageSite(StaticFiles):
+        """Trasy Angulara (np. /dzialka/ID/analiza/ID) odświeżone w przeglądarce dostają index.html."""
+
+        async def get_response(self, path, scope):
+            try:
+                return await super().get_response(path, scope)
+            except StarletteHTTPException as error:
+                if error.status_code == 404 and not path.startswith("api/") and "." not in path.rsplit("/", 1)[-1]:
+                    return await super().get_response("index.html", scope)
+                raise
+
+    app.mount("/", SinglePageSite(directory=site, html=True), name="frontend")

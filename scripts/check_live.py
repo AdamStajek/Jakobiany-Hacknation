@@ -31,12 +31,16 @@ def check(base, output, only=None):
     report_dir.mkdir(parents=True, exist_ok=True)
     health = request(base, "/health")
     assert health["status"] == "ok"
+    # Parcels come from the local GeoParquet index (ULDK only behind WODO_PARCEL_SOURCE=uldk).
+    uldk = os.environ.get("WODO_PARCEL_SOURCE") == "uldk"
+    assert uldk or health["parcels"]["ready"], "Dane działek nie są gotowe - sprawdź /api/health i logi parcels-updater."
     tests = []
     for case, parcel, day, crop in CASES:
         if only and only != case:
             continue
         parcel_info = request(base, f"/api/parcels/{quote(parcel)}")["parcels"][0]
         assert parcel_info["id"] == parcel and parcel_info["area_ha"] > 0
+        assert uldk or "EGiB" in parcel_info["source"], parcel_info["source"]
         payload = dict(parcel_id=parcel, date=day or health["analysis_date_max"], crop=crop,
                        irrigation=True, scenario_mm=12)
         records = []

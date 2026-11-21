@@ -1,16 +1,18 @@
+import os
 import re
 
 from pyproj import Transformer
-from shapely import from_wkb, from_wkt, get_srid, transform
+from shapely import from_wkb, from_wkt, get_srid, make_valid, transform
 from shapely.errors import GEOSException
 from shapely.geometry import Point, box, mapping, shape
 
+from wodo import parcels_data
 from wodo.store import ULDK, SourceError, cached, fetch
 
 PL = box(13.98, 48.98, 24.3, 55.1)
 TO_PL = Transformer.from_crs(4326, 2180, always_xy=True).transform
 TO_GPS = Transformer.from_crs(2180, 4326, always_xy=True).transform
-PARCEL_ID = re.compile(r"\d{6}_[1-9]\.\d{4}\.(?:AR_\d+\.)?\d+(?:/\d+)?", re.IGNORECASE)
+PARCEL_ID = re.compile(r"\d{6}_[1-9]\.\d{4}\.(?:AR_\d+\.)?\d+(?:/\d+)?\.?", re.IGNORECASE)
 PARCEL_NAME = re.compile(r"(?:\d{1,8}(?:/\d{1,8})?|[\wĄĆĘŁŃÓŚŹŻąćęłńóśźż -]{2,65}[\s.]\d{1,8}(?:/\d{1,8})?)")
 
 
@@ -90,6 +92,27 @@ def parse_reply(raw):
     return parcels
 
 
+# Measured on the real file (docs/DATA_LIMITATIONS.md): although the CRS metadata declares the
+# EPSG:2180 axis order northing/easting, the stored ordinates are (easting, northing) - e.g.
+# 301103_2.0001.121 has x=336317, y=475037. pyproj with always_xy expects (easting, northing).
+FILE_NORTHING_FIRST = False
+TRAILING_NUMBER = re.compile(r"\s*[\s.]\s*(\d{1,8}(?:/\d{1,8})?)$|^(\d{1,8}(?:/\d{1,8})?)$")
+
+
+def file_to_gps(first, second):
+    easting, northing = (second, first) if FILE_NORTHING_FIRST else (first, second)
+    return TO_GPS(easting, northing)
+
+
+def gps_to_file(lon, lat):
+    easting, northing = TO_PL(lon, lat)
+    return (northing, easting) if FILE_NORTHING_FIRST else (easting, northing)
+
+
+def source_mode():
+    return os.environ.get("WODO_PARCEL_SOURCE", "parquet").strip().lower()
+
+
 def lookup(query):
     query = query.strip()
     if PARCEL_ID.fullmatch(query):
@@ -98,14 +121,53 @@ def lookup(query):
         operation = "GetParcelByIdOrNr"
     else:
         raise ValueError("Podaj identyfikator, np. 141201_1.0001.6509, lub nazwę obrębu i numer.")
-    return uldk(operation, {"id": query})
+    if source_mode() == "uldk":
+        return uldk(operation, {"id": query})
+    index, meta = parcels_data.open_index()
+    if operation == "GetParcelById":
+        rows = index.by_id(query)
+    else:
+        found = TRAILING_NUMBER.search(query)
+        region = query[:found.start()].strip(" .") if found.group(1) else ""
+        rows = index.by_name(region or None, found.group(1) or found.group(2))
+    return from_rows(rows, meta)
 
 
 def by_point(lon, lat):
     if not PL.covers(Point(lon, lat)):
         raise ValueError("Wskaż punkt na terenie Polski.")
-    x, y = TO_PL(lon, lat)
-    return uldk("GetParcelByXY", {"xy": f"{x:.2f},{y:.2f}"})
+    if source_mode() == "uldk":
+        x, y = TO_PL(lon, lat)
+        return uldk("GetParcelByXY", {"xy": f"{x:.2f},{y:.2f}"})
+    index, meta = parcels_data.open_index()
+    first, second = gps_to_file(lon, lat)
+    point = Point(first, second)
+    hits = [row for row in index.candidates_at(first, second) if from_wkb(row["wkb"]).covers(point)]
+    return from_rows(hits[:1], meta)
+
+
+def from_rows(rows, meta):
+    """Convert index rows (EPSG:2180, file axes) to the API parcel shape in WGS 84."""
+    parcels, error = [], None
+    for row in rows:
+        try:
+            geom = from_wkb(row["wkb"])
+            if not geom.is_valid:
+                geom = make_valid(geom)
+            if geom.geom_type == "GeometryCollection":
+                polygons = [g for g in geom.geoms if g.geom_type in ("Polygon", "MultiPolygon")]
+                geom = max(polygons, key=lambda g: g.area)
+            geom = transform(geom, file_to_gps, interleaved=False)
+            parcel = validate_geometry(mapping(geom))
+        except (ValueError, TypeError, GEOSException) as problem:
+            error = error or problem
+            continue
+        parcels.append({**parcel, "id": row["id"], "source": meta["source"], "commune": row["commune"],
+                        "region": row["region"], "retrieved_at": meta["downloaded_at"],
+                        "source_url": meta["source_url"]})
+    if rows and not parcels:
+        raise ValueError(str(error) if error else "Geometria działki jest niepoprawna.")
+    return parcels
 
 
 def uldk(operation, filters):
