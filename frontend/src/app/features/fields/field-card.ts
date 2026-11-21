@@ -52,6 +52,7 @@ import { colorStyle } from './field-colors';
           <p-button [label]="field().parcels.length > 1 ? 'Analizuj ' + parcel.id : 'Analizuj'" icon="pi pi-play" size="small"
             (onClick)="analyze.emit(parcel.id)" />
         }
+<p-button label="Paszport" icon="pi pi-id-card" size="small" severity="secondary" [outlined]="true" (onClick)="passport.emit(field().id)" />
         <p-button label="Na mapie" icon="pi pi-map" size="small" severity="secondary" [outlined]="true" (onClick)="located.emit(field().id)" />
       </div>
     </article>
@@ -63,6 +64,7 @@ export class FieldCard {
   readonly cropLabel = input('');
   readonly analyze = output<string>();
   readonly located = output<string>();
+  readonly passport = output<string>();
   readonly removed = output<string>();
 
   protected readonly staleDays = STALE_AFTER_DAYS;

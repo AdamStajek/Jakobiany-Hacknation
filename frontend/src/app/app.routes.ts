@@ -17,10 +17,10 @@ export const routes: Routes = [
   {path: 'zapomniane-haslo', title: 'Pole Widzenia · Odzyskiwanie hasła', loadComponent: () => import('./features/auth/forgot-page').then((m) => m.ForgotPage)},
   {path: 'konto', title: 'Pole Widzenia · Konto', canActivate: [authGuard],
     loadComponent: () => import('./features/auth/account-page').then((m) => m.AccountPage)},
-  {path: 'paszporty', title: 'Pole Widzenia · Paszporty pól',
-    loadComponent: () => import('./features/passport/passport-page').then((m) => m.PassportPage)},
+  // Paszporty są widokiem „Moich pól”; stare adresy zostają jako przekierowania.
+  {path: 'paszporty', redirectTo: 'pola?widok=paszporty'},
   {path: 'dzialka/:id/paszport', title: 'Pole Widzenia · Paszport działki',
-    loadComponent: () => import('./features/passport/passport-page').then((m) => m.PassportPage)},
+    loadComponent: () => import('./features/fields/parcel-passport-page').then((m) => m.ParcelPassportPage)},
   {path: 'eksperymenty', loadChildren: () => import('./features/experiments/experiments-page').then((m) => m.experimentRoutes)},
   {path: 'metody', title: 'Pole Widzenia · Jak to działa', loadComponent: () => import('./features/methods/methods-page').then((m) => m.MethodsPage)},
   {path: '**', redirectTo: ''},

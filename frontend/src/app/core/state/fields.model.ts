@@ -113,3 +113,10 @@ export function readField(value: unknown): Field | null {
   return {id: value['id'], name: value['name'], color: colorOf(value['color']), crop: typeof value['crop'] === 'string' ? value['crop'] : null,
     parcels, status: readStatus(value['status'])};
 }
+
+/** Jedna geometria (MultiPolygon) ze wszystkich działek podanych pól; null, gdy nie ma żadnej. */
+export function fieldsGeometry(fields: Field[]): Geometry | null {
+  const polygons = fields.flatMap((f) => f.parcels).flatMap(({geometry}) =>
+    geometry.type === 'MultiPolygon' ? geometry.coordinates : [geometry.coordinates]);
+  return polygons.length ? {type: 'MultiPolygon', coordinates: polygons} : null;
+}

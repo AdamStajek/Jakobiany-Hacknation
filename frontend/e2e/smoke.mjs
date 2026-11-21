@@ -87,7 +87,7 @@ async function run(name) {
     // Nawigacja powłoki: pasek boczny (desktop) lub dolna nawigacja (telefon).
     const navs = page.getByRole('navigation', {name: 'Nawigacja główna'});
     const nav = navs.locator('visible=true').first();
-    for (const [label, path] of [['Paszport', /\/paszporty$/], ['Eksperymenty', /\/eksperymenty/], ['Metody|Jak to działa', /\/metody$/], ['Analiza', /\/$/]]) {
+    for (const [label, path] of [['Moje pola', /\/pola$/], ['Eksperymenty', /\/eksperymenty/], ['Metody|Jak to działa', /\/metody$/], ['Analiza', /\/$/]]) {
       await nav.getByRole('link', {name: new RegExp(label)}).click();
       await page.waitForURL(path);
       assert.equal(await nav.getByRole('link', {name: new RegExp(label)}).getAttribute('aria-current'), 'page', `${name}: aria-current dla ${label}`);
@@ -169,7 +169,7 @@ async function run(name) {
     await page.getByText('Pokaż dane wykresu').nth(2).waitFor({state: 'attached', timeout: 10000}).catch(() => assert.fail('tabele danych wykresów (min. 3)'));
     await shot('09-link-raportu');
     await page.getByRole('region', {name: 'Mapa i raport'}).getByRole('link', {name: 'Paszport', exact: true}).click();
-    await page.getByRole('heading', {name: 'Paszporty pól'}).waitFor();
+    await page.getByRole('heading', {name: 'Paszport działki'}).waitFor();
     await page.getByRole('article', {name: /Paszport:/}).getByText(matches).first().waitFor({timeout: 20000});
     await shot('10-paszport');
 

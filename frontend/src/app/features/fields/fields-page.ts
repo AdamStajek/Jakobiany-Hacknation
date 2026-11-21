@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
@@ -9,7 +9,7 @@ import { AnalysisStore } from '../../core/state/analysis.store';
 import { AuthStore } from '../../core/state/auth.store';
 import { ConsentStore } from '../../core/state/consent.store';
 import { toServerColor } from '../../core/state/fields.model';
-import { Field, FieldsStore } from '../../core/state/fields.store';
+import { Field, FieldsStore, fieldsGeometry } from '../../core/state/fields.store';
 import { ParcelStore } from '../../core/state/parcel.store';
 import { loginQuery } from '../../core/state/return-url';
 import { FieldPin, WodoMap } from '../../shared/map/wodo-map';
@@ -19,13 +19,15 @@ import { Panel } from '../../shared/ui/panel';
 import { Segmented, SegmentOption } from '../../shared/ui/segmented';
 import { FieldCard } from './field-card';
 import { FieldForm } from './field-form';
+import { FieldPassport } from './field-passport';
 
-type View = 'list' | 'map';
+type View = 'list' | 'map' | 'passports';
+type Pane = 'map' | 'passports';
 
-/** Pulpit „Moje pola”: karty pól, lista „wymaga uwagi” i mapa wszystkich pól (pola zapisane w przeglądarce). */
+/** Pulpit „Moje pola”: karty pól, lista „wymaga uwagi” i mapa wszystkich pól (mapa i paszporty pól). */
 @Component({
   selector: 'app-fields-page',
-  imports: [ButtonModule, MessageModule, SkeletonModule, WodoMap, EmptyState, LoginPrompt, Panel, Segmented, FieldCard, FieldForm],
+  imports: [ButtonModule, MessageModule, SkeletonModule, WodoMap, EmptyState, LoginPrompt, Panel, Segmented, FieldCard, FieldForm, FieldPassport],
   host: {class: 'block'},
   template: `
     <div class="flex h-[calc(100dvh-var(--shell-top)-var(--shell-bottom))] flex-col">
@@ -116,23 +118,46 @@ type View = 'list' | 'map';
               <ul class="flex flex-col gap-3" aria-label="Pola">
                 @for (field of fields.fields(); track field.id) {
                   <li><app-field-card [field]="field" [cropLabel]="cropLabel(field)"
-                    (analyze)="analyze($event)" (located)="locate(field.id)" (removed)="remove($event)" /></li>
+                    (analyze)="analyze($event)" (located)="locate(field.id)" (passport)="showPassport(field.id)" (removed)="remove($event)" /></li>
                 }
               </ul>
             }
           </div>
         </section>
 
-        <section aria-label="Mapa pól" class="relative min-h-0 min-w-0 lg:block" [class.hidden]="view() !== 'map'">
-          <app-wodo-map [geometry]="mapGeometry()" [pins]="pins()" (pinClicked)="selectedId.set($event)" />
-          @if (selected(); as field) {
-            <div class="pw-card absolute inset-x-3 bottom-3 z-10 flex items-center gap-3 p-3 shadow-lg lg:right-auto lg:max-w-sm" role="status">
-              <span class="min-w-0 flex-1 truncate text-sm">Na mapie: <strong>{{field.name}}</strong></span>
-              <p-button label="Wszystkie pola" size="small" severity="secondary" [outlined]="true" (onClick)="selectedId.set(null)" />
-            </div>
-          } @else if (!fields.fields().length) {
-            <p class="pw-card absolute inset-x-3 bottom-3 z-10 p-3 text-center text-sm text-muted-color lg:right-auto lg:max-w-sm">Tu pojawią się granice Twoich pól.</p>
-          }
+        <section aria-label="Mapa i paszporty pól" class="flex min-h-0 min-w-0 flex-col lg:flex" [class.hidden]="view() === 'list'">
+          <div class="hidden items-center border-b border-surface bg-surface-0 px-4 py-2 lg:flex dark:bg-surface-900">
+            <div class="w-64"><app-segmented label="Mapa lub paszporty" [options]="paneOptions" [value]="pane()" (valueChange)="view.set($event)" /></div>
+          </div>
+
+          <div class="relative min-h-0 flex-1" [class.hidden]="pane() !== 'map'">
+            <app-wodo-map [geometry]="mapGeometry()" [pins]="pins()" (pinClicked)="selectedId.set($event)" />
+            @if (selected(); as field) {
+              <div class="pw-card absolute inset-x-3 bottom-3 z-10 flex items-center gap-3 p-3 shadow-lg lg:right-auto lg:max-w-sm" role="status">
+                <span class="min-w-0 flex-1 truncate text-sm">Na mapie: <strong>{{field.name}}</strong></span>
+                <p-button label="Wszystkie pola" size="small" severity="secondary" [outlined]="true" (onClick)="selectedId.set(null)" />
+              </div>
+            } @else if (!fields.fields().length) {
+              <p class="pw-card absolute inset-x-3 bottom-3 z-10 p-3 text-center text-sm text-muted-color lg:right-auto lg:max-w-sm">Tu pojawią się granice Twoich pól.</p>
+            }
+          </div>
+
+          <div class="pw-scroll min-h-0 flex-1 p-4" [class.hidden]="pane() !== 'passports'">
+            @if (passportField(); as current) {
+              <div class="mx-auto flex max-w-2xl flex-col gap-3">
+                <div role="group" aria-label="Wybierz pole" class="flex flex-wrap gap-2">
+                  @for (field of fields.fields(); track field.id) {
+                    <button type="button" (click)="selectedId.set(field.id)" [attr.aria-pressed]="current.id === field.id"
+                      class="min-h-10 rounded-full border border-surface px-4 text-sm"
+                      [class]="current.id === field.id ? 'bg-primary font-semibold text-primary-contrast' : 'hover:bg-surface-100 dark:hover:bg-surface-800'">{{field.name}}</button>
+                  }
+                </div>
+                <app-field-passport [field]="current" />
+              </div>
+            } @else {
+              <app-empty-state icon="pi-id-card" title="Paszporty pojawią się tutaj" text="Dodaj pierwsze pole, a pokażemy jego krótki paszport." />
+            }
+          </div>
         </section>
       </div>
     </div>
@@ -149,8 +174,19 @@ export class FieldsPage {
   protected readonly views: SegmentOption<View>[] = [
     {value: 'list', label: 'Pola', icon: 'pi-list'},
     {value: 'map', label: 'Mapa', icon: 'pi-map'},
+    {value: 'passports', label: 'Paszporty', icon: 'pi-id-card'},
   ];
+  protected readonly paneOptions: SegmentOption<View>[] = [
+    {value: 'map', label: 'Mapa', icon: 'pi-map'},
+    {value: 'passports', label: 'Paszporty', icon: 'pi-id-card'},
+  ];
+  /** Parametr zapytania `widok=paszporty` (stary adres /paszporty) otwiera od razu widok paszportów. */
+  readonly widok = input<string>();
+  /** Parametr zapytania `pole`: pole wybrane od razu po wejściu (np. z linku do paszportu działki). */
+  readonly pole = input<string>();
   protected readonly view = signal<View>('list');
+  /** Prawa strona na desktopie: widok „Pola” (tylko telefon) pokazuje tam mapę. */
+  protected readonly pane = computed<Pane>(() => (this.view() === 'passports' ? 'passports' : 'map'));
   protected readonly ready = signal(false);
   protected readonly adding = signal(false);
   protected readonly prefillCurrent = signal(false);
@@ -162,6 +198,7 @@ export class FieldsPage {
   protected readonly offerMigration = computed(() =>
     this.auth.loggedIn() && this.fields.localFields().length > 0 && !this.migrationDismissed());
 
+  protected readonly passportField = computed(() => this.selected() ?? this.fields.fields()[0] ?? null);
   protected readonly prefill = computed(() => (this.prefillCurrent() ? this.parcels.parcel() : null));
   protected readonly selected = computed(() => this.fields.fields().find((f) => f.id === this.selectedId()) ?? null);
   /** Bieżąca działka, która nie należy jeszcze do żadnego pola. */
@@ -170,12 +207,7 @@ export class FieldsPage {
     return !!current && !this.adding() && !this.fields.fields().some((f) => f.parcels.some((p) => p.id === current.id));
   });
   /** Jedna geometria dla mapy: wybrane pole albo wszystkie pola razem (MultiPolygon). */
-  protected readonly mapGeometry = computed<Geometry | null>(() => {
-    const list = this.selected() ? [this.selected() as Field] : this.fields.fields();
-    const polygons = list.flatMap((f) => f.parcels).flatMap(({geometry}) =>
-      geometry.type === 'MultiPolygon' ? geometry.coordinates : [geometry.coordinates]);
-    return polygons.length ? {type: 'MultiPolygon', coordinates: polygons} : null;
-  });
+  protected readonly mapGeometry = computed<Geometry | null>(() => fieldsGeometry(this.selected() ? [this.selected() as Field] : this.fields.fields()));
 
   /** Jedna pinezka na pole (środek jego działek), widoczna po oddaleniu mapy. */
   protected readonly pins = computed<FieldPin[]>(() => this.fields.fields().flatMap((field) => {
@@ -186,7 +218,15 @@ export class FieldsPage {
     return [{id: field.id, name: field.name, color: toServerColor(field.color), coordinates: [(w + e) / 2, (s + n) / 2] as [number, number]}];
   }));
 
-  constructor() { void this.init(); void this.auth.init(); }
+  constructor() {
+    void this.init();
+    void this.auth.init();
+    effect(() => { if (this.widok() === 'paszporty') untracked(() => this.view.set('passports')); });
+    effect(() => {
+      const id = this.pole();
+      if (id && this.fields.fields().some((f) => f.id === id)) untracked(() => this.selectedId.set(id));
+    });
+  }
 
   protected async init() {
     this.ready.set(false);
@@ -222,6 +262,11 @@ export class FieldsPage {
   protected locate(id: string) {
     this.selectedId.set(id);
     this.view.set('map');
+  }
+
+  protected showPassport(id: string) {
+    this.selectedId.set(id);
+    this.view.set('passports');
   }
 
   protected remove(id: string) {

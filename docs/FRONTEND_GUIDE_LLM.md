@@ -27,7 +27,7 @@ src/app/  core/ (api, state, theme) · shared/ (ui, map, charts) · features/ ·
 ## Układ (mobile-first)
 
 - Projektuj od 390 px; jedyny breakpoint to `lg` (1024 px). Cele dotykowe ≥ 36–44 px.
-- `layout/shell.ts` to jedyna nawigacja (sekcje: Analiza, Paszporty, Eksperymenty, Metody): desktop — pasek boczny `w-60`; telefon — górny pasek + dolna nawigacja.
+- `layout/shell.ts` to jedyna nawigacja (sekcje: Analiza, Moje pola, Eksperymenty, Metody; paszport to widok „Moich pól”): desktop — pasek boczny `w-60`; telefon — górny pasek + dolna nawigacja.
 - Pełnoekranowe widoki: wysokość `100dvh - var(--shell-top) - var(--shell-bottom)`.
 - Reużywaj `app-panel` (karta z nagłówkiem: `heading`, `icon`) i `app-segmented` (przełącznik widoków: `options`, `label`, `model()` `value`).
 - Analiza (`features/analysis`): widoki `map`/`form`/`report` w signalu `view`; telefon — segmenty, desktop — panel „Dane” obok mapy/raportu. URL odtwarza działkę i raport.
