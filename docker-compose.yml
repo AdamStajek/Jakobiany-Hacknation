@@ -21,9 +21,22 @@ services:
       - ${WODO_PARCELS_HOST_DIR:-./data/parcels}:/var/lib/wodo-parcels:ro
     # The API starts immediately; parcel endpoints answer 503 until the updater publishes the index.
 
+  parcels-init:
+    build: .
+    user: "0:0"
+    # Compose may create the bind mount as root on the first run.
+    command: ["chown", "-Rh", "--", "${WODO_UID:-1000}:${WODO_GID:-1000}", "/var/lib/wodo-parcels"]
+    volumes:
+      - ${WODO_PARCELS_HOST_DIR:-./data/parcels}:/var/lib/wodo-parcels
+    healthcheck:
+      disable: true
+
   parcels-updater:
     build: .
     command: ["/app/.venv/bin/python", "-m", "wodo.parcels_data", "loop"]
+    depends_on:
+      parcels-init:
+        condition: service_completed_successfully
     init: true
     restart: unless-stopped
     # Runs as the host user so it can write the bind-mounted data directory (start.sh exports these).
