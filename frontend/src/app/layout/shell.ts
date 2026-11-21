@@ -9,12 +9,9 @@ import { ThemeService } from '../core/theme/theme';
     <a class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-2 focus:rounded focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-contrast" href="#tresc">Przejdź do treści</a>
     <header class="sticky top-0 z-20 border-b border-surface bg-surface-50/95 backdrop-blur dark:bg-surface-900/90">
       <div class="mx-auto flex h-16 max-w-[1400px] items-center justify-between gap-4 px-4">
-        <a routerLink="/" class="pw-brand inline-flex shrink-0 items-center" aria-label="Pole Widzenia — strona główna">
-          <picture>
-            <source media="(max-width: 639px)" srcset="/assets/brand/pole_widzenia_bez_napisu_przezroczyste.png">
-            <img src="/assets/brand/pole_widzenia_z_napisem_przezroczyste.png" alt="Pole Widzenia" width="722" height="344"
-                 class="h-10 w-auto sm:h-12">
-          </picture>
+        <a routerLink="/" class="pw-brand flex shrink-0 items-center gap-2" aria-label="Pole Widzenia — strona główna">
+          <img src="/assets/brand/pole_widzenia_bez_napisu_przezroczyste.png" alt="" width="321" height="344" class="h-11 w-auto">
+          <span class="text-xl font-extrabold leading-none tracking-tight text-[#0D2A00] dark:text-[#F7F6EE]">Pole<br>Widzenia</span>
         </a>
         <nav aria-label="Nawigacja główna" class="flex gap-1 text-sm font-medium">
           <a routerLink="/" routerLinkActive="bg-surface-100 text-color border-b-2 border-orange-500 dark:bg-primary-950" [routerLinkActiveOptions]="{exact: true}"

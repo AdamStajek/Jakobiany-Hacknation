@@ -25,6 +25,11 @@ const EMPTY = {type: 'FeatureCollection' as const, features: []};
         [class]="drawing() ? 'ring-2 ring-primary' : 'hover:bg-surface-100 dark:hover:bg-surface-800'">
         <i class="pi {{drawing() ? 'pi-times' : 'pi-pencil'}}" aria-hidden="true"></i> {{drawing() ? 'Anuluj rysowanie' : 'Narysuj granicę'}}
       </button>
+      <button type="button" (click)="locate()" [disabled]="!ready()"
+        class="rounded-lg border border-surface bg-surface-0 px-3 py-1.5 font-medium shadow disabled:opacity-50 hover:bg-surface-100 dark:bg-surface-900 dark:hover:bg-surface-800">
+        <i class="pi pi-map-marker" aria-hidden="true"></i> Lokalizuj mnie na mapie
+      </button>
+      @if (locateError()) { <p class="max-w-xs rounded-lg bg-red-50 px-3 py-1.5 text-red-800 shadow" role="alert">{{locateError()}}</p> }
       <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-surface bg-surface-0 px-3 py-1.5 shadow dark:bg-surface-900">
         <input type="checkbox" [checked]="parcelLayer()" (change)="toggleParcelLayer()" /> Granice działek (od zbliżenia)
       </label>
@@ -54,6 +59,7 @@ export class WodoMap implements OnDestroy {
   protected readonly basemap = signal<Basemap>('osm');
   protected readonly ready = signal(false);
   protected readonly drawing = signal(false);
+  protected readonly locateError = signal('');
   protected readonly parcelLayer = signal(true);
   private readonly container = viewChild.required<ElementRef<HTMLDivElement>>('container');
   private map?: MapLibreMap;
@@ -130,12 +136,17 @@ export class WodoMap implements OnDestroy {
       map.addSource('parcel', {type: 'geojson', data: EMPTY});
       map.addSource('water', {type: 'geojson', data: EMPTY});
       map.addSource('markers', {type: 'geojson', data: EMPTY});
+      map.addSource('me', {type: 'geojson', data: EMPTY});
       map.addLayer({id: 'parcel-fill', type: 'fill', source: 'parcel', paint: {'fill-color': '#EE8106', 'fill-opacity': 0.16}});
       map.addLayer({id: 'parcel-line', type: 'line', source: 'parcel', paint: {'line-color': '#EE8106', 'line-width': 3}});
       map.addLayer({id: 'water-point', type: 'circle', source: 'water',
         paint: {'circle-radius': 7, 'circle-color': '#0369a1', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2}});
       map.addLayer({id: 'marker-points', type: 'circle', source: 'markers',
         paint: {'circle-radius': 6, 'circle-color': '#944518', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2}});
+      // Niebieska kropka „tu jesteś” jak w Google Maps: półprzezroczysta poświata + kropka z białą obwódką.
+      map.addLayer({id: 'me-halo', type: 'circle', source: 'me', paint: {'circle-radius': 16, 'circle-color': '#4285f4', 'circle-opacity': 0.25}});
+      map.addLayer({id: 'me-dot', type: 'circle', source: 'me',
+        paint: {'circle-radius': 7, 'circle-color': '#4285f4', 'circle-stroke-color': '#fff', 'circle-stroke-width': 3}});
       this.map = map;
       this.ready.set(true);
       this.centerOnUser(map);
@@ -143,12 +154,26 @@ export class WodoMap implements OnDestroy {
   }
 
   private centerOnUser(map: MapLibreMap) {
-    if (!this.locateUser() || this.geometry() || !navigator.geolocation) return;
+    if (this.locateUser() && !this.geometry()) this.requestLocation(map, false);
+  }
+
+  protected locate() { if (this.map) this.requestLocation(this.map, true); }
+
+  private requestLocation(map: MapLibreMap, explicit: boolean) {
+    this.locateError.set('');
+    if (!navigator.geolocation) { if (explicit) this.locateError.set('Ta przeglądarka nie obsługuje geolokalizacji.'); return; }
     navigator.geolocation.getCurrentPosition((pos) => {
-      if (this.geometry()) return; // użytkownik zdążył już wybrać działkę
+      (map.getSource('me') as GeoJSONSource).setData({type: 'Feature', properties: {},
+        geometry: {type: 'Point', coordinates: [pos.coords.longitude, pos.coords.latitude]}});
+      if (!explicit && this.geometry()) return; // użytkownik zdążył już wybrać działkę
       const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
       map.easeTo({center: [pos.coords.longitude, pos.coords.latitude], zoom: 14, duration: reduced ? 0 : 800});
-    }, () => { /* brak zgody lub błąd: zostaje widok Polski */ }, {timeout: 8000, maximumAge: 300000});
+    }, (err) => {
+      if (!explicit) return;
+      this.locateError.set(err.code === err.PERMISSION_DENIED
+        ? 'Lokalizacja jest zablokowana. Kliknij ikonę kłódki obok adresu i zezwól na lokalizację.'
+        : 'Nie udało się ustalić lokalizacji (włącz usługi lokalizacji w systemie).');
+    }, {timeout: 8000, maximumAge: 300000});
   }
 
   private draw() {

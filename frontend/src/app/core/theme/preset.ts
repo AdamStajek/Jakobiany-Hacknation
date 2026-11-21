@@ -27,6 +27,7 @@ export const AppPreset = definePreset(Aura, {
           0: '#FFFFFF', 50: '#EEF1E8', 100: '#D8DFCF', 200: '#BCC6B0', 300: '#8B9981', 400: '#6A7960',
           500: '#506047', 600: '#3B4A33', 700: '#223318', 800: '#14230A', 900: '#0D1A06', 950: '#081200',
         },
+        text: {color: '#F7F6EE', hoverColor: '#FFFFFF', mutedColor: '#BCC6B0', hoverMutedColor: '#D8DFCF'},
       },
     },
   },

@@ -4,12 +4,12 @@ import { ThemeService, darkMode } from './theme';
 describe('ThemeService', () => {
   beforeEach(() => { localStorage.clear(); document.documentElement.classList.remove('app-dark'); });
 
-  it('przełącza system → jasny → ciemny → system', () => {
+  it('domyślnie jasny; przełącza jasny → ciemny → system → jasny', () => {
     const theme = TestBed.inject(ThemeService);
-    expect(theme.mode()).toBe('system');
-    theme.cycle(); expect(theme.mode()).toBe('light');
+    expect(theme.mode()).toBe('light');
     theme.cycle(); expect(theme.mode()).toBe('dark');
     theme.cycle(); expect(theme.mode()).toBe('system');
+    theme.cycle(); expect(theme.mode()).toBe('light');
   });
 
   it('ciemny motyw ustawia klasę na <html>, sygnał i zapis', () => {

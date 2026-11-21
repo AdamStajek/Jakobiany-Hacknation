@@ -29,8 +29,5 @@ html.app-dark { color-scheme: dark; }
 html.app-dark body { background: var(--p-surface-950); color: var(--p-text-color); }
 :focus-visible { outline: 3px solid var(--pw-forest); outline-offset: 3px; }
 html.app-dark :focus-visible { outline-color: var(--pw-orange); }
-.pw-brand img { display: block; height: auto; object-fit: contain; }
-/* Logo jest rastrem z ciemnymi elementami — w trybie ciemnym leży na jasnej płytce. */
-html.app-dark .pw-brand { background: var(--pw-ivory); border-radius: 10px; padding: 2px 8px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 @media print { header, footer, nav { display: none !important; } }

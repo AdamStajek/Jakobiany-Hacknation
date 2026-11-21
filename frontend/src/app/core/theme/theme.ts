@@ -38,7 +38,7 @@ export class ThemeService {
   private stored(): ThemeMode {
     try {
       const value = localStorage.getItem(KEY);
-      return value === 'light' || value === 'dark' ? value : 'system';
-    } catch { return 'system'; }
+      return value === 'system' || value === 'dark' ? value : 'light';
+    } catch { return 'light'; }
   }
 }
