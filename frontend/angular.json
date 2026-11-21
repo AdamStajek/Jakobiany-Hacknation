@@ -15,7 +15,10 @@
             "browser": "src/main.ts",
             "index": "src/index.html",
             "outputPath": "dist/frontend",
-            "tsConfig": "tsconfig.json"
+            "tsConfig": "tsconfig.json",
+            "styles": [
+              "src/styles.css"
+            ]
           }
         },
         "serve": {
