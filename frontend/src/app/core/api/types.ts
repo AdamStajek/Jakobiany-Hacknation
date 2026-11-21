@@ -81,21 +81,16 @@ export type AnalysisRequest = {
   farmer_answers?: FarmerAnswers;
 };
 export type PassportField = {
-  field: string; label: string; source: string; unit?: string | null;
+  field: string; label: string; source?: string; unit?: string | null;
   status: string; value: unknown; detail?: string | null; provenance?: {source_id?: string};
 };
-export type Passport = {
-  farmer_report?: {situation: string; steps: Recommendation[]};
-  parcel_id: string; analysis_as_of: string; fields: PassportField[];
-};
-export type Health = {status: string; analysis_date_min: string; analysis_date_max: string};
-export type Crop = {id: string; label: string};
-export type PassportField = {field: string; label: string; unit?: string | null; status: string; value: unknown};
 /** Paszport pola z /api/passport; frontend pokazuje z niego tylko krótkie podsumowanie. */
 export type Passport = {
   parcel_id: string; analysis_as_of: string; fields: PassportField[];
-  farmer_report?: {situation: string; next_check: string | null};
+  farmer_report?: {situation: string; next_check?: string | null; steps?: Recommendation[]};
 };
+export type Health = {status: string; analysis_date_min: string; analysis_date_max: string};
+export type Crop = {id: string; label: string};
 export type AnalysisProgress = {done: number; total: number; label: string};
 export type AnalysisEvent =
   | ({type: 'progress'} & AnalysisProgress)
