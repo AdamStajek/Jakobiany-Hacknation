@@ -45,18 +45,7 @@ export const routes: Routes = [
       'Zatwierdzanie Risk DNA',
     ],
   }, ['expert']),
-  page('analiza', {
-    title: 'Nowa inwestycja',
-    subtitle: 'Analiza planowanego przedsięwzięcia',
-    priority: 'P0',
-    scope: [
-      'Opis tekstowy lub dokumenty (PDF/DOCX)',
-      'Project Twin: podobne inwestycje z uzasadnieniem',
-      'Brakujące informacje, zagrożenie / kompletność / pewność',
-      'Rekomendacje, przedziały odchyleń (tylko gdy próba wystarcza), Risk Graph',
-      'Eksport JSON/CSV',
-    ],
-  }, ['analyst']),
+  { path: 'analiza', loadChildren: () => import('./features/analiza/analiza.routes').then((m) => m.ANALIZA_ROUTES) },
   page('chaos-lab', {
     title: 'Chaos Lab',
     subtitle: 'Testy odporności z zatwierdzonych wzorców Risk DNA',
