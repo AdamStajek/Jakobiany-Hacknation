@@ -12,8 +12,10 @@ const page = (items: any[], url: URL) => {
 
 function filterProjects(url: URL) {
   const q = url.searchParams.get('q')?.toLowerCase();
+  const norm = (v: string) => v.toLowerCase().replace(/\s+/g, '');
   return PROJECTS.filter((p) =>
-    (!q || p.title.toLowerCase().includes(q) || p.id.includes(q)) &&
+    (!q || p.title.toLowerCase().includes(q) || p.id.includes(q) ||
+      p.external_ids.some((e: any) => norm(e.value) === norm(q))) &&
     (!url.searchParams.get('kind') || p.kind === url.searchParams.get('kind')) &&
     (!url.searchParams.get('status') || p.status === url.searchParams.get('status')) &&
     (!url.searchParams.get('enrichment_status') || p.enrichment_status === url.searchParams.get('enrichment_status')));

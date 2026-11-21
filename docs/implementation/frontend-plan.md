@@ -58,6 +58,8 @@ Jest szkielet: `shell.ts` (nawigacja), `app.routes.ts` (strony zastępcze `Place
 ## Etap 1 – Widoki P0 (po etapie 0)
 
 ### 1A. Repozytorium projektów (`/projekty`)
+- **Wyszukiwanie po identyfikatorze (uwaga zespołu):** wyróżnione pole na górze strony: wybór rodzaju (BZP / KPO) + wpisanie numeru → `GET /projects?q=<numer>`. Wynik: jedno trafienie → przejście na kartę projektu (wszystkie dane z bazy); kilka (KPO łączy postępowania) → lista do wyboru; zero → komunikat „brak w bazie” z akcją operatora „Importuj / Wzbogać”. Walidacja formatu po stronie klienta, `?id=` w URL, żeby wyszukanie dało się udostępnić linkiem. Szczegóły i luki kontraktu: [frontend-braki.md](frontend-braki.md) §12.
+- **Skąd dane (do pokazania na karcie w 1B):** BZP (API e-Zamówień), dokumentacja zamówień (wgrywanie), wykaz UE/KPO (XLSX), TERYT (`works_location.region_code`), GUS BDL (`geo_signals`). Każda grupa danych na karcie ma znacznik źródła (`Source.provider`), mock oznaczony „dane demonstracyjne”. Zasilanie bazy robi backend; front pracuje na fixtures zgodnych z tymi pięcioma źródłami.
 - Tabela serwerowa: tytuł, ID, status projektu i wzbogacenia, liczniki postępowań/powiązań/ryzyk.
 - Filtry `q`, `kind`, `status`, `subsector`, `enrichment_status` w URL; zmiana filtra resetuje `offset`. Debounce wyszukiwania.
 - Akcje operatora: „Importuj” (dialog uploadu, `POST /imports`, multipart) i „Wzbogać ponownie” (`POST /projects/{id}/enrich`), obie z `JobProgress`.
@@ -97,6 +99,8 @@ Jest szkielet: `shell.ts` (nawigacja), `app.routes.ts` (strony zastępcze `Place
 ### 1G. Wspólna obsługa błędów i zadań (przecinające)
 - Globalny handler: `401/403` (ekran braku dostępu/logowanie), `404`, błąd sieci (banner + ponów), `409` (kod z `Problem`), `413/415`.
 - Zasady `partial`: zachować przejścia do dostępnych wyników.
+
+**Uwaga do 1B:** karta ma zakładkę/sekcję **Źródła danych** (BZP, dokumenty, KPO, TERYT, BDL) z datą pobrania i wskaźnikami BDL z `geo_signals`.
 
 **Kryterium etapu:** scenariusze odbioru z `frontend.md` przechodzą na mocku (import → kolejka → cytat → korekta → eksport; nowy projekt → analiza → ponowna analiza; konflikt `409`; role).
 
@@ -140,6 +144,63 @@ Po etapie 0 widoki są niezależne (osobne katalogi `features/*`, osobne serwisy
 Uwagi o kolizjach: wspólne pliki, które mogą dawać konflikty merge (`app.routes.ts`, `labels.ts`, `shared/index`, fixtures), edytować przez dopisywanie na końcu albo rozbić na pliki per feature (`projects.routes.ts` itd.). 1B wymaga tylko stabilnego interfejsu `EvidenceService.open(ref)`, więc nie czeka na gotowy 1C. 1A i 1F nie dzielą kodu poza `JobProgress`.
 
 W Etapie 2 wszystkie widoki P1 (Risk DNA, Chaos Lab, Radar, graf, diff) są wzajemnie niezależne, a a11y/Docker można robić równolegle z nimi.
+
+## Architektura i higiena kodu (obowiązuje agenta w każdym kroku)
+
+Cel: kod ma być czytelny i rozszerzalny, bez „spaghetti”. Przed zakończeniem każdego kroku agent sprawdza poniższe punkty.
+
+**Warstwy i zależności**
+- Kierunek: `features/<obszar>` → `shared/` → `core/`. Odwrotne importy są zabronione. Feature nie importuje innego feature'a; wspólny kod przenosimy do `shared/` (UI) lub `core/` (logika, API).
+- `core/api/` to jedyne miejsce z `HttpClient`. Komponenty wołają serwisy `*Api`, nie budują URL-i ani query.
+- `core/mock/` jest odłączalny flagą; kod widoków nie wie o mocku.
+
+**Dane i typy**
+- Kontrakt = `schema.d.ts` (generowany z `openapi.yaml`, nie edytować ręcznie). Aliasy w `core/api/types.ts`. Zakaz `any` w kodzie aplikacji (wyjątek: fixtures mocka). Typy tylko-UI w pliku obok feature'a.
+- Mapowanie odpowiedzi API na model widoku robimy w jednym miejscu (serwis feature'a lub czysta funkcja), nie w szablonie.
+- Stan widoku: `signal`/`computed`; stan współdzielony tylko w serwisach `providedIn: 'root'` lub w serwisie feature'a. Filtry, strona i wybrane rekordy, które mają być linkowalne, żyją w URL.
+- Dane z mocka mają ten sam kształt co z backendu. Rozbieżność z OpenAPI poprawiamy w fixtures, nie w widoku.
+
+**Komponenty**
+- Jeden komponent = jedna odpowiedzialność. Limit orientacyjny: ~250 linii i jeden ekran logiki. Większe dzielimy na podkomponenty w katalogu feature'a (np. `projects/list/`, `projects/import-dialog/`), zamiast rosnącej strony.
+- Logikę niezwiązaną z DOM (walidacja, mapowanie, formatowanie) wydzielamy do czystych funkcji z testem, jak `identifier.ts`.
+- Wielokrotnie użyty element UI trafia do `shared/` dopiero przy drugim użyciu; do tego czasu zostaje w feature'ie.
+- Brak duplikacji etykiet i statusów: wszystko w `core/labels.ts`; nowe pliki feature'a nie definiują własnych tłumaczeń.
+
+**Struktura katalogów feature'a**
+```
+features/<obszar>/
+  <obszar>.routes.ts      # trasy feature'a (lazy), dopinane w app.routes.ts jednym wpisem
+  <obszar>.page.ts        # strona routingu, tylko składa podkomponenty
+  components/             # podkomponenty tego feature'a
+  <obszar>.facade.ts      # opcjonalnie: stan i orkiestracja wywołań API
+  <obszar>.types.ts, *.util.ts
+```
+
+**Kontrola przed zakończeniem kroku:** `npm run build` bez błędów i ostrzeżeń, brak `any` i nieużywanych importów, brak cyklicznych zależności, pliki w odpowiednich warstwach, nazwy po angielsku w kodzie, napisy dla użytkownika po polsku.
+
+## Commity
+
+Format: Conventional Commits, opis po polsku: `typ(zakres): opis`. Jeden commit na zamknięty krok; osobny commit na zmiany w dokumentacji. Nazwy do użycia po każdej części:
+
+| Krok | Commit |
+|---|---|
+| Etap 0 (0.1–0.8) | `feat(frontend): fundament aplikacji – konfiguracja, warstwa API, role, mock, wspólne komponenty` *(już zrobiony jako „etap 0”)* |
+| 1A | `feat(projekty): repozytorium projektów z wyszukiwaniem po BZP/KPO, filtrami w URL i importem` |
+| 1A (docs) | `docs(frontend): wyszukiwanie po identyfikatorze, źródła danych i zasady architektury` |
+| 1B | `feat(projekty): karta projektu – struktura, oś czasu, ryzyka, dokumenty, powiązania i źródła danych` |
+| 1C | `feat(evidence): Evidence Lens – szczegóły dowodu, wersja dokumentu i podgląd cytatu` |
+| 1D | `feat(ekspert): Expert Studio – kolejka, decyzje, obsługa konfliktu 409 i historia` |
+| 1E | `feat(ustawienia): edytory sector-rules – katalog ryzyk, checklisty, wagi podobieństwa` |
+| 1F | `feat(analiza): nowa inwestycja – formularz, dokumenty, analiza i wynik (bliźniaki, luki, odchylenia)` |
+| 1G | `feat(core): globalna obsługa błędów i zadań częściowych` |
+| Etap 1 domknięcie | `test(frontend): scenariusze odbioru P0 na mocku` |
+| Etap 2: a11y | `fix(a11y): fokus, kontrast, ARIA i nawigacja klawiaturą` |
+| Etap 2: import | `feat(import): strona Import i źródła` |
+| Etap 2: P1 | `feat(<widok>): Risk DNA / Chaos Lab / Epidemic Radar / Risk Graph / porównanie analiz` (osobny commit na widok) |
+| Etap 2: integracja | `feat(api): przełączenie z mocka na backend i regeneracja typów` |
+| Etap 2: deploy | `chore(docker): build produkcyjny frontendu z reverse proxy /api` |
+
+Poprawki w trakcie kroku: `fix(zakres): …`, refaktoryzacje bez zmiany zachowania: `refactor(zakres): …`.
 
 ## Ryzyka i decyzje do potwierdzenia z backendem
 

@@ -169,6 +169,27 @@ Frontend pokazuje polskie etykiety, więc potrzebuje stałych wartości wyliczen
 
 ---
 
+## 12. Wyszukiwanie po identyfikatorze BZP/KPO i dane z pięciu źródeł — BLOKUJE
+
+**Wymaganie (uwaga zespołu):** użytkownik wpisuje na froncie identyfikator BZP lub KPO i na tej podstawie widzi wszystkie informacje o projekcie, jakie są w bazie. Dane do bazy pochodzą z: BZP (API e-Zamówień), dokumentacji zamówień (wgrywanie kluczowych dokumentów), wykazu projektów UE/KPO (import XLSX), TERYT (słownik gmin, plik TERC) i GUS BDL (5–10 wskaźników wod-kan, 3–5 lat).
+
+**Co jest w kontrakcie**
+- `ExternalId { scheme: bzp|kpo|…, value, normalized }` na `Project` i `Procedure`.
+- `GET /projects?q=` – „tytuł lub identyfikator projektu". Nie wiadomo, czy `q` przeszukuje `external_ids` ani czy porównuje po `normalized`.
+- `POST /imports` i `POST /projects/{id}/enrich` – ścieżki zasilania, ale tylko dla projektu już istniejącego w bazie.
+- `Location.region_code` (TERYT) i `ProjectDetail.geo_signals[]` (`metric`, `value`, `unit`, `year`, `geographic_level`) – miejsce na TERYT i BDL.
+
+**Czego brakuje**
+1. **Filtr po identyfikatorze:** `GET /projects?external_id=bzp:2023/BZP 00123456` (lub `scheme` + `value`), dopasowanie po `normalized`, zwraca 0..n projektów (KPO może łączyć kilka postępowań).
+2. **Pobranie po identyfikatorze, gdy go nie ma w bazie:** czy ma istnieć akcja „wpisz BZP/KPO → system pobiera z BZP i tworzy rekord" (np. `POST /lookups { scheme, value }` → `202 Job`)? Bez tego frontend pokaże tylko „brak w bazie" i odsyła do importu.
+3. **Format identyfikatora:** reguły normalizacji BZP (np. `2023/BZP 00123456`) i KPO, które frontend ma walidować przed wysłaniem.
+4. **Pochodzenie danych:** pole źródła przy każdej grupie danych (`Source.provider`: bzp / kpo_xlsx / teryt / gus_bdl / mock), żeby karta projektu mogła pokazać „skąd to wiemy".
+5. **TERYT i BDL:** czy poza `region_code` i `geo_signals` potrzebne są osobne endpointy (słownik gmin, wskaźniki dla gmin porównawczych)? Jeśli nie – frontend pokazuje je tylko jako sygnały geograficzne na karcie projektu.
+
+**Do czasu odpowiedzi:** wyszukiwanie działa przez `GET /projects?q=` (mock dopasowuje `external_ids`), a przy braku wyniku operator dostaje przejście do importu.
+
+---
+
 ## Podsumowanie priorytetów
 
 | # | Temat | Status |
@@ -184,5 +205,6 @@ Frontend pokazuje polskie etykiety, więc potrzebuje stałych wartości wyliczen
 | 9 | Wartości wyliczeniowe | DO POTWIERDZENIA |
 | 10 | Typy z OpenAPI jako źródło prawdy | POTRZEBNE |
 | 11 | Zakres P1 | DO POTWIERDZENIA |
+| 12 | Wyszukiwanie po BZP/KPO, pobranie po identyfikatorze, TERYT/BDL | BLOKUJE |
 
 Niepewności po stronie frontendu: nie czytałem całego `openapi.yaml` (1766 linii), więc punkty 7–9 wymagają sprawdzenia w schematach, zanim backend uzna je za luki.

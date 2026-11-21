@@ -3,19 +3,25 @@ export const PROJECTS: any[] = [
   {
     id: 'p-001', revision: 1, kind: 'historical', status: 'completed', title: 'Rozbudowa oczyszczalni ścieków w Kowalewie',
     sector_code: 'water_sewage', primary_subsector_codes: ['wwtp'], work_type: 'construction_or_extension',
-    external_ids: [{ kind: 'BZP', value: '2023/BZP 00123456' }], enrichment_status: 'matched',
+    external_ids: [{ scheme: 'bzp', value: '2023/BZP 00123456' }], enrichment_status: 'matched',
     evidence_ids: ['ev-001'], counts: { procedures: 1, risks: 3, links: 2 },
   },
   {
     id: 'p-002', revision: 1, kind: 'historical', status: 'in_progress', title: 'Budowa sieci kanalizacyjnej w gminie Zielona',
     sector_code: 'water_sewage', primary_subsector_codes: ['sewer_network'], work_type: 'construction_or_extension',
-    external_ids: [{ kind: 'KPO', value: 'A2.1.1-0042' }], enrichment_status: 'needs_review',
+    external_ids: [{ scheme: 'kpo', value: 'A2.1.1-0042' }], enrichment_status: 'needs_review',
     evidence_ids: [], counts: { procedures: 2, risks: 1, links: 3 },
+  },
+  {
+    id: 'p-004', revision: 1, kind: 'historical', status: 'completed', title: 'Budowa sieci kanalizacyjnej w gminie Zielona – etap II',
+    sector_code: 'water_sewage', primary_subsector_codes: ['sewer_network'], work_type: 'construction_or_extension',
+    external_ids: [{ scheme: 'kpo', value: 'A2.1.1-0042' }, { scheme: 'bzp', value: '2024/BZP 00555111' }], enrichment_status: 'matched',
+    evidence_ids: [], counts: { procedures: 1, risks: 2, links: 1 },
   },
   {
     id: 'p-003', revision: 1, kind: 'historical', status: 'unknown', title: 'Modernizacja stacji uzdatniania wody',
     sector_code: 'water_sewage', primary_subsector_codes: ['water_treatment'], work_type: 'reconstruction_or_renovation',
-    external_ids: [{ kind: 'BZP', value: '2022/BZP 00987654' }], enrichment_status: 'unmatched',
+    external_ids: [{ scheme: 'bzp', value: '2022/BZP 00987654' }], enrichment_status: 'unmatched',
     evidence_ids: [], counts: { procedures: 0, risks: 0, links: 0 },
   },
 ];
