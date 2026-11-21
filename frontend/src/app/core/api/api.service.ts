@@ -1,7 +1,14 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { AnalysisEvent, AnalysisProgress, AnalysisRequest, Crop, Health, Parcel, Report } from './types';
+import {
+  AnalysisEvent, AnalysisProgress, AnalysisRequest, Crop, Health, LoginRequest, NotificationPrefs, Parcel, PasswordChange, RegisterRequest, Report,
+  LastReportInput, ServerField, ServerFieldInput, User,
+} from './types';
+
+/** Nagłówek wymagany przez serwer przy żądaniach zmieniających stan (ochrona przed CSRF). */
+const STATE_CHANGING = {headers: {'X-Requested-With': 'XMLHttpRequest'}, withCredentials: true};
+const READ = {withCredentials: true};
 
 @Injectable({providedIn: 'root'})
 export class ApiService {
@@ -18,6 +25,35 @@ export class ApiService {
   importParcel(geojson: object) { return firstValueFrom(this.http.post<Parcel>('/api/parcels/import', geojson)); }
   report(analysisId: string) { return firstValueFrom(this.http.get<Report>(`/api/analysis/${encodeURIComponent(analysisId)}`)); }
   analyze(request: AnalysisRequest) { return firstValueFrom(this.http.post<Report>('/api/analysis', request)); }
+
+  // Konta (ciasteczko sesji HttpOnly, ten sam origin przez proxy).
+  me() { return firstValueFrom(this.http.get<User>('/api/me', READ)); }
+  register(body: RegisterRequest) { return firstValueFrom(this.http.post<unknown>('/api/auth/register', body, STATE_CHANGING)); }
+  verifyEmail(token: string) { return firstValueFrom(this.http.post<unknown>('/api/auth/verify', {token}, STATE_CHANGING)); }
+  resendVerification() { return firstValueFrom(this.http.post<unknown>('/api/auth/resend-verification', {}, STATE_CHANGING)); }
+  login(body: LoginRequest) { return firstValueFrom(this.http.post<unknown>('/api/auth/login', body, STATE_CHANGING)); }
+  logout() { return firstValueFrom(this.http.post<unknown>('/api/auth/logout', {}, STATE_CHANGING)); }
+  changePassword(body: PasswordChange) { return firstValueFrom(this.http.post<unknown>('/api/me/password', body, STATE_CHANGING)); }
+  deleteAccount() { return firstValueFrom(this.http.delete<unknown>('/api/me', STATE_CHANGING)); }
+  forgotPassword(email: string) { return firstValueFrom(this.http.post<unknown>('/api/auth/forgot', {email}, STATE_CHANGING)); }
+  resetPassword(token: string, password: string) {
+    return firstValueFrom(this.http.post<unknown>('/api/auth/reset', {token, password}, STATE_CHANGING));
+  }
+  notificationPrefs() { return firstValueFrom(this.http.get<NotificationPrefs>('/api/me/notifications', READ)); }
+  setNotificationPrefs(body: {email_enabled: boolean}) {
+    return firstValueFrom(this.http.patch<NotificationPrefs>('/api/me/notifications', body, STATE_CHANGING));
+  }
+
+  // Pola na serwerze (wymagają sesji).
+  serverFields() { return firstValueFrom(this.http.get<ServerField[]>('/api/fields', READ)); }
+  createServerField(body: ServerFieldInput) { return firstValueFrom(this.http.post<ServerField>('/api/fields', body, STATE_CHANGING)); }
+  updateServerField(id: string, body: Partial<Omit<ServerFieldInput, 'parcels'>>) {
+    return firstValueFrom(this.http.patch<ServerField>(`/api/fields/${encodeURIComponent(id)}`, body, STATE_CHANGING));
+  }
+  deleteServerField(id: string) { return firstValueFrom(this.http.delete<unknown>(`/api/fields/${encodeURIComponent(id)}`, STATE_CHANGING)); }
+  putLastReport(id: string, body: LastReportInput) {
+    return firstValueFrom(this.http.put<ServerField>(`/api/fields/${encodeURIComponent(id)}/last-report`, body, STATE_CHANGING));
+  }
 
   /**
    * Analiza ze strumieniem postępu przez WebSocket (/api/ws/analysis).

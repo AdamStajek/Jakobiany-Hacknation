@@ -58,3 +58,21 @@ export type AnalysisEvent =
   | ({type: 'progress'} & AnalysisProgress)
   | {type: 'result'; report: Report}
   | {type: 'error'; status: number; detail: string};
+
+/** Konto zalogowanego użytkownika (GET /api/me). */
+export type User = {id: string; email: string; username: string; email_verified: boolean; role: string};
+export type RegisterRequest = {email: string; username: string; password: string};
+export type LoginRequest = {identifier: string; password: string};
+export type PasswordChange = {current: string; new: string};
+export type NotificationPrefs = {email_enabled: boolean; email?: string; email_verified?: boolean};
+
+/** Skrót ostatniego raportu pola zapisany na serwerze (same sygnały z analizy). */
+export type ServerLastReport = {saved_at: string; risk: string; dry_spell_days: number | null; crop_balance_mm: number | null};
+/** Treść PUT last-report: serwer sam ustawia `saved_at`, a liczby są wymagane. */
+export type LastReportInput = {risk: string; dry_spell_days: number; crop_balance_mm: number};
+export type ServerField = {
+  id: string; name: string; color: string; crop: string | null;
+  parcels: {id: string; geometry: Geometry}[];
+  last_report?: ServerLastReport | null;
+};
+export type ServerFieldInput = {name: string; color: string; crop: string | null; parcels: {id: string; geometry: Geometry}[]};
