@@ -8,6 +8,7 @@ describe('Instrukcje eksperymentów', () => {
     TestBed.configureTestingModule({providers: [provideRouter(routes, withComponentInputBinding())]});
     const harness = await RouterTestingHarness.create('/eksperymenty');
     const slugs = ['wsiakanie-wody', 'wilgotnosc-gleby', 'struktura-gleby', 'brylki-w-wodzie', 'deszczomierz'];
+    const illustrationFiles = ['wsiakanie-wody', 'wilgotnosc-gleby', 'struktura-gleby', 'brylki-gleby'];
     const cards = harness.routeNativeElement!.querySelectorAll<HTMLAnchorElement>('ul a');
     expect(Array.from(cards, (card) => card.getAttribute('href')))
       .toEqual(slugs.map((slug) => '/eksperymenty/' + slug));
@@ -18,6 +19,17 @@ describe('Instrukcje eksperymentów', () => {
       expect(page.querySelector('h1')?.textContent).toBe(cards[index].querySelector('h2')?.textContent);
       expect(page.querySelectorAll('#kroki + ol > li')).toHaveLength(5);
       expect(page.querySelector('nav a')?.getAttribute('href')).toBe('/eksperymenty');
+
+      const illustration = page.querySelector('section[aria-labelledby="wizualizacja"]');
+      const file = illustrationFiles[index];
+      if (file) {
+        const src = 'assets/experiments/eks-' + file + '.png';
+        expect(illustration?.querySelector('img')?.getAttribute('src')).toBe(src);
+        expect(illustration?.querySelector('a')?.getAttribute('href')).toBe(src);
+        expect(illustration?.nextElementSibling?.getAttribute('aria-labelledby')).toBe('metoda-proby');
+      } else {
+        expect(illustration).toBeNull();
+      }
     }
   });
 });

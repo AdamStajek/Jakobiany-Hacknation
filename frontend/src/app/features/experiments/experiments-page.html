@@ -89,6 +89,18 @@
             </a>
           }
         </section>
+        @if (test.illustration; as illustration) {
+          <section aria-labelledby="wizualizacja">
+            <h2 id="wizualizacja" class="mb-3 text-2xl font-bold">Wizualizacja eksperymentu</h2>
+            <img [src]="illustration.src" [alt]="illustration.alt" width="1055" height="1491" loading="lazy"
+              class="h-auto w-full rounded-xl border border-surface" />
+            <a [href]="illustration.src" target="_blank" rel="noopener"
+              class="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4">
+              Otwórz obraz w pełnym rozmiarze (nowa karta)
+            </a>
+          </section>
+        }
+
         <section aria-labelledby="metoda-proby">
           <h2 id="metoda-proby" class="mb-1 text-lg font-bold">Materiały źródłowe (po angielsku)</h2>
           <ul class="text-base">
@@ -118,6 +130,6 @@
         </li>
       }
     </ul>
-    <p class="max-w-3xl">Każda próba jest dobrowolna. Wynik z jednego miejsca opisuje ten punkt pola. Żeby sprawdzić większy obszar, powtórz próbę w kilku podobnych miejscach.</p>
+    <p class="max-w-3xl">Wynik z jednego miejsca opisuje ten punkt pola. Żeby sprawdzić większy obszar, powtórz próbę w kilku podobnych miejscach.</p>
   }
 </article>
