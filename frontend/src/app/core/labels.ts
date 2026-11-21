@@ -155,5 +155,7 @@ export const API_ERROR_HINT: Record<string, string> = {
   unsupported_document_type: 'Obsługiwane są tylko pliki PDF i DOCX.',
   payload_too_large: 'Plik jest za duży.',
   insufficient_input: 'Do analizy brakuje informacji. Uzupełnij poniższe pola.',
+  stale_sector_rules: 'Reguły sektorowe zostały zmienione przez kogoś innego. Wczytaj aktualną wersję i ponów zapis.',
+  idempotency_conflict: 'To żądanie zostało już wysłane z innymi danymi. Odśwież widok i ponów operację.',
   assessment_not_ready: 'Wersja dokumentu nie jest jeszcze gotowa do analizy (trwa ekstrakcja).',
 };
