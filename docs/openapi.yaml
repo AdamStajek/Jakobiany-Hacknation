@@ -4,7 +4,7 @@ info:
   version: 0.1.0
   description: |
     Projekt kontraktu REST dla frontendu i backendu Risk Miner. Wersja 0.1.0 opisuje
-    docelowe zachowanie. W szkielecie aplikacji działa obecnie GET /api/hello.
+    zachowanie zaimplementowane przez aplikację FastAPI.
     P0 obejmuje historię inwestycji i analizę nowego projektu. P1 obejmuje Risk DNA,
     Chaos Lab, graf, Epidemic Radar i porównanie kolejnych analiz. P2 obejmuje dane
     przestrzenne, wpływ społeczny i monitoring projektów w toku.
@@ -277,6 +277,26 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/DocumentVersion'}
+        default: {$ref: '#/components/responses/Error'}
+  /documents/{document_id}/versions/{version_id}/content:
+    parameters:
+      - {name: document_id, in: path, required: true, schema: {$ref: '#/components/schemas/Id'}}
+      - {name: version_id, in: path, required: true, schema: {$ref: '#/components/schemas/Id'}}
+    get:
+      tags: [Dowody]
+      operationId: getDocumentContent
+      summary: Pobierz zachowaną kopię wersji dokumentu (P0)
+      responses:
+        '200':
+          description: Oryginalne bajty wersji dokumentu zwracane jako załącznik.
+          headers:
+            Content-Disposition:
+              schema: {type: string}
+          content:
+            application/pdf:
+              schema: {type: string, format: binary}
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+              schema: {type: string, format: binary}
         default: {$ref: '#/components/responses/Error'}
   /projects/{project_id}/evidence:
     parameters:

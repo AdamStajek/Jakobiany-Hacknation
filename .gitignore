@@ -34,3 +34,6 @@ build/
 !.env.example
 !.env.sample
 !.env.template
+
+# Runtime SQLite files
+/data/
