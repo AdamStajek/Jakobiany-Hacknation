@@ -108,7 +108,12 @@ def bzp_search(project, references):
             number = f"{match[1]}/BZP {match[2]}" + (f"/{match[3]}" if match[3] else "")
             for kind in KINDS:
                 try:
-                    for url, rows in bzp_pages(kind, NoticeNumber=number):
+                    for url, rows in bzp_pages(
+                        kind,
+                        NoticeNumber=number,
+                        PublicationDateFrom=f"{match[1]}-01-01",
+                        PublicationDateTo=f"{match[1]}-12-31",
+                    ):
                         for item in rows:
                             if str(item.get("noticeNumber", "")).startswith(number):
                                 if item.get("tenderId"):
@@ -121,7 +126,7 @@ def bzp_search(project, references):
                         break
                 except FetchError as exc:
                     yield exc
-    if any(item["scheme"] == "kpo" for item in references) and not seeds:
+    if any(item["scheme"] == "kpo" for item in references):
         buyer = project.get("beneficiary", {}).get("name")
         tokens = re.findall(r"[^\W_]+", project["title"])
         topic = " ".join(tokens[:2]) if len(tokens) >= 2 else ""
@@ -132,6 +137,7 @@ def bzp_search(project, references):
                     OrganizationName=buyer.split(" – ")[0],
                     OrderObject=topic,
                     PublicationDateFrom="2023-01-01",
+                    PublicationDateTo=date.today().isoformat(),
                 ):
                     for row in rows[:5]:
                         yield url, row, False
@@ -151,6 +157,7 @@ def bzp_search(project, references):
                     OrganizationName=buyer,
                     OrderObject=title[:60],
                     PublicationDateFrom=f"{max(2021, int(year) - 1)}-01-01",
+                    PublicationDateTo=date.today().isoformat(),
                 ):
                     for row in rows:
                         if row.get("tenderId") == tender_id and row.get(
@@ -186,7 +193,7 @@ def ted_search(project, references):
     if (
         not queries
         and project["kind"] == "historical"
-        and os.getenv("RISK_MINER_TED_CONTEXT") == "1"
+        and os.getenv("RISK_MINER_TED_CONTEXT", "1") == "1"
     ):
         words = re.findall(r"[^\W_]+", project["title"])[:12]
         buyer = re.findall(r"[^\W_]+", project.get("beneficiary", {}).get("name", ""))[

@@ -15,7 +15,7 @@ export interface paths {
         put?: never;
         /**
          * Importuj projekty i uruchom wzbogacanie (P0, operator)
-         * @description Przyjmuje XLSX lub CSV UTF-8 z nagłówkami arkusza Projekty. Waliduje co najmniej
+         * @description Przyjmuje XLS, XLSX lub CSV UTF-8 z nagłówkami arkusza Projekty. Waliduje co najmniej
          *     Identyfikator rekordu, Nazwę przedsięwzięcia oraz parę rodzaju i wartości
          *     identyfikatora publicznego. Zachowuje oryginalne wartości i pozycję wiersza.
          *     Upsert po Identyfikatorze rekordu zachowuje poprzednie wersje i decyzje eksperta.
@@ -147,7 +147,7 @@ export interface paths {
         put?: never;
         /**
          * Dodaj dokument lub nową wersję (P0)
-         * @description Przyjmuje DOCX lub PDF z warstwą tekstową. Ten sam dokument i hash pliku
+         * @description Przyjmuje DOC, DOCX lub PDF z warstwą tekstową. Ten sam dokument i hash pliku
          *     zwracają istniejącą wersję. document_id pozwala dołączyć kolejną wersję do
          *     dokumentu danego projektu. Zapisuje typ, wersję, hierarchię i pochodzenie.
          *     Uruchamia ekstrakcję oraz aktualizację zależnych faktów i zdarzeń. Wyniki
@@ -175,6 +175,26 @@ export interface paths {
          * @description content_url jest podawany tylko przy dostępnej kopii i prawie odczytu.
          */
         get: operations["getDocumentVersion"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{document_id}/versions/{version_id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: components["schemas"]["Id"];
+                version_id: components["schemas"]["Id"];
+            };
+            cookie?: never;
+        };
+        /** Pobierz zachowaną kopię wersji dokumentu (P0) */
+        get: operations["getDocumentContent"];
         put?: never;
         post?: never;
         delete?: never;
@@ -838,6 +858,8 @@ export interface components {
         Document: {
             id: components["schemas"]["Id"];
             document_type: string;
+            /** @description Ekspert oznaczył dokument jako materiał wzorcowy. */
+            exemplar?: boolean;
             current_version_id?: components["schemas"]["Id"];
             related_to?: components["schemas"]["ResourceRef"][];
             versions: components["schemas"]["DocumentVersion"][];
@@ -907,8 +929,8 @@ export interface components {
                 kind: "pdf";
                 page: number;
             } | {
-                /** @constant */
-                kind: "docx";
+                /** @enum {unknown} */
+                kind: "doc" | "docx";
                 /** @description Stabilny identyfikator akapitu w danej wersji. */
                 paragraph: string;
             } | {
@@ -1074,7 +1096,9 @@ export interface components {
             revision: components["schemas"]["Revision"];
             review_status: components["schemas"]["ReviewStatus"];
             /** @description Bieżąca reprezentacja zasobu danego typu. */
-            value: Record<string, never>;
+            value: {
+                [key: string]: unknown;
+            };
             evidence_ids: components["schemas"]["EvidenceIds"];
         };
         DecisionInput: {
@@ -1091,7 +1115,9 @@ export interface components {
              *     są nadawane przez serwer. Dozwolone np. risk_code, causes, impacts,
              *     measures, evidence_ids dla risk, a from, to, rationale dla link.
              */
-            changes?: Record<string, never>;
+            changes?: {
+                [key: string]: unknown;
+            };
         };
         Decision: {
             id: components["schemas"]["Id"];
@@ -1750,6 +1776,33 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    getDocumentContent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: components["schemas"]["Id"];
+                version_id: components["schemas"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Oryginalne bajty wersji dokumentu zwracane jako załącznik. */
+            200: {
+                headers: {
+                    "Content-Disposition"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                    "application/msword": string;
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": string;
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
     listProjectFacts: {
         parameters: {
             query?: {
@@ -1836,6 +1889,8 @@ export interface operations {
     listReviews: {
         parameters: {
             query?: {
+                /** @description Uwzględnij wszystkie dane wejściowe i stany weryfikacji. */
+                include_all?: boolean;
                 project_id?: components["schemas"]["Id"];
                 target_type?: components["schemas"]["ReviewTargetType"];
                 review_status?: components["parameters"]["ReviewStatus"];

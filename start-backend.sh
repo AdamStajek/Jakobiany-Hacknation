@@ -1,3 +1,4 @@
-# Backend only in docker (http://localhost:8000); run the frontend locally with live reload:
-#   cd frontend && npm start   -> http://localhost:4200
-docker compose down -v && docker compose up --build -d backend
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")"
+exec docker compose up --build -d backend

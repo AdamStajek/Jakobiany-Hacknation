@@ -13,6 +13,8 @@ from fastapi.testclient import TestClient
 from pypdf import PdfWriter
 from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
 
+from analysis import deviation
+from connectors.public import bzp_search
 from contract import SPEC, resolve, validate
 from intake import DOCX, mock_seed
 from main import app
@@ -109,6 +111,183 @@ class BackendTest(unittest.TestCase):
         self.assertEqual(response.status_code, 201, response.text)
         self.assert_wire("post", "/projects", response)
         return response.json()["id"]
+
+    def test_public_bzp_date_bounds(self):
+        calls = []
+
+        def pages(kind, **filters):
+            calls.append((kind, filters))
+            yield (
+                "https://example.org",
+                [{"noticeNumber": "2022/BZP 00058537/01", "tenderId": "ocid-1"}],
+            )
+
+        with patch("connectors.public.bzp_pages", pages):
+            rows = list(
+                bzp_search({}, [{"scheme": "bzp", "value": "2022/BZP00058537/01"}])
+            )
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(
+            calls[0][1],
+            {
+                "NoticeNumber": "2022/BZP 00058537/01",
+                "PublicationDateFrom": "2022-01-01",
+                "PublicationDateTo": "2022-12-31",
+            },
+        )
+
+    def test_deviation_requires_comparable_observations(self):
+        cases = [
+            {
+                "procedures": [],
+                "milestones": [
+                    {
+                        "kind": "baseline_finish",
+                        "date": "2025-01-01",
+                        "evidence_ids": ["plan"],
+                    },
+                    {
+                        "kind": "actual_finish",
+                        "date": f"2025-01-{day:02d}",
+                        "evidence_ids": [f"actual-{day}"],
+                    },
+                ],
+            }
+            for day in (3, 7, 17)
+        ]
+        interval = deviation(cases, "time")
+        self.assertEqual(interval["sample_size"], 3)
+        self.assertEqual(
+            (interval["interval"]["lower"], interval["interval"]["upper"]), ("2", "16")
+        )
+        self.assertEqual(
+            deviation(cases[:2], "time")["status"], "insufficient_evidence"
+        )
+        self.assertEqual(deviation(cases, "cost")["sample_size"], 0)
+
+    def test_base_review_of_inputs_and_case_clause(self):
+        history = "mock-water-network"
+        with TestClient(app, headers=AUTH) as client:
+            job = self.job(
+                client,
+                client.post(
+                    f"{API}/projects/{history}/documents",
+                    files={
+                        "file": (
+                            "annex.docx",
+                            docx(
+                                "Stwierdzono brak zgody właściciela na dostęp do terenu i wydłużono termin o 30 dni "
+                                "z powodu kolizji, zwiększono wynagrodzenie o 5 000 zł; zaradczo uzgodniono trasę zastępczą."
+                            ),
+                        )
+                    },
+                    data={"document_type": "annex"},
+                ),
+            )
+            version = client.get(job["results"][0]["href"]).json()
+            risks = client.get(f"{API}/projects/{history}/risks").json()["items"]
+            extracted = next(
+                risk for risk in risks if risk["causes"] and risk["measures"]
+            )
+            self.assertEqual(extracted["kind"], "OBSERVED_EVENT")
+            self.assertEqual(
+                {item["unit"]: item["value"] for item in extracted["impacts"]},
+                {"days": "30", "PLN": "5000"},
+            )
+
+            records = client.get(
+                f"{API}/expert/reviews",
+                params={
+                    "include_all": "true",
+                    "project_id": history,
+                    "target_type": "document",
+                },
+            ).json()["items"]
+            self.assertEqual(records[0]["target_id"], version["document_id"])
+            decision = client.post(
+                f"{API}/expert/decisions",
+                json={
+                    "target_type": "document",
+                    "target_id": version["document_id"],
+                    "expected_revision": 1,
+                    "action": "correct",
+                    "reason": "Zweryfikowano aneks.",
+                    "changes": {"exemplar": True},
+                },
+            )
+            self.assertEqual(decision.status_code, 201, decision.text)
+            self.assertTrue(
+                client.get(f"{API}/projects/{history}").json()["documents"][0][
+                    "exemplar"
+                ]
+            )
+
+            clause = (
+                "Strony uzgodnią trasę zastępczą w protokole przed rozpoczęciem robót."
+            )
+            created = client.post(
+                f"{API}/expert/records",
+                json={
+                    "target_type": "recommendation",
+                    "project_id": history,
+                    "value": {
+                        "kind": "proposed_clause",
+                        "action": "Sprawdź dostęp do terenu",
+                        "proposed_clause": clause,
+                        "rationale": "Przykład z udokumentowanego aneksu.",
+                        "claim_type": "MODEL_INFERENCE",
+                        "confidence": {
+                            "level": "moderate",
+                            "rationale": "Aneks i protokół.",
+                        },
+                        "related_to": [{"type": "risk", "id": extracted["id"]}],
+                        "evidence_ids": extracted["evidence_ids"],
+                    },
+                },
+            )
+            self.assertEqual(created.status_code, 201, created.text)
+            approved = client.post(
+                f"{API}/expert/decisions",
+                json={
+                    "target_type": "recommendation",
+                    "target_id": created.json()["target_id"],
+                    "expected_revision": 1,
+                    "action": "approve",
+                    "reason": "Przykład do ponownego użycia.",
+                },
+            )
+            self.assertEqual(approved.status_code, 201, approved.text)
+
+            project_id = self.create(
+                client,
+                description="Rozbudowa sieci wodociągowej o 2 km i dostęp do terenu.",
+                primary_subsector_codes=["water_network"],
+            )
+            result = self.job(
+                client,
+                client.post(f"{API}/assessments", json={"project_id": project_id}),
+            )
+            analysis = client.get(result["results"][0]["href"]).json()
+            recommendations = analysis["recommendations"]
+            self.assertTrue(
+                any(item.get("proposed_clause") == clause for item in recommendations)
+            )
+            gap_recommendation = next(
+                item
+                for item in recommendations
+                if item["kind"] == "provide_information"
+            )
+            reviewed = client.post(
+                f"{API}/expert/decisions",
+                json={
+                    "target_type": "recommendation",
+                    "target_id": gap_recommendation["id"],
+                    "expected_revision": 1,
+                    "action": "approve",
+                    "reason": "Sprawdzono dowody.",
+                },
+            )
+            self.assertEqual(reviewed.status_code, 201, reviewed.text)
 
     def test_contract_routes_and_workbook_replay(self):
         routes = {

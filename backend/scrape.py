@@ -53,12 +53,12 @@ def main():
                     }
                 )
             )
-            if not existing and not summary["fetch.found"]:
+            if not summary["import.found"]:
                 parser.exit(
                     1,
-                    "Brak pobranego materiału publicznego. Baza nie została opublikowana.\n",
+                    "Arkusz nie zawierał rekordów, które można zapisać.\n",
                 )
-            return 0 if summary["import.found"] else 1
+            return 0
     except Exception as exc:
         parser.exit(1, f"{path}: {exc}\n")
 

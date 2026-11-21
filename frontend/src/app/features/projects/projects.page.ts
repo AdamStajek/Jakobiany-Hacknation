@@ -98,8 +98,8 @@ const opts = (m: Record<string, { label: string }>) => Object.entries(m).map(([v
 
     <p-dialog [(visible)]="importOpen" [modal]="true" header="Import projektów" [style]="{ width: '40rem' }" [draggable]="false">
       <div class="flex flex-col gap-3">
-        <p class="m-0 text-sm text-muted-color">Plik XLSX lub CSV UTF-8 z nagłówkami arkusza „Projekty”. Import uruchamia wzbogacanie (BZP + drugie źródło).</p>
-        <input type="file" accept=".xlsx,.csv" (change)="file.set($any($event.target).files?.[0] ?? null)" aria-label="Plik importu" />
+        <p class="m-0 text-sm text-muted-color">Plik XLS, XLSX lub CSV UTF-8 z nagłówkami arkusza „Projekty”. Import uruchamia wzbogacanie (BZP + drugie źródło).</p>
+        <input type="file" accept=".xls,.xlsx,.csv" (change)="file.set($any($event.target).files?.[0] ?? null)" aria-label="Plik importu" />
         @if (uploadError(); as e) { <small class="text-red-600" role="alert">{{ e }}</small> }
         <app-job-progress [location]="jobLocation()" (finishedJob)="onJobDone($event)" />
       </div>
@@ -217,7 +217,7 @@ export class ProjectsPage {
       next: (a) => { this.uploading.set(false); this.jobLocation.set(a.location); },
       error: (e: ApiError) => {
         this.uploading.set(false);
-        this.uploadError.set(e.status === 413 ? 'Plik jest za duży.' : e.status === 415 ? 'Nieobsługiwany typ pliku (użyj XLSX lub CSV).' : e.detail);
+        this.uploadError.set(e.status === 413 ? 'Plik jest za duży.' : e.status === 415 ? 'Nieobsługiwany typ pliku (użyj XLS, XLSX lub CSV).' : e.detail);
       },
     });
   }

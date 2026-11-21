@@ -156,7 +156,7 @@ def procure(db, value, provider, raw, url, exact, confirmed_keys):
     by_id = {
         item["normalized"]
         for item in value.get("beneficiary", {}).get("identifiers", [])
-        if item["scheme"] == "nip"
+        if item["scheme"] in {"nip", "regon"}
     }
     beneficiary = value.get("beneficiary", {}).get("name", "")
     name_score = similarity(beneficiary, buyer)
@@ -305,6 +305,7 @@ def extract_notice_risks(db, value, notice, body, proc_id):
                 pid,
                 origin,
                 {"kind": "record_field", "field": "htmlBody.change_reason"},
+                reason,
             )
             risks = extract(db, value, reason, cause_ev, observed=True)
             for risk in risks:
@@ -321,12 +322,14 @@ def extract_notice_risks(db, value, notice, body, proc_id):
             "Czy umowę wykonano w pierwotnie określonym terminie:",
             "Czy umowa została wykonana należycie:",
         ):
-            if re.match(r"nie\b", plain_field(body, label), re.I):
+            answer = plain_field(body, label)
+            if re.match(r"nie\b", answer, re.I):
                 event_ev = evidence(
                     db,
                     pid,
                     origin,
                     {"kind": "record_field", "field": f"htmlBody: {label}"},
+                    answer,
                 )
                 risks.append(
                     save_risk(
@@ -620,8 +623,25 @@ def enrich(path, project_id, references):
 
     with connect(path) as db:
         value = project(db, project_id)
+        confirmed = {
+            item["to"]["id"]
+            for item in values(db, "link", project_id)
+            if item["review_status"] in ACCEPTED
+            and item["relation"] == "project_has_procedure"
+            and item["to"]["type"] == "procedure"
+        }
+        known_notices = {}
+        for notice, _, meta in entries(db, "notice", project_id):
+            proc_id = meta.get("procedure_id")
+            if (
+                proc_id in confirmed
+                and notice["kind"] == "procurement"
+                and notice["identifier"]["scheme"] == "bzp"
+            ):
+                known_notices.setdefault(proc_id, notice["identifier"])
     refs = unique(
-        (item["scheme"], item["value"]) for item in value["external_ids"] + references
+        (item["scheme"], item["value"])
+        for item in value["external_ids"] + references + list(known_notices.values())
     )
     candidates = list(refs)
     for scheme, raw in refs:

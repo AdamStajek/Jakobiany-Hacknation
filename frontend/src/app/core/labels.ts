@@ -112,3 +112,15 @@ export const GEO_LEVEL: Record<string, string> = { municipality: 'gmina', county
 export const PART_OUTCOME: Record<string, string> = {
   awarded: 'Udzielono', unawarded: 'Nie udzielono', cancelled: 'Unieważniono', unknown: 'Nieustalone',
 };
+
+export const PHASE_LABEL = {
+  planning: 'Planowanie', preparation: 'Przygotowanie', procurement: 'Postępowanie',
+  contract_start: 'Rozpoczęcie umowy', post_contract_design: 'Projektowanie po zawarciu umowy',
+  execution: 'Realizacja', commissioning: 'Rozruch i odbiory', closeout_and_warranty: 'Rozliczenie i gwarancja',
+};
+
+export const WORK_TYPE_LABEL = {
+  construction_or_extension: 'Budowa lub rozbudowa',
+  reconstruction_or_renovation: 'Przebudowa lub remont',
+  mixed: 'Zakres mieszany',
+};

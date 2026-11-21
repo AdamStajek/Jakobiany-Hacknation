@@ -4,6 +4,8 @@ from datetime import date
 from decimal import Decimal
 from hashlib import sha256
 from io import BytesIO, StringIO
+from subprocess import CalledProcessError, TimeoutExpired, check_output
+from tempfile import NamedTemporaryFile
 from zipfile import BadZipFile, ZipFile
 
 from defusedxml import ElementTree
@@ -12,6 +14,7 @@ from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 from openpyxl.utils.exceptions import InvalidFileException
 from pypdf import PdfReader
+from xlrd import XLRDError, open_workbook
 
 from store import (
     API,
@@ -38,7 +41,18 @@ TITLE = "Nazwa przedsięwzięcia"
 SCHEME = "Rodzaj identyfikatora publicznego"
 PUBLIC_ID = "Identyfikator publiczny"
 DESCRIPTION = "Adnotacja instytucji"
-SCHEMES = {"ogłoszenie bzp": "bzp", "projekt kpo": "kpo", "bzp": "bzp", "kpo": "kpo"}
+SCHEMES = {
+    "ogłoszenie bzp": "bzp",
+    "projekt kpo": "kpo",
+    "ogłoszenie ted": "ted",
+    "projekt cst": "cst",
+    **{
+        scheme: scheme
+        for scheme in ("bzp", "kpo", "ted", "cst", "ocid", "nip", "regon")
+    },
+}
+OLE = bytes.fromhex("d0cf11e0a1b11ae1")
+DOC = "application/msword"
 DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 WORD = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 MAX_EXPANDED = 40 * 1024 * 1024
@@ -184,10 +198,16 @@ CHECKS = [
 
 def external(scheme, value):
     value = str(value).strip()
+    normalized = re.sub(r"\s+", "", value).upper()
+    if scheme in {"nip", "regon"}:
+        normalized = re.sub(r"^(PL)|[.-]", "", normalized)
+    if scheme == "ted":
+        if match := re.fullmatch(r"(\d{1,8})-(\d{4})", normalized):
+            normalized = f"{int(match[1])}-{match[2]}"
     return {
         "scheme": scheme,
         "value": value,
-        "normalized": re.sub(r"\s+", "", value).upper(),
+        "normalized": normalized,
     }
 
 
@@ -213,6 +233,12 @@ def check_zip(data):
 
 def input_rows(filename, data):
     try:
+        if filename.lower().endswith(".xls") and data.startswith(OLE):
+            with open_workbook(file_contents=data, on_demand=True) as workbook:
+                sheet = workbook.sheet_by_name("Projekty")
+                return tabular_rows(
+                    sheet.row_values(i, end_colx=100) for i in range(sheet.nrows)
+                )
         if filename.lower().endswith(".xlsx") and "xl/workbook.xml" in check_zip(data):
             with BytesIO(data) as stream:
                 workbook = load_workbook(
@@ -236,6 +262,7 @@ def input_rows(filename, data):
             )
     except (
         BadZipFile,
+        XLRDError,
         InvalidFileException,
         DefusedXmlException,
         SyntaxError,
@@ -247,10 +274,12 @@ def input_rows(filename, data):
         raise Problem(
             415,
             "unsupported_import",
-            "Oczekiwano poprawnego XLSX z arkuszem Projekty lub CSV UTF-8.",
+            "Oczekiwano poprawnego XLS/XLSX z arkuszem Projekty lub CSV UTF-8.",
         ) from exc
     raise Problem(
-        415, "unsupported_import", "Obsługiwane formaty importu to XLSX i CSV UTF-8."
+        415,
+        "unsupported_import",
+        "Obsługiwane formaty importu to XLS, XLSX i CSV UTF-8.",
     )
 
 
@@ -294,7 +323,10 @@ def tabular_rows(lines):
 
 def import_row(db, filename, columns, row, fields):
     def field(key):
-        return str(fields.get(key) or "").strip()
+        raw = fields.get(key)
+        if isinstance(raw, float) and raw.is_integer():
+            return str(int(raw))
+        return str(raw if raw is not None else "").strip()
 
     project_id, title, number = field(RECORD_ID), field(TITLE), field(PUBLIC_ID)
     scheme = SCHEMES.get(field(SCHEME).casefold())
@@ -310,7 +342,7 @@ def import_row(db, filename, columns, row, fields):
         raise Problem(
             422,
             "invalid_row",
-            "Wymagane są poprawny identyfikator rekordu, tytuł oraz typ i wartość identyfikatora BZP/KPO.",
+            "Wymagane są poprawny identyfikator rekordu, tytuł oraz typ i wartość identyfikatora publicznego.",
         )
     try:
         previous = project(db, project_id)
@@ -391,7 +423,9 @@ def import_row(db, filename, columns, row, fields):
     put_project(db, value)
     origin = source(
         db,
-        "contest_xlsx" if filename.lower().endswith(".xlsx") else "uploaded_file",
+        "contest_xlsx"
+        if filename.lower().endswith((".xls", ".xlsx"))
+        else "uploaded_file",
         f"{filename}/{project_id}",
         raw_id,
         project_id,
@@ -474,6 +508,8 @@ def register_description(db, value):
 
 
 def media_type(filename, content):
+    if filename.lower().endswith(".doc") and content.startswith(OLE):
+        return DOC
     if filename.lower().endswith(".pdf") and content.startswith(b"%PDF-"):
         return "application/pdf"
     if filename.lower().endswith(".docx"):
@@ -490,10 +526,32 @@ def media_type(filename, content):
                     return DOCX
         except (BadZipFile, DefusedXmlException, SyntaxError):
             pass
-    raise Problem(415, "unsupported_document_type", "Oczekiwano pliku PDF lub DOCX.")
+    raise Problem(
+        415, "unsupported_document_type", "Oczekiwano pliku PDF, DOC lub DOCX."
+    )
 
 
 def document_text(media, content):
+    if media == DOC:
+        with NamedTemporaryFile(suffix=".doc") as document:
+            document.write(content)
+            document.flush()
+            try:
+                text = check_output(
+                    ["antiword", "-m", "UTF-8.txt", "-w", "0", document.name],
+                    timeout=10,
+                    stderr=-1,
+                ).decode("utf-8")
+            except FileNotFoundError as exc:
+                raise ValueError("Odczyt DOC wymaga programu antiword.") from exc
+            except (CalledProcessError, TimeoutExpired, UnicodeError) as exc:
+                raise ValueError(
+                    "Nie można odczytać warstwy tekstowej pliku DOC."
+                ) from exc
+        return [
+            ({"kind": "doc", "paragraph": f"p{index}"}, paragraph)
+            for index, paragraph in enumerate(text.strip().split("\n\n"), 1)
+        ]
     if media == "application/pdf":
         reader = PdfReader(BytesIO(content))
         if reader.is_encrypted or len(reader.pages) > 300:
@@ -630,7 +688,7 @@ def extract(db, value, text, ev, observed=False):
 
 
 def save_risk(db, project_id, code, title, line, ev, happened=False):
-    if ev["locator"]["kind"] in {"pdf", "docx"} and ev.get("quote") != line:
+    if ev["locator"]["kind"] in {"pdf", "doc", "docx"} and ev.get("quote") != line:
         quote = ev["quote"]
         position = quote.index(line) + ev["char_offsets"]["start"]
         ev = evidence(
@@ -648,15 +706,11 @@ def save_risk(db, project_id, code, title, line, ev, happened=False):
     if previous:
         return previous[0]
     impacts = []
-    if (
-        code == "R06"
-        and happened
-        and (
-            delay := re.search(
-                r"(?:przedłużono|wydłużono|opóźnił\w*)[^.\n]{0,90}?\bo (\d+) dni",
-                line,
-                re.I,
-            )
+    if happened and (
+        delay := re.search(
+            r"(?:przedłużono|wydłużono|opóźnił\w*)[^.\n]{0,90}?\bo (\d+) dni",
+            line,
+            re.I,
         )
     ):
         impacts.append(
@@ -666,6 +720,45 @@ def save_risk(db, project_id, code, title, line, ev, happened=False):
                 "description": delay[0],
                 "value": delay[1],
                 "unit": "days",
+                "evidence_ids": [ev["id"]],
+            }
+        )
+    if happened and (
+        cost := re.search(
+            r"(?:zwiększon\w*|podniesion\w*|wzros\w*)[^.\n]{0,90}?\bo ([\d \u00a0]+(?:,\d{1,2})?)\s*(zł|PLN)(?!\w)",
+            line,
+            re.I,
+        )
+    ):
+        impacts.append(
+            {
+                "dimension": "cost",
+                "kind": "observed",
+                "description": cost[0],
+                "value": re.sub(r"\s+", "", cost[1]).replace(",", "."),
+                "unit": "PLN",
+                "evidence_ids": [ev["id"]],
+            }
+        )
+    causes, measures = [], []
+    if happened and (
+        cause := re.search(
+            r"\b(?:z powodu|w związku z|z uwagi na) ([^.;\n]+)", line, re.I
+        )
+    ):
+        causes.append(
+            {"status": "confirmed", "description": cause[0], "evidence_ids": [ev["id"]]}
+        )
+    if happened and (
+        measure := re.search(
+            r"\b(?:zaradczo|w ramach działań naprawczych) ([^.;\n]+)", line, re.I
+        )
+    ):
+        measures.append(
+            {
+                "kind": "applied",
+                "description": measure[1],
+                "effectiveness": "unknown",
                 "evidence_ids": [ev["id"]],
             }
         )
@@ -681,9 +774,9 @@ def save_risk(db, project_id, code, title, line, ev, happened=False):
             "claim_type": "MODEL_INFERENCE",
             "signal": line,
             "event": line if happened else title,
-            "causes": [],
+            "causes": causes,
             "impacts": impacts,
-            "measures": [],
+            "measures": measures,
             "related_to": [ref("project", project_id)],
             "evidence_ids": [ev["id"]],
             "confidence": confidence(

@@ -1,15 +1,5 @@
 import { Routes } from '@angular/router';
-import { PlaceholderData, PlaceholderPage } from './pages/placeholder.page';
-import { Role } from './core/permissions';
 import { roleGuard } from './core/role.guard';
-
-const page = (path: string, data: PlaceholderData, roles?: Role[]) => ({
-  path,
-  component: PlaceholderPage,
-  data: { ...data, roles },
-  canActivate: [roleGuard],
-  title: `${data.title} – Projekt Kompas`,
-});
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'projekty' },
@@ -23,71 +13,30 @@ export const routes: Routes = [
     title: 'Karta projektu – Projekt Kompas',
     loadComponent: () => import('./features/projects/project-detail/project-detail.page').then((m) => m.ProjectDetailPage),
   },
-  page('import', {
-    title: 'Import i źródła',
-    subtitle: 'Wgrywanie danych i automatyczne wzbogacanie z publicznych źródeł',
-    priority: 'P0',
-    scope: [
-      'Upload XLSX/CSV/PDF/DOCX',
-      'Uruchomienie wzbogacania (BZP + drugie źródło) i ponowienie bez duplikatów',
-      'Raport importu: znaleziono / dopasowano / do sprawdzenia / nie znaleziono / błąd',
-      'Rejestr pobrań: adres, identyfikator, data, wersja',
-    ],
-  }, ['operator']),
-  page('ekspert', {
-    title: 'Expert Studio',
-    subtitle: 'Weryfikacja połączeń, zdarzeń i wzorców',
-    priority: 'P0',
-    scope: [
-      'Kolejka propozycji: dowód obok wniosku',
-      'Akceptuj / popraw / odrzuć / wymaga dowodów',
-      'Historia decyzji (kto, co, kiedy, stara i nowa wartość, powód)',
-      'Zatwierdzanie Risk DNA',
-    ],
-  }, ['expert']),
-  page('analiza', {
-    title: 'Nowa inwestycja',
-    subtitle: 'Analiza planowanego przedsięwzięcia',
-    priority: 'P0',
-    scope: [
-      'Opis tekstowy lub dokumenty (PDF/DOCX)',
-      'Project Twin: podobne inwestycje z uzasadnieniem',
-      'Brakujące informacje, zagrożenie / kompletność / pewność',
-      'Rekomendacje, przedziały odchyleń (tylko gdy próba wystarcza), Risk Graph',
-      'Eksport JSON/CSV',
-    ],
-  }, ['analyst']),
-  page('chaos-lab', {
-    title: 'Chaos Lab',
-    subtitle: 'Testy odporności z zatwierdzonych wzorców Risk DNA',
-    priority: 'P1',
-    scope: [
-      'Scenariusze oparte na zatwierdzonych Risk DNA',
-      'Jawne parametry testu (np. opóźnienie dostępu do działki)',
-      'Wynik: odporne / częściowo / nieudokumentowane / luka krytyczna',
-      'Checklista działań zapobiegawczych',
-    ],
-  }, ['analyst']),
-  page('radar', {
-    title: 'Epidemic Radar',
-    subtitle: 'Kandydaci na powtarzalne wzorce błędów',
-    priority: 'P1',
-    scope: [
-      'Grupy powtarzających się sekwencji ryzyk',
-      'Liczebność próby i ostrzeżenie o ograniczeniach',
-      'Dowody i decyzja eksperta',
-    ],
-  }, ['analyst', 'expert']),
-  page('ustawienia', {
-    title: 'Ustawienia i wiedza ekspercka',
-    subtitle: 'Konfiguracja bez zmian w kodzie',
-    priority: 'P0',
-    scope: [
-      'Katalog ryzyk R01–R15 i propozycje nowych kategorii',
-      'Checklista informacji wg typu i fazy inwestycji',
-      'Wagi podobieństwa',
-      'Konfiguracja modelu i adresów źródeł',
-    ],
-  }, ['expert', 'operator']),
+  {
+    path: 'import', title: 'Import i źródła – Projekt Kompas',
+    canActivate: [roleGuard], data: { roles: ['operator'] },
+    loadComponent: () => import('./features/imports/import.page').then((m) => m.ImportPage),
+  },
+  {
+    path: 'ekspert', title: 'Weryfikacja ekspercka – Projekt Kompas',
+    canActivate: [roleGuard], data: { roles: ['expert'] },
+    loadComponent: () => import('./features/expert/expert.page').then((m) => m.ExpertPage),
+  },
+  {
+    path: 'analiza', title: 'Nowa inwestycja – Projekt Kompas',
+    canActivate: [roleGuard], data: { roles: ['analyst'] },
+    loadComponent: () => import('./features/analysis/analysis.page').then((m) => m.AnalysisPage),
+  },
+  {
+    path: 'analiza/wynik/:id', title: 'Wynik analizy – Projekt Kompas',
+    canActivate: [roleGuard], data: { roles: ['analyst'] },
+    loadComponent: () => import('./features/analysis/assessment.page').then((m) => m.AssessmentPage),
+  },
+  {
+    path: 'ustawienia', title: 'Wiedza sektorowa – Projekt Kompas',
+    canActivate: [roleGuard], data: { roles: ['expert'] },
+    loadComponent: () => import('./features/expert/rules.page').then((m) => m.RulesPage),
+  },
   { path: '**', redirectTo: 'projekty' },
 ];

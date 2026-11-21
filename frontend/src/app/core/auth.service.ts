@@ -10,12 +10,15 @@ function readRole(): Role {
   return 'analyst';
 }
 
-/** Tryb demo: rolę wybiera użytkownik. Po dodaniu GET /me podmieniamy tylko źródło `role`. */
+function readAccessToken(): string {
+  try { return sessionStorage.getItem('risk-miner-access') ?? ''; } catch { return ''; }
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   readonly role = signal<Role>(readRole());
-  /** Token demo dla roli; po dodaniu logowania podmieniamy tylko to źródło. */
-  readonly token = computed(() => environment.roleTokens[this.role()]);
+  readonly accessToken = signal(readAccessToken());
+  readonly token = computed(() => this.accessToken() || environment.roleTokens[this.role()]);
   readonly home = computed(() => ROLES.find((r) => r.value === this.role())!.home);
 
   constructor() {
@@ -26,5 +29,13 @@ export class AuthService {
 
   can(action: Action): boolean {
     return PERMISSIONS[action].includes(this.role());
+  }
+
+  setAccessToken(token: string): void {
+    this.accessToken.set(token.trim());
+    try {
+      if (this.accessToken()) sessionStorage.setItem('risk-miner-access', this.accessToken());
+      else sessionStorage.removeItem('risk-miner-access');
+    } catch { /* brak storage */ }
   }
 }

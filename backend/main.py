@@ -60,7 +60,7 @@ def credentials(mock):
             raise RuntimeError("Ustaw RISK_MINER_TOKENS dla rzeczywistej bazy.")
         return {
             "demo-analyst": {"id": "demo-analyst", "roles": ["analyst"]},
-            "demo-expert": {"id": "demo-expert", "roles": ["expert"]},
+            "demo-expert": {"id": "demo-analyst", "roles": ["expert"]},
             "demo-operator": {"id": "demo-operator", "roles": ["operator"]},
             "demo": {"id": "demo", "roles": sorted(ROLES)},
         }
@@ -623,13 +623,14 @@ def list_reviews(ctx: Ctx):
         if "review_status" in ctx.params
         else {"proposed", "needs_evidence"}
     )
-    visible = {item["id"] for item in projects(ctx.db, ctx.actor)}
+    visible_projects = projects(ctx.db, ctx.actor)
+    visible = {item["id"] for item in visible_projects}
     output = []
     for kind in expert.SCHEMAS:
         if ctx.params.get("target_type", kind) != kind:
             continue
         records = (
-            [(item, item["id"], {}) for item in projects(ctx.db, ctx.actor)]
+            [(item, item["id"], {}) for item in visible_projects]
             if kind == "project"
             else entries(ctx.db, kind, pid)
         )
@@ -637,7 +638,10 @@ def list_reviews(ctx: Ctx):
             if (
                 (scope is None or scope in visible)
                 and (pid is None or scope == pid)
-                and value.get("review_status") in states
+                and (
+                    ctx.params.get("include_all")
+                    or value.get("review_status") in states
+                )
             ):
                 output.append(expert.review_item(kind, value, scope))
     return ctx.page(sorted(output, key=lambda item: item["target_id"]))

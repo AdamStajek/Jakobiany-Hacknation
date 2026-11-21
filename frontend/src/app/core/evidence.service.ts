@@ -1,18 +1,10 @@
 import { Injectable, signal } from '@angular/core';
-import { EvidenceRef } from './models';
 
-/** Globalny stan panelu Evidence Lens: dowolny widok wywołuje open(ref). */
 @Injectable({ providedIn: 'root' })
 export class EvidenceService {
-  readonly current = signal<EvidenceRef | null>(null);
-  readonly visible = signal(false);
+  readonly current = signal<string | null>(null);
 
-  open(ref: EvidenceRef) {
-    this.current.set(ref);
-    this.visible.set(true);
-  }
+  open(id: string) { this.current.set(id); }
 
-  close() {
-    this.visible.set(false);
-  }
+  close() { this.current.set(null); }
 }

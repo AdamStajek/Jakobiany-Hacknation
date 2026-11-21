@@ -52,3 +52,32 @@ button:focus-visible,
   outline: 3px solid var(--p-primary-color);
   outline-offset: 2px;
 }
+
+.panel {
+  display: grid;
+  align-content: start;
+  gap: .65rem;
+  padding: 1rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: .75rem;
+}
+.panel h2 { font-size: 1.15rem; font-weight: 700; margin: 0; }
+.panel input:not([type=checkbox]), .panel textarea, .panel select {
+  border: 1px solid var(--p-content-border-color);
+  border-radius: .4rem;
+  background: var(--p-content-background);
+  padding: .5rem .65rem;
+  min-width: 0;
+  max-width: 100%;
+}
+.action {
+  justify-self: start;
+  align-self: start;
+  padding: .45rem .75rem;
+  border-radius: .4rem;
+  background: var(--p-primary-color);
+  color: var(--p-primary-contrast-color);
+  cursor: pointer;
+  font-weight: 600;
+}
+.action:disabled { opacity: .55; cursor: default; }

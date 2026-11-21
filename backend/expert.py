@@ -1,6 +1,7 @@
 from contract import schema_fields, validate
 from domain import active_rules, grounded_ids
 from enrichment import extract_linked_notices
+from intake import external
 from store import (
     ACCEPTED,
     Problem,
@@ -80,11 +81,14 @@ def editable_fields(kind):
     fields = schema_fields(SCHEMAS[kind]) - SERVER_FIELDS
     if kind in {"risk", "recommendation"}:
         fields.add("kind")
+    if kind == "project":
+        fields.add("external_ids")
     return fields
 
 
 def validate_relationships(db, actor, kind, value, project_id, approving=False):
-    validate(value, SCHEMAS[kind])
+    # Document versions are stored separately and joined by project_detail.
+    validate({**value, "versions": []} if kind == "document" else value, SCHEMAS[kind])
     evidence_ids = grounded_ids([value])
     proofs = []
     for evidence_id in evidence_ids:
@@ -116,7 +120,11 @@ def validate_relationships(db, actor, kind, value, project_id, approving=False):
     ] + value.get("related_to", [])
     for relation in relations:
         entity, key = relation["type"], relation["id"]
-        scope = target(db, entity, key, actor)[1]
+        scope = (
+            record(db, entity, key, actor)[1]
+            if entity == "gap"
+            else target(db, entity, key, actor)[1]
+        )
         if scope not in {None, project_id}:
             if (
                 kind != "recommendation"
@@ -324,6 +332,10 @@ def decide(db, actor, body):
             value.pop("approved_at", None)
     if approved or changes:
         validate_relationships(db, actor, kind, value, project_id, approved)
+    if "external_ids" in changes:
+        value["external_ids"] = [
+            external(item["scheme"], item["value"]) for item in value["external_ids"]
+        ]
     revision(db, kind, {**old, "revision": before["revision"]}, project_id)
     if kind == "project":
         put_project(db, value)

@@ -4,7 +4,7 @@ import { Observable, map } from 'rxjs';
 import { ApiClient, PageQuery } from './api-client';
 import {
   Assessment, AssessmentInput, Decision, DecisionInput, DocumentVersion, Evidence, Fact, Job, Page, Project,
-  ProjectDetail, ProjectInput, ReviewItem, Risk, SectorRules, SectorRulesInput, Twin, InformationCheck,
+  ProjectDetail, ProjectInput, ReviewItem, Risk, Schemas, SectorRules, SectorRulesInput, Twin, InformationCheck,
 } from './types';
 
 /** Odpowiedź 202: adres zadania z nagłówka Location. */
@@ -23,7 +23,9 @@ export class ProjectsApi {
   update(id: string, project: ProjectInput, expectedRevision: number) {
     return this.api.put<Project>(`/projects/${id}`, { expected_revision: expectedRevision, project });
   }
-  enrich(id: string, key?: string) { return this.api.postAccepted<Job>(`/projects/${id}/enrich`, {}, key).pipe(toAccepted); }
+  enrich(id: string, key?: string, references: Schemas['ExternalId'][] = []) {
+    return this.api.postAccepted<Job>(`/projects/${encodeURIComponent(id)}/enrich`, { references }, key).pipe(toAccepted);
+  }
   uploadDocument(id: string, file: File, opts: { documentId?: string; documentType?: string } = {}, key?: string) {
     const fd = new FormData();
     fd.append('file', file);
@@ -74,7 +76,7 @@ export class ExpertApi {
   private readonly api = inject(ApiClient);
   reviews(q: PageQuery) { return this.api.page<ReviewItem>('/expert/reviews', q); }
   decide(body: DecisionInput, key?: string) { return this.api.post<Decision>('/expert/decisions', body, key ? { 'Idempotency-Key': key } : undefined); }
-  decisions(q: { target_type: string; target_id: string; project_id: string } & PageQuery) {
+  decisions(q: { target_type: string; target_id: string } & PageQuery) {
     return this.api.page<Decision>('/expert/decisions', q);
   }
   createRecord(body: unknown) { return this.api.post<ReviewItem>('/expert/records', body); }
@@ -83,7 +85,7 @@ export class ExpertApi {
 @Injectable({ providedIn: 'root' })
 export class RulesApi {
   private readonly api = inject(ApiClient);
-  list(q: PageQuery = {}) { return this.api.page<SectorRules>('/sector-rules', q); }
+  list(q: PageQuery = {}) { return this.api.get<SectorRules[]>('/sector-rules', q); }
   propose(body: SectorRulesInput) { return this.api.post<SectorRules>('/sector-rules', body); }
 }
 
@@ -93,7 +95,7 @@ export class AssessmentsApi {
   list(q: PageQuery) { return this.api.page<Assessment>('/assessments', q); }
   get(id: string) { return this.api.get<Assessment>(`/assessments/${id}`); }
   create(body: AssessmentInput, key?: string) { return this.api.postAccepted<Job>('/assessments', body, key).pipe(toAccepted); }
-  twins(id: string, q: PageQuery = {}) { return this.api.page<Twin>(`/assessments/${id}/twins`, q); }
-  gaps(id: string, q: PageQuery = {}) { return this.api.page<InformationCheck>(`/assessments/${id}/gaps`, q); }
+  twins(id: string) { return this.api.get<Twin[]>(`/assessments/${id}/twins`); }
+  gaps(id: string, q: PageQuery = {}) { return this.api.get<InformationCheck[]>(`/assessments/${id}/gaps`, q); }
   export(id: string, format: 'json' | 'csv') { return this.api.blob(`/assessments/${id}/export`, { format }); }
 }

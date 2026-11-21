@@ -7,7 +7,7 @@ type Kind = ClaimType | EventKind | ExpertStatus;
 const MAP: Record<Kind, { label: string; severity: 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' }> = {
   SOURCE_FACT: { label: 'Potwierdzone w źródle', severity: 'success' },
   CALCULATED: { label: 'Obliczone', severity: 'info' },
-  MODEL_INFERENCE: { label: 'Wniosek AI', severity: 'warn' },
+  MODEL_INFERENCE: { label: 'Wniosek modelu', severity: 'warn' },
   OBSERVED_EVENT: { label: 'Zdarzenie zaobserwowane', severity: 'contrast' },
   POTENTIAL_RISK: { label: 'Ryzyko potencjalne', severity: 'secondary' },
   proposed: { label: 'Do weryfikacji', severity: 'warn' },

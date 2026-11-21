@@ -12,7 +12,7 @@ export interface SourceGroup {
 
 const GROUPS: Pick<SourceGroup, 'key' | 'title' | 'description'>[] = [
   { key: 'bzp', title: 'BZP (e-Zamówienia)', description: 'Ogłoszenia i identyfikatory postępowań' },
-  { key: 'documents', title: 'Dokumenty zamówień', description: 'Wgrane pliki PDF/DOCX' },
+  { key: 'documents', title: 'Dokumenty zamówień', description: 'Wgrane pliki PDF, DOC i DOCX' },
   { key: 'kpo', title: 'Wykaz UE/KPO', description: 'Identyfikatory projektów z wykazu' },
   { key: 'teryt', title: 'TERYT', description: 'Lokalizacja robót (kod regionu)' },
   { key: 'bdl', title: 'GUS BDL', description: 'Wskaźniki geograficzne (geo_signals)' },

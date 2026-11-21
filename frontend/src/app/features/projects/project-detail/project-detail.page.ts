@@ -5,6 +5,7 @@ import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 import { ProjectsApi } from '../../../core/api/apis';
+import { AuthService } from '../../../core/auth.service';
 import { ApiError, ProjectDetail } from '../../../core/api/types';
 import { saveBlob } from '../../../core/download';
 import { ID_SCHEME_LABEL } from '../../../core/labels';
@@ -48,6 +49,11 @@ type TabId = (typeof TABS)[number]['value'];
               <p-button label="Eksport CSV" icon="pi pi-download" size="small" severity="secondary" [loading]="exporting() === 'csv'" (onClick)="export('csv')" />
             </div>
           </div>
+          <div class="flex flex-wrap gap-3 text-sm">
+            @if (d.kind === 'planned' && auth.can('analyse')) { <a routerLink="/analiza" [queryParams]="{ projekt: d.id }">Edytuj i analizuj</a> }
+            @if (auth.can('decide')) { <a routerLink="/ekspert" [queryParams]="{ projekt: d.id }">Weryfikuj i edytuj rekordy</a> }
+            @if (auth.can('enrich')) { <a routerLink="/import" [queryParams]="{ projekt: d.id }">Odśwież źródła</a> }
+          </div>
           <div class="flex flex-wrap items-center gap-2">
             <app-status-badge type="project" [value]="d.status" />
             @if (d.enrichment_status) { <app-status-badge type="match" [value]="d.enrichment_status" /> }
@@ -68,7 +74,10 @@ type TabId = (typeof TABS)[number]['value'];
             @case ('structure') { <app-structure-tab [procedures]="d.procedures" /> }
             @case ('timeline') { <app-timeline-tab [events]="d.timeline" /> }
             @case ('risks') { <app-risks-tab [projectId]="d.id" /> }
-            @case ('documents') { <app-documents-tab [documents]="d.documents" /> }
+            @case ('documents') {
+              <app-documents-tab [documents]="d.documents" [projectId]="d.id"
+                [canUpload]="auth.can('decide') || (d.kind === 'planned' && auth.can('analyse'))" (changed)="load(false)" />
+            }
             @case ('links') { <app-links-tab [links]="d.links" /> }
             @case ('facts') { <app-facts-tab [projectId]="d.id" /> }
             @case ('sources') { <app-sources-tab [detail]="d" /> }
@@ -85,6 +94,7 @@ export class ProjectDetailPage {
   private readonly api = inject(ProjectsApi);
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
+  protected readonly auth = inject(AuthService);
 
   protected readonly tabs = TABS;
   protected readonly scheme = ID_SCHEME_LABEL;
@@ -96,8 +106,8 @@ export class ProjectDetailPage {
 
   constructor() { effect(() => { this.id(); this.load(); }); }
 
-  protected load() {
-    this.loading.set(true);
+  protected load(showLoading = true) {
+    this.loading.set(showLoading);
     this.error.set(null);
     this.api.get(this.id()).subscribe({
       next: (d) => { this.detail.set(d); this.loading.set(false); },

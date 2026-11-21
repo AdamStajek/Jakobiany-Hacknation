@@ -66,7 +66,7 @@ paths:
       operationId: createImport
       summary: Importuj projekty i uruchom wzbogacanie (P0, operator)
       description: |
-        Przyjmuje XLSX lub CSV UTF-8 z nagłówkami arkusza Projekty. Waliduje co najmniej
+        Przyjmuje XLS, XLSX lub CSV UTF-8 z nagłówkami arkusza Projekty. Waliduje co najmniej
         Identyfikator rekordu, Nazwę przedsięwzięcia oraz parę rodzaju i wartości
         identyfikatora publicznego. Zachowuje oryginalne wartości i pozycję wiersza.
         Upsert po Identyfikatorze rekordu zachowuje poprzednie wersje i decyzje eksperta.
@@ -239,7 +239,7 @@ paths:
       operationId: uploadDocument
       summary: Dodaj dokument lub nową wersję (P0)
       description: |
-        Przyjmuje DOCX lub PDF z warstwą tekstową. Ten sam dokument i hash pliku
+        Przyjmuje DOC, DOCX lub PDF z warstwą tekstową. Ten sam dokument i hash pliku
         zwracają istniejącą wersję. document_id pozwala dołączyć kolejną wersję do
         dokumentu danego projektu. Zapisuje typ, wersję, hierarchię i pochodzenie.
         Uruchamia ekstrakcję oraz aktualizację zależnych faktów i zdarzeń. Wyniki
@@ -294,6 +294,8 @@ paths:
               schema: {type: string}
           content:
             application/pdf:
+              schema: {type: string, format: binary}
+            application/msword:
               schema: {type: string, format: binary}
             application/vnd.openxmlformats-officedocument.wordprocessingml.document:
               schema: {type: string, format: binary}
@@ -362,6 +364,7 @@ paths:
       operationId: listReviews
       summary: Odczytaj kolejkę weryfikacji (P0, ekspert)
       parameters:
+        - {name: include_all, in: query, description: Uwzględnij wszystkie dane wejściowe i stany weryfikacji., schema: {type: boolean, default: false}}
         - {name: project_id, in: query, schema: {$ref: '#/components/schemas/Id'}}
         - {name: target_type, in: query, schema: {$ref: '#/components/schemas/ReviewTargetType'}}
         - {$ref: '#/components/parameters/ReviewStatus'}
@@ -1102,6 +1105,7 @@ components:
       properties:
         id: {$ref: '#/components/schemas/Id'}
         document_type: {type: string}
+        exemplar: {type: boolean, description: Ekspert oznaczył dokument jako materiał wzorcowy.}
         current_version_id: {$ref: '#/components/schemas/Id'}
         related_to: {type: array, items: {$ref: '#/components/schemas/ResourceRef'}}
         versions: {type: array, items: {$ref: '#/components/schemas/DocumentVersion'}}
@@ -1164,7 +1168,7 @@ components:
             - type: object
               required: [kind, paragraph]
               properties:
-                kind: {const: docx}
+                kind: {enum: [doc, docx]}
                 paragraph: {type: string, description: Stabilny identyfikator akapitu w danej wersji.}
             - type: object
               required: [kind, row]
@@ -1193,7 +1197,7 @@ components:
             properties:
               locator:
                 properties:
-                  kind: {enum: [pdf, docx]}
+                  kind: {enum: [pdf, doc, docx]}
           then:
             required: [document_id, document_version_id]
     ResourceRef:
@@ -1348,7 +1352,7 @@ components:
         project_id: {$ref: '#/components/schemas/Id'}
         revision: {$ref: '#/components/schemas/Revision'}
         review_status: {$ref: '#/components/schemas/ReviewStatus'}
-        value: {type: object, description: Bieżąca reprezentacja zasobu danego typu.}
+        value: {type: object, additionalProperties: true, description: Bieżąca reprezentacja zasobu danego typu.}
         evidence_ids: {$ref: '#/components/schemas/EvidenceIds'}
     DecisionInput:
       type: object
@@ -1362,6 +1366,7 @@ components:
         reason: {type: string, minLength: 1}
         changes:
           type: object
+          additionalProperties: true
           minProperties: 1
           description: |
             Zastępuje wskazane pola edytowalne w obrębie danej rewizji. Tablice

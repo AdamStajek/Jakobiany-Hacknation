@@ -32,7 +32,7 @@ from store import (
     values,
 )
 
-METHOD = "rules-and-weighted-features/1"
+METHOD = "rules-and-weighted-features/2"
 STATE_COVERAGE = {
     "confirmed": 1,
     "confirmed_not_done": 1,
@@ -196,7 +196,7 @@ def prepare(db, actor, project_id, requested):
         item
         for item, _, meta in entries(db, "recommendation", project_id)
         if item["review_status"] in ACCEPTED
-        and not meta.get("assessment_id")
+        and (not meta.get("assessment_id") or package["id"] in item["evidence_ids"])
         and applicable(item["evidence_ids"])
     ]
     corpus = []
@@ -250,7 +250,21 @@ def prepare(db, actor, project_id, requested):
                     for item in risk.get("related_to", [])
                 )
             ]
-            corpus.append({"project": candidate, "facts": approved, "risks": history})
+            clauses = [
+                item
+                for item in values(db, "recommendation", candidate["id"])
+                if item["review_status"] in ACCEPTED
+                and item["kind"] == "proposed_clause"
+                and item.get("proposed_clause")
+            ]
+            corpus.append(
+                {
+                    "project": candidate,
+                    "facts": approved,
+                    "risks": history,
+                    "clauses": clauses,
+                }
+            )
     return {
         "project": value,
         "snapshot": {
@@ -693,7 +707,20 @@ def evaluate(db, assessment_id, actor, data):
     for twin in twins[:3]:
         if twin["project_id"] not in comparable:
             continue
-        for event in corpus[twin["project_id"]]["risks"]:
+        case = corpus[twin["project_id"]]
+        for clause in case.get("clauses", []):
+            historical = ref("project", twin["project_id"])
+            recommendations.append(
+                {
+                    **clause,
+                    **review_fields(identifier("rec", assessment_id, clause["id"])),
+                    "rationale": f"Wzorzec zatwierdzony dla przypadku {twin['project_id']}. {clause['rationale']}",
+                    "related_to": clause["related_to"]
+                    if historical in clause["related_to"]
+                    else clause["related_to"] + [historical],
+                }
+            )
+        for event in case["risks"]:
             code = event["risk_code"]
             if code not in relevant_codes:
                 continue
