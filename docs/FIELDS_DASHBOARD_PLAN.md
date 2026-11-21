@@ -6,7 +6,7 @@ Status: propozycja do uzgodnienia · Wariant C z porównania układów, po wdro�
 
 Zalogowany użytkownik zapisuje **pola**, prowadzi na nich dane i dostaje **powiadomienia, gdy na polu trzeba coś zrobić**. Pole to nazwany obszar, który można zdefiniować na trzy sposoby i dalej rozbudowywać o własne dane. Paszport przestaje być osobną listą: jest zakładką **jednego wybranego pola**.
 
-**Logowanie jest opcjonalne.** Rdzeń aplikacji działa bez konta, a konto dokłada funkcje. **Konta zakładamy my** (na start: `user/user` i `admin/admin`, patrz §3.2); samodzielna rejestracja nie wchodzi w pierwszą wersję.
+**Logowanie jest opcjonalne.** Rdzeń aplikacji działa bez konta, a konto dokłada funkcje. **Użytkownik rejestruje się sam** (e-mail lub nazwa + hasło, §3.2); e-mail służy do powiadomień.
 
 | | Gość (bez logowania) | Zalogowany |
 |---|---|---|
@@ -19,7 +19,6 @@ Zalogowany użytkownik zapisuje **pola**, prowadzi na nich dane i dostaje **powi
 | Dane pola: deklaracje, strefy, notatki, historia analiz | nie | tak |
 | Zadania z terminem i powiadomienia | nie | tak |
 | Dostęp z wielu urządzeń, eksport i kasowanie danych | nie | tak |
-| Zakładanie kont i podgląd użytkowników | nie | tylko rola `admin` |
 
 Zasady:
 - Żaden dotychczasowy przepływ nie wymaga logowania. Brak konta nigdy nie blokuje analizy.
@@ -59,17 +58,13 @@ Magazyn: osobny plik SQLite (`app.sqlite`, obok cache z `wodo/store.py`), migrac
 ### 3.1 Struktura
 Nowe pakiety: `backend/wodo/auth/` (logowanie, sesje), `backend/wodo/fields/` (pola i ich dane), `backend/wodo/notify/` (reguły, kolejka, wysyłka). Każdy z własnym `APIRouter` podpiętym w `main.py` (ma już ~490 linii, nie dokładamy tam endpointów).
 
-### 3.2 Logowanie (opcjonalne, konta zakładamy my)
-- **Login i hasło.** Na start nie ma rejestracji ani wysyłki e-maili, więc odpada link na pocztę i SMTP z pierwszej wersji. Hasła w bazie wyłącznie jako hash (`hashlib.scrypt` z biblioteki standardowej, osobna sól na użytkownika; bez nowych zależności).
-- **Konta startowe** zakładane skryptem inicjalizującym przy pierwszym uruchomieniu (`user/user`, rola `user`; `admin/admin`, rola `admin`). To dane wyłącznie na potrzeby startu i pokazu:
-  - skrypt nie nadpisuje istniejących kont i bierze nazwy/hasła ze zmiennych środowiskowych (`WODO_SEED_USERS`), a domyślne `user/user` i `admin/admin` stosuje tylko, gdy zmiennej nie ma i serwer działa w trybie deweloperskim/demo,
-  - oba konta mają `must_change_password`: przy pierwszym logowaniu UI wymusza nowe hasło **dla `admin`**; dla `user` pozostaje decyzja zespołu (patrz §7),
-  - przed publicznym wdrożeniem hasła domyślne muszą zniknąć (punkt kontrolny w etapie 8; serwer w trybie produkcyjnym odmawia startu z domyślnym hasłem admina).
-- `POST /api/auth/login {username, password}` → sesja: ciasteczko **HttpOnly, Secure, SameSite=Lax**, sesja po stronie serwera (w bazie tylko hash), rotacja przy logowaniu, wygasanie po 30 dniach bezczynności. `POST /api/auth/logout`, `GET /api/me`, `POST /api/me/password`.
-- Ochrona: limity prób logowania na użytkownika i IP z rosnącym opóźnieniem, jednakowa odpowiedź dla błędnego loginu i hasła, nagłówek `X-Requested-With` dla żądań zmieniających stan, ten sam origin (proxy), brak CORS.
-- **Rola `admin`:** `GET/POST/PATCH /api/admin/users` (zakładanie konta, reset hasła, wyłączenie konta), lista kont. Bez dostępu do geometrii i danych pól innych użytkowników. Prosty ekran w aplikacji (`/konto/uzytkownicy`).
-- Usunięcie danych: `DELETE /api/me` usuwa konto, pola, migawki i powiadomienia (admin może zrobić to na prośbę użytkownika).
-- Później (poza pierwszą wersją): samodzielna rejestracja i odzyskiwanie hasła e-mailem (logowanie przez zewnętrznych dostawców odpuszczamy). Model `user` jest na to gotowy.
+### 3.2 Logowanie (opcjonalne, samodzielna rejestracja)
+Decyzja: użytkownik rejestruje się sam (e-mail, nazwa, hasło), loguje e-mailem **lub** nazwą. E-mail służy do powiadomień, więc konto działa od razu, ale wiadomości o polach idą dopiero po potwierdzeniu adresu. Konta domyślne (`user/user`, `admin/admin`) **nie istnieją**; nie ma też seedowania haseł. Wdrożone w `backend/wodo/auth` (opis i zmienne env: `backend/README.md`).
+- Hasła wyłącznie jako hash (`hashlib.scrypt`, osobna sól, min. 10 znaków), bez nowych zależności. Baza: SQLite ze standardowej biblioteki (`WODO_DATA_DIR`, poza gitem).
+- Kontrakt: `POST /api/auth/register {email, username, password}` (201, ustawia sesję, wysyła link potwierdzający), `POST /api/auth/verify {token}`, `POST /api/auth/resend-verification` (sesja), `POST /api/auth/login {identifier, password}`, `POST /api/auth/logout`, `POST /api/auth/forgot {email}` (zawsze 202), `POST /api/auth/reset {token, password}`, `GET /api/me` → `{id, email, username, email_verified, role}`, `POST /api/me/password {current, new}`, `DELETE /api/me`, `GET/PATCH /api/me/notifications {email_enabled}`.
+- Sesja: ciasteczko `wodo_session` **HttpOnly, SameSite=Lax, Secure** (poza `WODO_ENV=dev`), po stronie serwera w bazie tylko hash tokenu, wygasa po 30 dniach bezczynności; zmiana lub reset hasła kończy pozostałe sesje.
+- Ochrona: jednakowy błąd dla złego loginu i hasła, limity prób (na identyfikator i IP) z rosnącym opóźnieniem i `Retry-After`, nagłówek `X-Requested-With` dla żądań zmieniających stan, ten sam origin (proxy), brak CORS. Rola `admin` istnieje w modelu, ale ekran i `/api/admin/users` nie są częścią tej wersji.
+- Usunięcie danych: `DELETE /api/me` usuwa konto, pola i wpisy powiadomień.
 - **Zależność od ciasteczka tylko dla endpointów kont i pól.** Endpointy rdzenia (`/api/parcels/*`, `/api/analysis*`, `/api/passport*`, `/api/crops`, `/api/health`) pozostają publiczne, bez zmian kontraktu.
 
 ### 3.3 Endpointy pól (wymagają sesji)
@@ -178,8 +173,8 @@ Etapy 1–3 dają użyteczny produkt; 6 jest minimum dla obietnicy powiadomień;
 ## 6. Ryzyka
 
 - **Rdzeń nie może zależeć od konta** — testy kontraktowe publicznych endpointów bez sesji, strażnik tras tylko dla `/pola*` i `/konto`.
-- **Hasła domyślne `user/user` i `admin/admin`** są znane każdemu, kto czyta repozytorium. Dopuszczalne wyłącznie na lokalnym starcie i w demo bez prawdziwych danych; wymuszona zmiana hasła admina, odmowa startu produkcyjnego z hasłem domyślnym, punkt kontrolny w etapie 8.
-- **Brak odzyskiwania hasła** — reset wykonuje admin; do czasu e-maila trzeba to opisać w UI.
+- **Otwarta rejestracja** — nadużycia i spam: limity prób, potwierdzenie e-mail przed powiadomieniami, przegląd bezpieczeństwa przed publicznym startem.
+- **Dostarczalność e-maili** — SPF/DKIM i limity darmowego dostawcy SMTP.
 - **Obciążenie źródeł danych** przy nocnym odświeżaniu — limity pól, kolejka, cache, rozłożenie w czasie.
 - **Fałszywe alarmy** (zmęczenie powiadomieniami) — progi z modelu, deduplikacja, domyślnie tylko w aplikacji, jasne „dlaczego” przy każdym.
 - **Kolizja z równoległymi pracami** nad `backend/wodo/analysis.py`, `passport.py` i `core/api/*` — nowe moduły w osobnych plikach, zmiany w `ApiService` w małych, osobnych commitach.
@@ -189,12 +184,13 @@ Etapy 1–3 dają użyteczny produkt; 6 jest minimum dla obietnicy powiadomień;
 ## 7. Decyzje
 
 Ustalone:
-- Konta zakładamy my; na start `user/user` i `admin/admin`, bez rejestracji i bez e-maili (§3.2).
+- Samodzielna rejestracja i logowanie e-mailem lub nazwą; brak kont i haseł domyślnych; e-mail do powiadomień (§3.2). Zastępuje wcześniejszy pomysł „kont ręcznych”.
+- Wysyłka e-maili: SMTP z env, lokalnie Mailpit, we wdrożeniu darmowy dostawca (`backend/README.md`).
 - Gość może trzymać pola w przeglądarce, z przeniesieniem na konto po zalogowaniu.
 - Powiadomienia rozwijamy na sygnałach, które aplikacja już liczy; braki i pomysły zbieramy w `TODO/`.
 
 Do podjęcia przed startem:
-1. Czy `user/user` też wymusza zmianę hasła (wygodniejsze demo kontra bezpieczeństwo)?
+1. ~~Hasła domyślne~~ — nieaktualne, kont domyślnych nie ma.
 2. Czy pole może łączyć działki rozłączne, czy tylko sąsiadujące?
 3. Czy zdjęcia i załączniki wchodzą w zakres (wymaga magazynu plików)?
 4. Czy w pierwszej wersji pole ma ograniczenie liczby na użytkownika (np. 20) ze względu na nocne odświeżanie?

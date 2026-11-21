@@ -21,7 +21,7 @@ Pierwsza wersja używa tylko sygnałów, które analiza już liczy (lista w sekc
 
 ## Kanały
 
-- [ ] **E-mail** — opcjonalny adres w koncie, SMTP, podsumowania dzienne/tygodniowe, link „wypisz się”. Zależy od: wyboru dostawcy (darmowy/open source). Priorytet: P1. Właściciel: —.
+- [ ] **E-mail** — adres w koncie, SMTP (wdrożone: potwierdzenie, reset, „pole wymaga uwagi” z `python -m wodo.notify`), podsumowania dzienne/tygodniowe, link „wypisz się”. Zależy od: wyboru dostawcy (darmowy/open source). Priorytet: P1. Właściciel: —.
 - [ ] **Web Push (PWA)** — manifest, service worker, klucze VAPID, zgoda przy pierwszym powiadomieniu. Priorytet: P2. Właściciel: —.
 - [ ] **Godziny ciszy i strefa czasowa użytkownika.** Priorytet: P2. Właściciel: —.
 - [ ] **Powiadomienia SMS/komunikatory** — tylko jeśli będzie zapotrzebowanie; wymaga płatnej bramki, więc poza zasadą „darmowe” bez osobnej decyzji. Priorytet: —. Właściciel: —.
