@@ -10,6 +10,6 @@ export class ConfidenceChip {
   readonly level = input.required<string>();
   protected readonly severity = computed(() => {
     const value = this.level().toLowerCase();
-    return value.startsWith('wys') ? 'success' : value.startsWith('śr') ? 'warn' : 'danger';
+    return value.startsWith('wys') ? 'success' : value.startsWith('umi') || value.startsWith('śr') ? 'warn' : 'danger';
   });
 }

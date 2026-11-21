@@ -1,0 +1,117 @@
+import { Component, effect, inject } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ButtonModule } from 'primeng/button';
+import { CheckboxModule } from 'primeng/checkbox';
+import { MessageModule } from 'primeng/message';
+import { PanelModule } from 'primeng/panel';
+import { ProgressBarModule } from 'primeng/progressbar';
+import { SelectModule } from 'primeng/select';
+import { AnalysisStore } from '../../core/state/analysis.store';
+import { ParcelStore } from '../../core/state/parcel.store';
+
+const STAGES = ['Początek wzrostu', 'Rozwój', 'Pełnia wzrostu', 'Dojrzewanie', 'Poza sezonem'];
+
+@Component({
+  selector: 'app-analysis-form',
+  imports: [ReactiveFormsModule, ButtonModule, CheckboxModule, MessageModule, PanelModule, ProgressBarModule, SelectModule],
+  template: `
+    <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3" aria-labelledby="form-title">
+      <h2 id="form-title" class="text-lg font-semibold">2. Podaj uprawę i datę</h2>
+      <p class="text-sm text-muted-color">Wybierz dziś lub dzień z ostatnich 10 lat.</p>
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+        <div class="flex flex-col gap-1">
+          <label for="crop" class="text-sm font-medium">Rodzaj uprawy</label>
+          <p-select inputId="crop" formControlName="crop" [options]="store.crops()" optionLabel="label" optionValue="id"
+            appendTo="body" styleClass="w-full" placeholder="Wybierz uprawę" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label for="day" class="text-sm font-medium">Data analizy</label>
+          <input id="day" type="date" formControlName="date" required class="p-inputtext p-component w-full"
+            [min]="store.range().min" [max]="store.range().max" />
+        </div>
+      </div>
+
+      <p-panel header="Dodaj informacje o polu" [toggleable]="true" [collapsed]="true">
+        <div class="space-y-3">
+          <div class="flex flex-col gap-1">
+            <label for="stage" class="text-sm font-medium">Faza uprawy</label>
+            <p-select inputId="stage" formControlName="stage" [options]="stages" optionLabel="label" optionValue="value"
+              appendTo="body" styleClass="w-full" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label for="sowing" class="text-sm font-medium">Siew lub wznowienie wegetacji</label>
+            <input id="sowing" type="date" formControlName="sowing" class="p-inputtext p-component w-full" [max]="form.controls.date.value" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label for="soil" class="text-sm font-medium">Co widzisz po sprawdzeniu gleby?</label>
+            <p-select inputId="soil" formControlName="soil_observation" [options]="soilOptions" optionLabel="label" optionValue="value"
+              appendTo="body" styleClass="w-full" />
+          </div>
+          <div class="flex items-center gap-2">
+            <p-checkbox inputId="irrigation" formControlName="irrigation" [binary]="true" />
+            <label for="irrigation" class="text-sm">Mam możliwość nawadniania</label>
+          </div>
+          @if (form.controls.irrigation.value) {
+            <div class="flex flex-col gap-1">
+              <label for="irrigation-mm" class="text-sm font-medium">Woda z nawadniania w dniu analizy [mm]</label>
+              <input id="irrigation-mm" type="number" min="0" max="150" step="0.1" formControlName="irrigation_mm" class="p-inputtext p-component w-full" />
+            </div>
+          }
+          <div class="flex flex-col gap-1">
+            <label for="scenario" class="text-sm font-medium">Co jeśli zatrzymam dodatkowy opad? [mm]</label>
+            <input id="scenario" type="number" min="0" max="50" step="0.5" formControlName="scenario_mm" placeholder="np. 10" class="p-inputtext p-component w-full" />
+          </div>
+          <div class="flex items-start gap-2">
+            <p-checkbox inputId="confirm" formControlName="confirm_land" [binary]="true" />
+            <label for="confirm" class="text-sm">Potwierdzam uprawę, jeśli mapa wskazuje inne użytkowanie</label>
+          </div>
+        </div>
+      </p-panel>
+
+      <p-button type="submit" styleClass="w-full" icon="pi pi-chart-line" label="Analizuj gospodarowanie wodą"
+        [loading]="store.running()" [disabled]="!parcels.parcel() || form.invalid || store.running() || parcels.loading()" />
+      @if (!parcels.parcel()) { <p class="text-xs text-muted-color">Najpierw wybierz działkę (krok 1).</p> }
+      @if (store.running()) {
+        <div role="status" class="space-y-2"><p-progressbar mode="indeterminate" [style]="{height: '6px'}" /><p class="text-sm text-muted-color">{{store.progress()}}</p></div>
+      }
+      @if (store.error()) { <p-message severity="error" role="alert">{{store.error()}}</p-message> }
+    </form>
+  `,
+})
+export class AnalysisForm {
+  protected readonly store = inject(AnalysisStore);
+  protected readonly parcels = inject(ParcelStore);
+  private readonly fb = inject(FormBuilder).nonNullable;
+
+  protected readonly stages = [{label: 'Z kalendarza', value: null as number | null},
+    ...STAGES.map((label, value) => ({label, value: value as number | null}))];
+  protected readonly soilOptions = [
+    {label: 'Nie sprawdzono', value: null as 'dry' | 'moist' | 'wet' | null},
+    {label: 'Sucha', value: 'dry' as 'dry' | 'moist' | 'wet' | null},
+    {label: 'Wilgotna', value: 'moist' as 'dry' | 'moist' | 'wet' | null},
+    {label: 'Mokra lub miejscami stoi woda', value: 'wet' as 'dry' | 'moist' | 'wet' | null},
+  ];
+  protected readonly form = this.fb.group({
+    crop: ['wheat', Validators.required], date: ['', Validators.required], stage: [null as number | null], sowing: [''],
+    soil_observation: [null as 'dry' | 'moist' | 'wet' | null], irrigation: [false], irrigation_mm: [0],
+    scenario_mm: [0], confirm_land: [false],
+  });
+
+  constructor() {
+    void this.store.init();
+    effect(() => {
+      const max = this.store.range().max;
+      if (max && !this.form.controls.date.value) this.form.controls.date.setValue(max);
+    });
+  }
+
+  protected submit() {
+    if (this.form.invalid) return;
+    const v = this.form.getRawValue();
+    void this.store.analyze({
+      crop: v.crop, date: v.date, stage: v.stage, sowing: v.sowing || null, irrigation: v.irrigation,
+      irrigation_mm: v.irrigation ? v.irrigation_mm ?? 0 : 0, scenario_mm: v.scenario_mm ?? 0,
+      confirm_land: v.confirm_land, soil_observation: v.soil_observation,
+    });
+  }
+}
