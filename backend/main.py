@@ -24,9 +24,12 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from wodo import parcels_data
 from wodo.analysis import SOURCE_LABELS, run
+from wodo.auth.router import router as auth_router
 from wodo.farmer_report import report_message
 from wodo.field_analysis import analyze_field
+from wodo.fields.router import router as fields_router
 from wodo.geo import PARCEL_ID, by_point, imported, lookup
+from wodo.notify.router import router as notify_router
 from wodo.passport import collect, farmer_questions
 from wodo.report import pdf
 from wodo.science import CROPS, years_ago
@@ -35,6 +38,8 @@ from wodo.store import SourceError, read, timestamp, write
 app = FastAPI(title="WodoStrażnik", version="1.0.0")
 analysis_slots = BoundedSemaphore(2)
 buckets = OrderedDict()
+for router in (auth_router, fields_router, notify_router):
+    app.include_router(router)
 
 
 def today():

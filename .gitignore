@@ -49,3 +49,6 @@ data/parcels/
 # Claude Code agent worktrees (nie commitować)
 .claude/worktrees/
 .claude/settings.local.json
+
+# Dane kont i pól (SQLite, outbox e-mail)
+.wodo-data/
