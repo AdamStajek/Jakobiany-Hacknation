@@ -12,6 +12,7 @@ dependencies = [
     "reportlab>=5.1.0",
     "shapely>=2.2.0",
     "uvicorn",
+    "websockets>=15",
 ]
 
 [dependency-groups]

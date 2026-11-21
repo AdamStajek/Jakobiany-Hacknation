@@ -19,5 +19,6 @@ Najważniejsze, skrótowo:
 ## Zasady ogólne
 
 - Nie dodawaj do commitów ani opisów PR linii atrybucji narzędzi AI (`Co-Authored-By: …`, „Generated with …”).
+- Procesy trwające > 2 s (analizy, raporty, budowa indeksów) muszą raportować postęp przez WebSocket. Zasady, wzorce i budżet czasu: [`docs/LONG_RUNNING.md`](docs/LONG_RUNNING.md).
 - Małe, ukierunkowane zmiany; bez niezwiązanych refaktorów.
 - Dane i biblioteki wyłącznie darmowe/open source, bez kluczy API.

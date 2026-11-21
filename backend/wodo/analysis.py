@@ -1,9 +1,10 @@
 import logging
-from concurrent.futures import ThreadPoolExecutor, wait
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from datetime import date, timedelta
 from statistics import median
+from time import monotonic
 
-from wodo.science import CROPS, STAGES, assess, bucket, phenology
+from wodo.science import CROPS, STAGES, UNKNOWN_CROP, assess, bucket, phenology
 from wodo.spatial import satellite_history, soil, terrain, worldcover
 from wodo.store import SourceError
 from wodo.weather import gauge, history, station
@@ -102,7 +103,8 @@ def recommendations(metrics, inputs, irrigation_available, agricultural, soil_ob
     return hints
 
 
-def run(parcel, request):
+def run(parcel, request, on_progress=None):
+    """on_progress(done, total, label) wołane po każdym źródle (z wątku wywołującego run)."""
     geom = parcel["geometry"]
     lon, lat = parcel["sample_point"]
     day = request.day
@@ -111,7 +113,15 @@ def run(parcel, request):
     if day == date.today():
         jobs["gauge"] = (gauge, lon, lat, day)
     tasks = {PROVIDERS.submit(fn, *args): key for key, (fn, *args) in jobs.items()}
-    done, pending = wait(tasks, timeout=24)
+    total, finished = len(tasks), set()
+    deadline, pending = monotonic() + 24, set(tasks)
+    while pending and (left := deadline - monotonic()) > 0:
+        newly, pending = wait(pending, timeout=left, return_when=FIRST_COMPLETED)
+        finished |= newly
+        for task in newly:
+            if on_progress:
+                on_progress(len(finished) - len(newly) + list(newly).index(task) + 1, total, SOURCE_LABELS[tasks[task]])
+    done = finished
     inputs, missing = {}, {}
     for task in pending:
         task.cancel()
@@ -140,11 +150,15 @@ def run(parcel, request):
             metrics["weather_last_day"] or "brak")
     scene = sat["scene"] if sat else None
     stage_at_scene = None
-    if scene:
+    unknown_crop = request.crop == UNKNOWN_CROP
+    if unknown_crop:
+        missing["Rodzaj uprawy"] = ("Nie podano uprawy. Użyto ogólnych parametrów (ET₀ trawy referencyjnej, strefa korzeni 0,5 m) "
+                                    "bez fazy rozwoju i porównania sezonowego. Wynik jest orientacyjny; wybierz uprawę, aby go doprecyzować.")
+    if scene and not unknown_crop:
         acquisition = date.fromisoformat(scene["date"])
         stage_at_scene, _ = phenology(CROPS[request.crop], acquisition, request.sowing)
         scene["crop_stage"] = STAGES[stage_at_scene]
-    if scene and len(sat["history"]) >= 2 and metrics["stage_id"] != 4 and stage_at_scene == metrics["stage_id"]:
+    if scene and not unknown_crop and len(sat["history"]) >= 2 and metrics["stage_id"] != 4 and stage_at_scene == metrics["stage_id"]:
         crop = metrics["crop"]
         metrics["satellite_comparison"] = {
             "ndmi_delta": round(scene["ndmi"] - median(s["ndmi"] for s in sat["history"]), 3),
@@ -190,7 +204,8 @@ def run(parcel, request):
         source_list.append({"key": key, **details})
     source_list.sort(key=lambda s: list(SOURCE_LABELS).index(s["key"]))
     confidence = "Niska" if not (metrics["recent"] and agricultural) else "Umiarkowana" if (
-        inputs.get("soil") and sat and sat["scene"] and metrics["weather_last_day"] == day.isoformat()) else "Ograniczona"
+        inputs.get("soil") and sat and sat["scene"] and metrics["weather_last_day"] == day.isoformat()
+        and not unknown_crop) else "Ograniczona"
     current = rows.get(day.isoformat(), [None, None, None])
     return {"parcel": parcel, "date": day.isoformat(), "metrics": metrics, "confidence": confidence,
             "recommendations": output, "missing": missing, "sources": source_list, "scenario": scenario,

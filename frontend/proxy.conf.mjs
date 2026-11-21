@@ -6,5 +6,6 @@ export default {
   '/api/**': {
     target: process.env.API_URL ?? `http://127.0.0.1:${port}`,
     changeOrigin: true,
+    ws: true, // WebSocket postępu analizy: /api/ws/analysis
   },
 };

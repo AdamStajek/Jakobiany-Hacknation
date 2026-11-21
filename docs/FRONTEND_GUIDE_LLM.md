@@ -101,6 +101,8 @@ Podział odpowiedzialności — każda rzecz ma jedno miejsce:
 5. Test (`*.spec.ts`) dla store'a / funkcji czystej / mappera; E2E gdy zmienia się główny przepływ.
 6. `npm run lint && npm test && npm run build` bez błędów i ostrzeżeń.
 
+> **Długie operacje (> 2 s)**: pokazuj prawdziwy postęp z WebSocketu (klient w `ApiService`, stan w Store, pasek z `aria-live`), nie timer ani sam spinner. Szczegóły: `docs/LONG_RUNNING.md`.
+
 ## 7. Czego unikać (typowe źródła spaghetti)
 
 - Wielki „god-component” robiący fetch + stan + mapę + wykresy.

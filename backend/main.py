@@ -1,4 +1,6 @@
+import asyncio
 import json
+import logging
 import os
 import re
 import time
@@ -9,7 +11,14 @@ from typing import Literal
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import (
+    FastAPI,
+    HTTPException,
+    Query,
+    Request,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -273,8 +282,8 @@ def build_passport(parcel_id, geojson, as_of, crop, sowing, stage, irrigation_mm
         analysis_slots.release()
 
 
-@app.post("/api/analysis")
-def analyze(request: AnalysisRequest):
+def execute_analysis(request: AnalysisRequest, on_progress=None):
+    """Wspólna ścieżka dla POST i WebSocket. Zajmuje slot na czas analizy."""
     if not analysis_slots.acquire(blocking=False):
         raise HTTPException(
             429,
@@ -288,7 +297,7 @@ def analyze(request: AnalysisRequest):
             if request.geojson is not None
             else matches(lookup(request.parcel_id))["parcels"][0]
         )
-        result = run(parcel, request)
+        result = run(parcel, request, on_progress)
         result["situation"] = report_message(result)
         analysis_id = uuid4().hex
         report = {
@@ -318,6 +327,78 @@ def analyze(request: AnalysisRequest):
         return report
     finally:
         analysis_slots.release()
+
+
+@app.post("/api/analysis")
+def analyze(request: AnalysisRequest):
+    return execute_analysis(request)
+
+
+@app.websocket("/api/ws/analysis")
+async def analysis_socket(ws: WebSocket):
+    """Analiza z postępem na żywo.
+
+    Klient wysyła jeden JSON (jak body POST /api/analysis). Serwer odpowiada zdarzeniami:
+    {"type":"progress","done":n,"total":m,"label":"…"} i na koniec
+    {"type":"result","report":{…}} albo {"type":"error","status":int,"detail":"…"}.
+    """
+    await ws.accept()
+    loop = asyncio.get_running_loop()
+    events: asyncio.Queue = asyncio.Queue()
+
+    def emit(event):
+        loop.call_soon_threadsafe(events.put_nowait, event)
+
+    try:
+        raw = await asyncio.wait_for(ws.receive_text(), timeout=10)
+        if len(raw) > 650_000:
+            raise HTTPException(413, "Dopuszczalny rozmiar danych to 650 kB.")
+        request = AnalysisRequest.model_validate_json(raw)
+    except WebSocketDisconnect:
+        return
+    except HTTPException as error:
+        await ws.send_json({"type": "error", "status": error.status_code, "detail": error.detail})
+        await ws.close()
+        return
+    except Exception as error:
+        detail = "Nieprawidłowe dane analizy."
+        if hasattr(error, "errors"):
+            detail = "; ".join(str(e["msg"]).removeprefix("Value error, ") for e in error.errors())
+        await ws.send_json({"type": "error", "status": 422, "detail": detail})
+        await ws.close()
+        return
+
+    def work():
+        try:
+            report = execute_analysis(
+                request, lambda done, total, label: emit(
+                    {"type": "progress", "done": done, "total": total, "label": label})
+            )
+            emit({"type": "result", "report": json.loads(json.dumps(report, default=str))})
+        except HTTPException as error:
+            emit({"type": "error", "status": error.status_code, "detail": error.detail})
+        except (SourceError, ValueError) as error:
+            emit({"type": "error", "status": 503 if isinstance(error, SourceError) else 422, "detail": str(error)})
+        except Exception:
+            logging.getLogger(__name__).exception("WS analysis failed")
+            emit({"type": "error", "status": 500, "detail": "Analiza nie powiodła się. Spróbuj ponownie."})
+
+    await ws.send_json({"type": "progress", "done": 0, "total": 0, "label": "Start analizy"})
+    task = loop.run_in_executor(None, work)
+    try:
+        while True:
+            event = await events.get()
+            await ws.send_json(event)
+            if event["type"] != "progress":
+                break
+    except WebSocketDisconnect:
+        pass
+    finally:
+        await task
+        try:
+            await ws.close()
+        except RuntimeError:
+            pass
 
 
 def get_report(analysis_id):

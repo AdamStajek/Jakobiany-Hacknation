@@ -6,8 +6,6 @@ import { ParcelStore } from './parcel.store';
 
 export type AnalysisForm = Omit<AnalysisRequest, 'parcel_id' | 'geojson'>;
 
-const STEPS = ['Pobieramy pogodę i historię opadów…', 'Sprawdzamy zdjęcia, glebę i otoczenie…', 'Łączymy dane i przygotowujemy zalecenia…'];
-
 @Injectable({providedIn: 'root'})
 export class AnalysisStore {
   private readonly api = inject(ApiService);
@@ -17,6 +15,8 @@ export class AnalysisStore {
   readonly range = signal({min: '', max: ''});
   readonly report = signal<Report | null>(null);
   readonly progress = signal('');
+  /** Postęp 0–100 z serwera; null = nieznany (pasek nieokreślony). */
+  readonly percent = signal<number | null>(null);
   readonly error = signal('');
   readonly running = computed(() => !!this.progress());
   /** [lon, lat] najbliższej stałej wody z ostatniego raportu. */
@@ -62,16 +62,21 @@ export class AnalysisStore {
     if (!parcel || this.running()) return;
     this.error.set('');
     this.report.set(null);
-    let step = 0;
-    this.progress.set(STEPS[0]);
-    const timer = setInterval(() => this.progress.set(STEPS[Math.min(++step, STEPS.length - 1)]), 4200);
+    this.percent.set(null);
+    this.progress.set('Łączymy się z serwerem analizy…');
     try {
       const geojson = this.parcels.importedGeometry();
-      this.report.set(await this.api.analyze({...form, ...(geojson ? {geojson} : {parcel_id: parcel.id})}));
+      const request = {...form, ...(geojson ? {geojson} : {parcel_id: parcel.id})};
+      this.report.set(await this.api.analyzeWithProgress(request, ({done, total, label}) => {
+        if (!total) { this.progress.set('Pobieramy dane ze źródeł…'); return; }
+        // Ostatnie ~10% to składanie raportu po zebraniu źródeł.
+        this.percent.set(Math.round((done / total) * 90));
+        this.progress.set(done < total ? `Pobrano: ${label} (${done}/${total})` : 'Łączymy dane i przygotowujemy zalecenia…');
+      }));
     } catch (error) {
       this.error.set(errorMessage(error));
     } finally {
-      clearInterval(timer);
+      this.percent.set(null);
       this.progress.set('');
     }
   }

@@ -1,7 +1,9 @@
 import { HttpErrorResponse } from '@angular/common/http';
+import { WsError } from './api.service';
 
 /** Zamienia błąd HTTP backendu na czytelny komunikat dla rolnika. */
 export function errorMessage(error: unknown, fallback = 'Nie udało się pobrać danych. Spróbuj ponownie.'): string {
+  if (error instanceof WsError) return error.message;
   const detail = error instanceof HttpErrorResponse ? error.error?.detail : null;
   if (typeof detail === 'string') return detail;
   if (Array.isArray(detail)) return String(detail[0]?.msg ?? fallback).replace(/^Value error, /, '');

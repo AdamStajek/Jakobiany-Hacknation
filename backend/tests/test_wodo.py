@@ -180,3 +180,12 @@ def test_partial_sources_and_small_parcel(monkeypatch):
     tiny = geometry(((500000,500000),(500003,500000),(500003,500003),(500000,500003),(500000,500000)))
     with pytest.raises(SourceError, match="zbyt mała"):
         spatial.satellite(tiny, day)
+
+
+def test_unknown_crop_is_accepted_and_neutral():
+    from wodo.science import CROPS, UNKNOWN_CROP, phenology
+    from datetime import date
+
+    stage_id, kc = phenology(CROPS[UNKNOWN_CROP], date(2024, 12, 31))
+    assert stage_id != 4 and kc == 1.0
+    assert phenology(CROPS[UNKNOWN_CROP], date(2024, 1, 1))[1] == 1.0

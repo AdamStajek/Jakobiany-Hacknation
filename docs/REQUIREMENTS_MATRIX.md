@@ -17,7 +17,7 @@ Podstawą oceny są [regulamin KOWR](https://mudnibfuppwadjkynscc.supabase.co/st
 | Opis 5.2, regulamin §2.10 i §5 | Dane bezpłatne i legalne, warunki użycia zewnętrznych elementów i przekazania praw do własnych elementów. | Warunki i atrybucje opisane w DATA_LICENSES.md, w tym warunki dla ewentualnego wdrożenia komercyjnego. |
 | Opis 5.6 | Bezpieczeństwo prototypu i minimalizacja danych osobowych. | Zrealizowane w zakresie prototypu. Test nieprawidłowych wejść, limitów, uprawnień URL i trwałego cache. |
 | Opis 6 | Test bieżący i historyczny, dowolne regiony i działki, prezentacja 1–3 działek jury. | Zrealizowane dla trzech regionów. Próba na działkach i danych referencyjnych jury pozostaje etapem oceny. |
-| Opis 7 | Wartość 25%, dane 25%, innowacja 20%, prostota 15%, prototyp 15%. 30 s to preferencja, mierzona osobno na zimno i ciepło. | Przebiegi na zimno i ciepło zapisane w live-verification.json. Wyniki zależą od dostępności danych. |
+| Opis 7 | Wartość 25%, dane 25%, innowacja 20%, prostota 15%, prototyp 15%. 30 s to preferencja, mierzona osobno na zimno i ciepło. | Przebiegi na zimno i ciepło zapisane w live-verification.json. Wyniki zależą od dostępności danych. Brak twardego limitu w regulaminie; analiza i budżet 24 s opisane w [LONG_RUNNING.md](LONG_RUNNING.md), postęp na żywo przez WebSocket. |
 | Regulamin §2, §3, §5–7 | Rejestracja 1–6 osób, upoważnione zgłoszenie, terminy, finał 2–3 min plus do 2 min pytań, prawa zespołu, zgody indywidualne. | Czynności zespołu |
 
 ## Wymagania rozszerzone z instrukcji projektu

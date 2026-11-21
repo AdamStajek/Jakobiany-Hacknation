@@ -50,3 +50,8 @@ export type AnalysisRequest = {
 };
 export type Health = {status: string; analysis_date_min: string; analysis_date_max: string};
 export type Crop = {id: string; label: string};
+export type AnalysisProgress = {done: number; total: number; label: string};
+export type AnalysisEvent =
+  | ({type: 'progress'} & AnalysisProgress)
+  | {type: 'result'; report: Report}
+  | {type: 'error'; status: number; detail: string};

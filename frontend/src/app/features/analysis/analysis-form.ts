@@ -1,4 +1,5 @@
 import { Component, effect, inject } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
@@ -23,6 +24,9 @@ const STAGES = ['Początek wzrostu', 'Rozwój', 'Pełnia wzrostu', 'Dojrzewanie'
           <label for="crop" class="text-sm font-medium">Rodzaj uprawy</label>
           <p-select inputId="crop" formControlName="crop" [options]="store.crops()" optionLabel="label" optionValue="id"
             appendTo="body" styleClass="w-full" placeholder="Wybierz uprawę" />
+          @if (cropUnknown()) {
+            <p-message severity="warn" styleClass="mt-1">Bez uprawy wynik jest orientacyjny: używamy ogólnych parametrów, bez fazy rozwoju i porównania sezonowego. Wybierz uprawę, aby go doprecyzować.</p-message>
+          }
         </div>
         <div class="flex flex-col gap-1">
           <label for="day" class="text-sm font-medium">Data analizy</label>
@@ -72,7 +76,8 @@ const STAGES = ['Początek wzrostu', 'Rozwój', 'Pełnia wzrostu', 'Dojrzewanie'
         [loading]="store.running()" [disabled]="!parcels.parcel() || form.invalid || store.running() || parcels.loading()" />
       @if (!parcels.parcel()) { <p class="text-xs text-muted-color">Najpierw wybierz działkę (krok 1).</p> }
       @if (store.running()) {
-        <div role="status" class="space-y-2"><p-progressbar mode="indeterminate" [style]="{height: '6px'}" /><p class="text-sm text-muted-color">{{store.progress()}}</p></div>
+        <div role="status" aria-live="polite" class="space-y-2">@if (store.percent() === null) { <p-progressbar mode="indeterminate" [style]="{height: '6px'}" /> }
+          @else { <p-progressbar [value]="store.percent()" [showValue]="false" [style]="{height: '6px'}" /> }<p class="text-sm text-muted-color">{{store.progress()}}</p></div>
       }
       @if (store.error()) { <p-message severity="error" role="alert">{{store.error()}}</p-message> }
     </form>
@@ -96,6 +101,9 @@ export class AnalysisForm {
     soil_observation: [null as 'dry' | 'moist' | 'wet' | null], irrigation: [false], irrigation_mm: [0],
     scenario_mm: [0], confirm_land: [false],
   });
+
+  private readonly cropValue = toSignal(this.form.controls.crop.valueChanges, {initialValue: this.form.controls.crop.value});
+  protected cropUnknown() { return this.cropValue() === 'unknown'; }
 
   constructor() {
     void this.store.init();

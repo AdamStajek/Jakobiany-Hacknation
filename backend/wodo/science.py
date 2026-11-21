@@ -25,7 +25,10 @@ CROPS = {
     "rapeseed": Crop("Rzepak ozimy", (3, 20), (25, 30, 40, 20), (.35, 1.10, .35), 1.0, .60, "kwitnienie i rozwój łuszczyn"),
     "beet": Crop("Burak cukrowy", (4, 5), (30, 45, 65, 35), (.35, 1.20, .70), .8, .55, "intensywny wzrost korzenia"),
     "grass": Crop("Użytki zielone", (4, 1), (20, 25, 105, 25), (.40, .95, .85), .6, .60, "odrost po pokosie"),
+    # Brak deklaracji rolnika: Kc = 1 (ET0 trawy referencyjnej) przez cały rok, uśredniona strefa korzeni.
+    "unknown": Crop("Nie wiem / brak danych o uprawie", (1, 1), (1, 1, 363, 1), (1.0, 1.0, 1.0), .5, .5, "okresy bez opadów"),
 }
+UNKNOWN_CROP = "unknown"
 STAGES = ("Początek wzrostu", "Rozwój", "Pełnia wzrostu", "Dojrzewanie", "Poza sezonem")
 MONTHS = ("", "styczeń", "luty", "marzec", "kwiecień", "maj", "czerwiec", "lipiec",
           "sierpień", "wrzesień", "październik", "listopad", "grudzień")
@@ -188,6 +191,8 @@ def rainfall_history(rows, selected):
 
 def assess(rows, soil, crop_key, selected, sowing=None, stage=None, irrigation_mm=0):
     crop = CROPS[crop_key]
+    if crop_key == UNKNOWN_CROP:
+        sowing = stage = None
     stage_id, kc = phenology(crop, selected, sowing, stage)
     recent = summarize(rows, selected - timedelta(days=29), selected, crop, sowing, stage)
     usable = [d for d, values in rows.items() if d <= selected.isoformat() and None not in values[:2]]
@@ -225,6 +230,6 @@ def assess(rows, soil, crop_key, selected, sowing=None, stage=None, irrigation_m
         risk = "Podwyższone" if low > root["raw_mm"] else "Niepewne" if high > root["raw_mm"] else "Niskie w modelu"
     elif recent:
         risk = "Sygnał niedoboru" if recent["crop_balance_mm"] < 0 else "Brak sygnału z opadu i ET"
-    return {"crop": asdict(crop), "stage": STAGES[stage_id], "stage_id": stage_id, "kc": round(kc, 3),
+    return {"crop": asdict(crop), "stage": "Nieokreślona" if crop_key == UNKNOWN_CROP else STAGES[stage_id], "stage_id": stage_id, "kc": round(kc, 3),
             "recent": recent, "history": history, "root": root, "risk": risk,
             "weather_last_day": max(usable, default=None), "weather_first_day": min(usable, default=None)}

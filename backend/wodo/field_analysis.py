@@ -144,7 +144,7 @@ def analyze_field(field_passport: dict, analysis_date: date) -> dict:
                            "why": reason,
                            "condition": "Obliczenia zakładają tę samą uprawę w każdym sezonie, bez podlewania."})
         cover_crop_choice = balance.get("status") == "ok" and balance["p_minus_et0_mm"] < 0
-        arable_crop = isinstance(context.get("crop"), str) and context["crop"] in CROPS and context["crop"] != "grass"
+        arable_crop = isinstance(context.get("crop"), str) and context["crop"] in CROPS and context["crop"] not in ("grass", "unknown")
         if arable_crop and not cover_crop_choice:
             actions.append({"evidence": "historical_drought_frequency_pct",
                             "when": "Po zbiorze, jeśli masz zdrowe resztki pożniwne",
