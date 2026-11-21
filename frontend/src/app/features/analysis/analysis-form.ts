@@ -1,4 +1,4 @@
-import { Component, effect, inject } from '@angular/core';
+import { Component, effect, inject, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -76,7 +76,7 @@ const STAGES = ['Początek wzrostu', 'Rozwój', 'Pełnia wzrostu', 'Dojrzewanie'
         </div>
       </details>
 
-      @if (store.error()) { <p-message severity="error" role="alert">{{store.error()}}</p-message> }
+      @if (store.error()) { <p-message severity="error" icon="pi pi-exclamation-circle" role="alert">{{store.error()}}</p-message> }
 
       <div class="sticky bottom-0 -mx-4 mt-auto space-y-2 border-t border-surface bg-surface-0 px-4 py-3 dark:bg-surface-900">
         <p-button type="submit" styleClass="h-12 w-full" icon="pi pi-chart-line" label="Analizuj gospodarowanie wodą"
@@ -113,6 +113,11 @@ export class AnalysisForm {
     effect(() => {
       const max = this.store.range().max;
       if (max && !this.form.controls.date.value) this.form.controls.date.setValue(max);
+    });
+    // Formularz opisuje oglądany raport (także po otwarciu linku), a nie wartości domyślne.
+    effect(() => {
+      const values = this.store.reportForm();
+      if (values) untracked(() => this.form.patchValue({...values, sowing: values.sowing ?? ''}));
     });
   }
 
