@@ -30,6 +30,12 @@ Geometrię działek wyszukuje własny indeks zbudowany z krajowego pliku GeoParq
 
 ULDK pozostaje tylko opcją (`WODO_PARCEL_SOURCE=uldk`), bo w sieci hackathonu usługa przekierowuje zapytania na adres pułapki. Znany problem: nakładka WMS z granicami działek na mapie jest przekierowywana tak samo i nie działa. Szczegóły, polecenia operacyjne i pomiary: [Dane działek](docs/PARCELS_DATA.md).
 
+## Interfejs
+
+Aplikacja jest projektowana najpierw na telefon (od 390 px), a na komputerze rozszerza się o stały pasek boczny. Cztery sekcje: Analiza działki, Paszporty pól, Eksperymenty i Jak to działa. Na telefonie nawigacja jest na dole ekranu, na komputerze po lewej.
+
+W sekcji Analiza działki pracujesz w trzech widokach: **Mapa** (wyszukiwanie i wskazanie działki, szkic własnej granicy), **Dane** (uprawa, data i parametry) oraz **Raport** (wyniki, wykresy, zalecenia, PDF i druk). Na telefonie przełączasz je u góry ekranu, a widok Raport staje się dostępny po uruchomieniu analizy. Na komputerze panel Dane jest zawsze obok, a po prawej wybierasz Mapę albo Raport. Jest motyw jasny, ciemny i systemowy. Opis dla programistów: [Przewodnik frontendu](docs/FRONTEND_GUIDE_LLM.md).
+
 ## Funkcje
 
 - Wyszukiwanie pełnym identyfikatorem, z mapy lub przez nazwę i numer obrębu. Import Polygon lub MultiPolygon GeoJSON w WGS 84.

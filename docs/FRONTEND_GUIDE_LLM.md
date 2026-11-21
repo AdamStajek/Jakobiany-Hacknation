@@ -29,7 +29,7 @@ Zabronione: Mapbox, Google Maps, płatne kafelki, Highcharts, Syncfusion, jQuery
 ```
 src/app/
   core/      api/ (ApiService, types, errors) · state/ (store'y na signals) · theme/
-  shared/    ui/ (małe prezentacyjne komponenty) · map/ · charts/
+  shared/    ui/ (małe prezentacyjne komponenty, m.in. panel, segmented) · map/ · charts/
   features/  analysis/ · passport/ · methods/   ← strony i logika widoku
   layout/    shell.ts
 ```
@@ -54,6 +54,29 @@ Podział odpowiedzialności — każda rzecz ma jedno miejsce:
 | Motyw jasny/ciemny | `core/theme/theme.ts` (`darkMode` signal) | Własny przełącznik dark mode |
 
 **Logika biznesowa (ryzyko, bilans wodny, rekomendacje) jest w backendzie.** Frontend wyświetla wyniki z API; nie przeliczaj ich ponownie po stronie klienta.
+
+## 3a. Układ aplikacji: mobile-first (powłoka, panel, segmenty, widoki)
+
+Interfejs projektuje się najpierw na telefon (390 px), a dopiero potem rozszerza na desktop. Jedyny punkt przełamania układu to breakpoint Tailwind `lg` (1024 px).
+
+**Powłoka (`layout/shell.ts`, `app-shell`)** — jedyne miejsce z nawigacją główną. Cztery sekcje (`NAV`): Analiza działki (`/`), Paszporty pól (`/paszporty`), Eksperymenty (`/eksperymenty`), Jak to działa (`/metody`). Aktywna sekcja jest liczona z adresu (`computed` `section`; paszport działki pod `/dzialka/:id/paszport` należy do sekcji Paszport).
+- Desktop (`lg` i więcej): stały pasek boczny po lewej (szerokość `w-60`, treść ma `lg:pl-60`) z logo, nawigacją, przełącznikiem motywu i stopką zespołu.
+- Telefon: górny pasek (`h-14`, logo + przełącznik motywu) i dolna nawigacja z czterema pozycjami (`h-16`, uwzględnia `safe-area-inset-bottom`).
+- Elementy powłoki mają `print:hidden`; link „Przejdź do treści” (`#tresc`) jest pierwszym fokusowalnym elementem. Aktywna pozycja ma `aria-current="page"`.
+- Wysokości powłoki są zmiennymi CSS w `styles.css`: `--shell-top` (pasek górny) i `--shell-bottom` (dolna nawigacja); na desktopie obie równe `0px`. Pełnoekranowe widoki liczą wysokość jako `100dvh - var(--shell-top) - var(--shell-bottom)`. Nowa strona pełnoekranowa ma użyć tych zmiennych, a nie własnych stałych.
+
+**`shared/ui/panel.ts` (`app-panel`)** — karta (`pw-card`) z opcjonalnym nagłówkiem. Wejścia: `heading` (tytuł, `h3`) i `icon` (klasa PrimeIcons, np. `pi-map`); treść przez `ng-content`. Używaj zamiast ręcznie powielanych kart z nagłówkiem. Komponent jest czysto prezentacyjny.
+
+**`shared/ui/segmented.ts` (`app-segmented`)** — przełącznik widoków w stylu segmentów. Wejścia: `options` (lista `SegmentOption<T>`: `value`, `label`, opcjonalnie `icon`, `disabled`) i `label` (wymagana nazwa grupy dla czytników ekranu); stan przez dwukierunkowe `model()` `value`. Renderuje grupę przycisków (`role="group"`, `aria-pressed`), nie pasek kart/zakładek. Typ wartości jest generyczny (`Segmented<T extends string>`).
+
+**Widoki analizy (`features/analysis/analysis-page.ts`)** — jedna trasa (`/`, `/dzialka/:id`, `/dzialka/:id/analiza/:analysisId`), trzy widoki w signalu `view`: `map` (Mapa), `form` (Dane: wybór działki + formularz analizy), `report` (Raport).
+- Telefon: `app-segmented` u góry przełącza trzy pełnoekranowe widoki. Raport jest wyłączony (`disabled`), dopóki nie ma raportu ani trwającej analizy. Na mapie pływa pole wyszukiwania (`app-parcel-picker variant="search"`) oraz karta wybranej działki z przyciskiem „Dalej” (przejście do Danych).
+- Desktop: panel „Dane” (`24rem`) jest zawsze obok, a prawa strona pokazuje Mapę albo Raport (segmenty Mapa/Raport; widok `form` mapuje się tam na mapę przez `pane`).
+- Przepływ automatyczny: start analizy i pojawienie się raportu przełączają na Raport, a błąd bez raportu wraca do Danych. Adres URL odtwarza działkę i raport (efekty link ↔ stan z `untracked`).
+- Druk: `print:hidden` ukrywa elementy ekranowe, a raport drukuje się bez wewnętrznego przewijania.
+- Przewijane obszary używają klasy `pw-scroll` (`overscroll-behavior: contain`), karty klasy `pw-card` (`styles.css`).
+
+Zasada dla nowych widoków: najpierw układ jednokolumnowy 390 px z dolną nawigacją i dużymi celami dotykowymi (min. ok. 36–44 px), potem rozszerzenie od `lg:`. Nie dodawaj osobnych komponentów „mobile” i „desktop” tej samej treści, jeśli wystarczy przełączanie klasami (`hidden`/`lg:flex`).
 
 ## 4. Reguły Angulara (jak pisać komponenty)
 
@@ -80,7 +103,7 @@ Podział odpowiedzialności — każda rzecz ma jedno miejsce:
 
 ### Tailwind 4
 - Konfiguracja w CSS (`styles.css`), bez `tailwind.config.js`. Własne klasy w `@layer`.
-- Mobile-first; sprawdzaj 390 px. Elementy tylko-ekranowe: `print:hidden`.
+- Mobile-first; sprawdzaj 390 px i `lg` (1024 px) — patrz sekcja 3a. Elementy tylko-ekranowe: `print:hidden`.
 
 ### MapLibre / Terra Draw / Turf
 - Cały kod mapy w `shared/map/` (`wodo-map.ts`, `map-style.ts`). Komponent mapy jest „głupi”: dane wchodzą przez `input()`, zdarzenia wychodzą przez `output()` (`pointClicked`, `polygonDrawn`). **Mapa nie woła API ani store'ów.**
