@@ -3,6 +3,7 @@ import { of, delay, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { environment } from '../environment';
 import { DETAIL_EXTRAS, EVIDENCE, FACTS, JOBS, PROJECTS, RISKS } from './fixtures/projects';
+import { EVIDENCE_EXTRA, DOCUMENT_VERSIONS, DOCUMENT_COPY } from './fixtures/evidence';
 
 const page = (items: any[], url: URL) => {
   const limit = Number(url.searchParams.get('limit') ?? 25);
@@ -59,7 +60,14 @@ export const mockInterceptor: HttpInterceptorFn = (req, next) => {
     return j ? ok(j) : notFound(req.url);
   }
   if (m === 'GET' && (r = path.match(/^\/evidence\/([^/]+)$/))) {
-    return EVIDENCE[r[1]] ? ok(EVIDENCE[r[1]]) : notFound(req.url);
+    const ev = EVIDENCE[r[1]] ?? EVIDENCE_EXTRA[r[1]];
+    return ev ? ok(ev) : notFound(req.url);
+  }
+  if (m === 'GET' && (r = path.match(/^\/documents\/([^/]+)\/versions\/([^/]+)(\/content)?$/))) {
+    const v = DOCUMENT_VERSIONS[`${r[1]}/${r[2]}`];
+    if (!v) return notFound(req.url);
+    if (!r[3]) return ok(v);
+    return v.content_url ? of(new HttpResponse({ status: 200, body: new Blob([DOCUMENT_COPY], { type: 'application/pdf' }) })).pipe(delay(200)) : notFound(req.url);
   }
   if (m === 'POST' && (path === '/imports' || /\/enrich$/.test(path))) {
     return of(new HttpResponse({ status: 202, body: JOBS['job-partial'], headers: new HttpHeaders({ Location: '/api/v1/jobs/job-partial' }) })).pipe(delay(300));
