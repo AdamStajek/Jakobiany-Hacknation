@@ -17,7 +17,7 @@ const STEPS: Step[] = [
     <article class="mx-auto flex max-w-3xl flex-col gap-8 px-4 pb-8 pt-6 text-base lg:px-8 lg:pt-12">
       <header class="flex flex-col gap-3">
         <h1 class="text-3xl font-extrabold tracking-tight lg:text-4xl">Pole Widzenia</h1>
-        <p class="text-lg leading-snug">Sprawdź, czy Twojemu polu nie zabraknie wody, i dowiedz się, co możesz zrobić.</p>
+        <p class="pw-lead">Sprawdź, czy Twojemu polu nie zabraknie wody, i dowiedz się, co możesz zrobić.</p>
       </header>
 
       <div class="flex flex-col gap-3 sm:flex-row">
@@ -32,7 +32,7 @@ const STEPS: Step[] = [
       </div>
 
       <section aria-labelledby="kroki" class="flex flex-col gap-3">
-        <h2 id="kroki" class="text-xl font-bold">Jak to działa</h2>
+        <h2 id="kroki" class="pw-h2">Jak to działa</h2>
         <ol class="flex flex-col gap-3">
           @for (step of steps; track step.title; let i = $index) {
             <li class="pw-card flex items-start gap-4 p-4">

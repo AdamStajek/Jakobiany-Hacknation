@@ -28,7 +28,7 @@ import type { Passport } from '../../core/api/types';
     } @else if (data(); as passport) {
     <article class="pw-card flex flex-col gap-4 p-4" [attr.aria-label]="'Dane działki: ' + title()">
       <header>
-        <h2 class="break-words text-lg font-bold">{{title()}}</h2>
+        <h2 class="pw-h2 break-words">{{title()}}</h2>
         <p class="text-sm text-muted-color">
           @if (subtitle()) { {{subtitle()}} · }
           Stan na {{passport.analysis_as_of | date:'dd.MM.yyyy'}}

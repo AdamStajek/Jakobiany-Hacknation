@@ -49,6 +49,11 @@
     text-transform: uppercase;
     color: var(--p-text-muted-color);
   }
+  /* Typografia: nagłówki stron i sekcji oraz tekst wprowadzający (rozmiary jak text-2xl/xl/base z Tailwinda). */
+  .pw-h1 { font-size: 1.5rem; line-height: 2rem; font-weight: 700; letter-spacing: -0.025em; }
+  .pw-h2 { font-size: 1.25rem; line-height: 1.75rem; font-weight: 700; }
+  .pw-h3 { font-size: 1rem; line-height: 1.5rem; font-weight: 600; }
+  .pw-lead { font-size: 1.125rem; line-height: 1.5; }
   .pw-scroll { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
 }
 

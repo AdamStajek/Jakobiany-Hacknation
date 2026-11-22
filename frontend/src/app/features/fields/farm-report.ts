@@ -9,7 +9,7 @@ import type { FarmStats } from './farm-stats';
   host: {class: 'hidden print:block'},
   template: `
     <article class="p-6 text-sm text-black" aria-label="Raport o moich polach">
-      <h1 class="text-2xl font-bold">Raport o moich polach</h1>
+      <h1 class="pw-h1">Raport o moich polach</h1>
       <p class="mb-4">Stan na {{generatedAt() | date:'d MMMM yyyy'}}</p>
 
       <h2 class="mt-4 text-lg font-semibold">Podsumowanie</h2>

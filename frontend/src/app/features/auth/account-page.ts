@@ -19,7 +19,7 @@ type PrefsState = 'loading' | 'ready' | 'error';
   host: {class: 'block'},
   template: `
     <div class="mx-auto flex max-w-2xl flex-col gap-4 p-4 pb-8">
-      <h1 class="text-xl font-bold">Konto</h1>
+      <h1 class="pw-h1">Konto</h1>
 
       @if (auth.user(); as user) {
         <app-panel heading="Profil" icon="pi-user">
