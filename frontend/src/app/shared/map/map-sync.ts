@@ -11,6 +11,7 @@ export type FieldPin = {id: string; name: string; coordinates: [number, number];
 /** Dane do narysowania na mapie: wybrana działka, woda, znaczniki i pinezki pól. */
 export type MapData = {
   geometry: Geometry | null;
+  surface?: GeoJSON.FeatureCollection<GeoJSON.Point>;
   water: [number, number] | null;
   markers: [number, number][];
   numberedMarkers: boolean;
@@ -43,6 +44,7 @@ export function fitMapTo(map: MapLibreMap, geometry: Geometry, water: [number, n
 /** Wpisuje dane do źródeł GeoJSON mapy (działka, woda, znaczniki, pinezki). */
 export function syncMapData(map: MapLibreMap, data: MapData) {
   const source = (id: string) => map.getSource(id) as GeoJSONSource;
+  source('surface').setData(data.surface ?? EMPTY);
   source('markers').setData(markersFeatureCollection(data.markers, data.numberedMarkers));
   source('pins').setData(pinsFeatureCollection(data.pins));
   source('parcel').setData((data.geometry ? {type: 'Feature', properties: {}, geometry: data.geometry} : EMPTY) as GeoJSON.GeoJSON);

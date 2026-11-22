@@ -24,6 +24,7 @@ export type Source = {
   retrieved_at: string; publication_date: string | null; cached: boolean; attribution?: string;
   scene?: Scene; history?: Scene[]; classes?: {class: string; percent: number}[];
   layers?: ([number, number] | null)[]; layer_depths?: string[];
+  surface_points?: GeoJSON.FeatureCollection<GeoJSON.Point>;
   elevation_m?: number; slope_pct?: number | null; relief_m?: number | null;
   nearest_water_m?: number | null; nearest_water_point?: [number, number] | null; search_m?: number;
   station?: string; river?: string; distance_km?: number; gauge_cm?: number;
