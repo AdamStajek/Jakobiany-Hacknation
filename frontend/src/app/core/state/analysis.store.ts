@@ -1,16 +1,24 @@
 import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { ApiService } from '../api/api.service';
 import { errorMessage } from '../api/errors';
-import { AnalysisRequest, Crop, FarmerQuestion, Report } from '../api/types';
+import { AnalysisRequest, Crop, FarmerQuestion, Parcel, Report } from '../api/types';
+import { ConsentStore, EXPERIMENT_RESULTS_KEY } from './consent.store';
 import { ParcelStore } from './parcel.store';
 import { formFromReport } from './report-form';
 
-export type AnalysisForm = Omit<AnalysisRequest, 'parcel_id' | 'geojson'>;
+export type AnalysisForm = Omit<AnalysisRequest, 'parcel_id' | 'geojson' | 'experiment_results'>;
+type ExperimentResults = Record<string, string>;
+
+function experimentKey(parcel: Parcel, day: string) {
+  return JSON.stringify([parcel.id, day, parcel.id === 'Działka z GeoJSON' ? parcel.geometry : null]);
+}
 
 @Injectable({providedIn: 'root'})
 export class AnalysisStore {
   private readonly api = inject(ApiService);
   private readonly parcels = inject(ParcelStore);
+  private readonly consent = inject(ConsentStore);
+  private readonly sessionResults = new Map<string, ExperimentResults>();
 
   readonly crops = signal<Crop[]>([]);
   readonly questions = signal<FarmerQuestion[]>([]);
@@ -79,6 +87,10 @@ export class AnalysisStore {
     this.progress.set('Wczytujemy zapisany raport…');
     try {
       const report = await this.api.report(analysisId);
+      const key = experimentKey(report.parcel, report.date);
+      if (report.experiment_results && !this.savedExperiments(key)) {
+        this.rememberExperiments(key, report.experiment_results);
+      }
       this.parcels.select(report.parcel);
       this.report.set(report);
     } catch (error) {
@@ -97,7 +109,12 @@ export class AnalysisStore {
       if (value) results[slug] = value;
       else delete results[slug];
       const updated = await this.api.saveExperiments(report.analysis_id, results);
+      this.rememberExperiments(experimentKey(report.parcel, report.date), results);
       if (this.report() !== report) return;
+      const submitted = this.submitted();
+      if (submitted?.analysisId === report.analysis_id) {
+        this.submitted.set({...submitted, analysisId: updated.analysis_id});
+      }
       this.report.set({...updated, metrics: report.metrics});
       return updated;
     } catch (error) {
@@ -105,6 +122,23 @@ export class AnalysisStore {
     } finally {
       this.savingExperiment.set(false);
     }
+  }
+
+  private storedExperiments(): Record<string, ExperimentResults> {
+    try {
+      return JSON.parse(this.consent.read(EXPERIMENT_RESULTS_KEY) ?? '{}') ?? {};
+    } catch {
+      return {};
+    }
+  }
+
+  private savedExperiments(key: string) {
+    return this.sessionResults.get(key) ?? this.storedExperiments()[key];
+  }
+
+  private rememberExperiments(key: string, results: ExperimentResults) {
+    this.sessionResults.set(key, results);
+    this.consent.write(EXPERIMENT_RESULTS_KEY, JSON.stringify({...this.storedExperiments(), [key]: results}));
   }
 
   private abort: AbortController | null = null;
@@ -126,7 +160,9 @@ export class AnalysisStore {
     this.progress.set('Łączymy się z serwerem analizy…');
     try {
       const geojson = this.parcels.importedGeometry();
-      const request = {...form, ...(geojson ? {geojson} : {parcel_id: parcel.id})};
+      const results = this.savedExperiments(experimentKey(parcel, form.date));
+      const request = {...form, ...(geojson ? {geojson} : {parcel_id: parcel.id}),
+        ...(results ? {experiment_results: results} : {})};
       const report = await this.api.analyzeWithProgress(request, ({done, total, label}) => {
         if (!total) { this.progress.set('Pobieramy dane ze źródeł…'); return; }
         // Ostatnie ~10% to składanie raportu po zebraniu źródeł.

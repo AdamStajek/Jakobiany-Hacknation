@@ -232,10 +232,12 @@ async function run(name) {
 
     const trial = report.experiments[0];
     await page.getByRole('combobox', {name: 'Wynik — ' + trial.title}).selectOption(trial.options[0].value);
-    await page.getByRole('button', {name: 'Zapisz wynik — ' + trial.title}).click();
     const saved = page.locator('#krok-2 [role=status]');
     await saved.getByText(trial.options[0].conclusion, {exact: false}).waitFor();
     assert.equal(await steps.getByRole('button', {name: '2. Eksperymenty'}).getAttribute('aria-current'), 'step');
+    await steps.getByRole('button', {name: '1. Analiza'}).click();
+    await waterAnalysis.getByText(trial.options[0].conclusion, {exact: false}).waitFor();
+    assert.equal(await waterAnalysis.getByText('Wynik próby „' + trial.title + '”', {exact: false}).count(), 0);
 
     const dismissPrompt = page.getByRole('button', {name: 'Ukryj propozycję'});
     if (await dismissPrompt.isVisible()) await dismissPrompt.click();

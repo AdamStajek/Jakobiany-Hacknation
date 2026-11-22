@@ -18,10 +18,17 @@
     <div>
       <h4 id="diagnoza" class="text-2xl leading-tight font-bold tracking-tight lg:text-3xl">{{e.headline}}</h4>
       @if (m.risk !== 'Poza okresem aktywnej uprawy') {
-        @if (!root) { <p class="mt-2">{{e.reason}}</p> }
+        @if (!root) {
+          <p class="mt-2">@if (r.experiment_results?.['wilgotnosc-gleby']) { <strong>Ocena modelu.</strong> } {{e.reason}}</p>
+        }
         <p class="mt-1 text-sm text-muted-color">{{e.confidence_note}}</p>
       }
-      @if (r.experiments?.[0]; as check) {
+      @for (check of r.experiments; track check.slug) {
+        @if (r.experiment_conclusions?.[check.slug]; as conclusion) {
+          <p class="mt-2 text-sm"><strong>{{check.title}}.</strong> {{conclusion}}</p>
+        }
+      }
+      @if (suggestedExperiment(); as check) {
         <div class="mt-2 flex flex-wrap items-center gap-x-3 text-sm">
           <p>Wynik próby „{{check.title}}” pomoże doprecyzować ocenę sytuacji wodnej na tym polu.</p>
           <button type="button" aria-controls="krok-2" (click)="experimentsRequested.emit()"

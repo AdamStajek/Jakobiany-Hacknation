@@ -1,6 +1,7 @@
 <section aria-labelledby="eksperymenty-raportu" class="space-y-3">
   <h3 id="eksperymenty-raportu" class="text-lg font-semibold">Eksperymenty</h3>
-  <div #notice tabindex="-1" role="status" aria-atomic="true">
+  <div role="status" aria-atomic="true">
+    @if (analysis.savingExperiment()) { <p>Zapisywanie wyniku…</p> }
     @if (feedback(); as saved) {
       @if (saved.id === report().analysis_id) {
         <div class="space-y-1 rounded-xl border border-surface p-3">
@@ -19,7 +20,11 @@
       @for (check of report().experiments; track check.slug) {
         <article class="space-y-2 rounded-xl border border-surface p-3 text-sm">
           <h4 class="font-semibold">{{check.title}}</h4>
-          <p><strong>Jak zmieni diagnozę?</strong> {{check.impact}}</p>
+          @if (report().experiment_results?.[check.slug]) {
+            <p class="font-medium text-primary">Wykonany · wynik zapisany</p>
+          } @else {
+            <p><strong>Jak zmieni diagnozę?</strong> {{check.impact}}</p>
+          }
           <a class="inline-block py-2 text-primary underline print:hidden"
             [routerLink]="['/metody/eksperymenty', check.slug]" target="_blank" rel="noopener">
             Instrukcja — {{check.title}} (nowa karta)
@@ -28,16 +33,13 @@
             <label class="flex min-w-0 flex-1 flex-col gap-1 font-medium">
               Wynik — {{check.title}}
               <select #result class="w-full rounded-lg border border-surface bg-surface-0 p-2 text-color dark:bg-surface-900"
-                [disabled]="analysis.savingExperiment()">
+                [disabled]="analysis.savingExperiment()" (change)="save(check.slug, check.title, result)">
                 <option value="" [selected]="!report().experiment_results?.[check.slug]">Brak wyniku lub próba niejednoznaczna</option>
                 @for (option of check.options; track option.value) {
                   <option [value]="option.value" [selected]="report().experiment_results?.[check.slug] === option.value">{{option.label}}</option>
                 }
               </select>
             </label>
-            <p-button label="Zapisz wynik" [disabled]="analysis.savingExperiment()"
-              [ariaLabel]="'Zapisz wynik — ' + check.title"
-              (onClick)="save(check.slug, check.title, result.value, notice)" />
           </div>
           <div>
             @if (report().experiment_conclusions?.[check.slug]; as conclusion) {

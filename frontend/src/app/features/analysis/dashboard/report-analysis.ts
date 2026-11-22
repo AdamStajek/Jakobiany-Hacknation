@@ -30,6 +30,10 @@ export class ReportAnalysis {
   protected readonly mode = signal<ReportMode>(this.consent.read('report-mode') === 'advanced' ? 'advanced' : 'simple');
   protected readonly advanced = computed(() => this.mode() === 'advanced');
   protected readonly day = computed(() => formatDate(this.report().date));
+  protected readonly suggestedExperiment = computed(() => {
+    const report = this.report();
+    return report.experiments?.find(check => !report.experiment_results?.[check.slug]);
+  });
   protected readonly sources = computed(() => Object.fromEntries(this.report().sources.map(s => [s.key, s])));
   protected readonly missing = computed(() => Object.entries(this.report().missing));
   protected readonly sourceRows = computed(() => this.report().sources.map(s => ({

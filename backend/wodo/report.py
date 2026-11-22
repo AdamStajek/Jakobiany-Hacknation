@@ -242,7 +242,11 @@ def analysis_pdf(report, st):
     verdict_table.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                                        ("BACKGROUND", (1, 0), (-1, -1), IVORY),
                                        ("LINEBEFORE", (1, 0), (1, -1), 3, LEAF)]))
-    flows.extend([verdict_table, surface_legend(report, st), spacer(8), p("Czy deszcz pokrył potrzeby uprawy?", st["sub"]),
+    flows.extend([verdict_table, surface_legend(report, st)])
+    if conclusions := report.get("experiment_conclusions"):
+        flows.append(p("Wyniki prób terenowych", st["sub"]))
+        flows.extend(p(conclusion, st["body"]) for conclusion in conclusions.values())
+    flows.extend([spacer(8), p("Czy deszcz pokrył potrzeby uprawy?", st["sub"]),
                   p(evidence["balance"], st["body"])])
     if recent := metrics["recent"]:
         flows.append(p(f'{recent["start"]} – {recent["end"]} · Dane z {recent["samples"]} z {recent["days"]} dni.', st["body"]))

@@ -1,12 +1,11 @@
 import { Component, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { ButtonModule } from 'primeng/button';
 import { Report } from '../../../core/api/types';
 import { AnalysisStore } from '../../../core/state/analysis.store';
 
 @Component({
   selector: 'app-report-experiments',
-  imports: [RouterLink, ButtonModule],
+  imports: [RouterLink],
   templateUrl: './report-experiments.html',
 })
 export class ReportExperiments {
@@ -14,15 +13,19 @@ export class ReportExperiments {
   protected readonly feedback = signal<{id: string; message: string; changes: string[]} | null>(null);
   protected readonly analysis = inject(AnalysisStore);
 
-  protected async save(slug: string, title: string, value: string, notice: HTMLElement) {
+  protected async save(slug: string, title: string, select: HTMLSelectElement) {
     const before = this.report();
+    const value = select.value;
+    const previous = before.experiment_results?.[slug] ?? '';
+    if (previous === value) return;
     this.feedback.set(null);
     const after = await this.analysis.saveExperiment(before, slug, value);
-    if (!after) return;
+    if (!after) {
+      if (this.report() === before) select.value = previous;
+      return;
+    }
 
-    const previous = before.experiment_results?.[slug] ?? '';
-    const message = previous === value ? 'Interpretacja pola pozostaje taka sama.'
-      : after.experiment_conclusions?.[slug] ?? 'Usunięto wcześniejszy wynik i jego wniosek z analizy.';
+    const message = after.experiment_conclusions?.[slug] ?? 'Usunięto wcześniejszy wynik i jego wniosek z analizy.';
     const oldChecks = before.experiments ?? [];
     const newChecks = after.experiments ?? [];
     const changes = [
@@ -30,6 +33,5 @@ export class ReportExperiments {
       ...oldChecks.filter(c => !newChecks.some(next => next.slug === c.slug)).map(c => 'Usunięto próbę: ' + c.title),
     ];
     this.feedback.set({id: after.analysis_id, message: title + ' — ' + message, changes});
-    notice.focus();
   }
 }

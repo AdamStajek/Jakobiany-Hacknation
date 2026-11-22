@@ -87,6 +87,7 @@ export type AnalysisRequest = {
   irrigation: boolean; irrigation_mm: number; scenario_mm: number; confirm_land: boolean;
   soil_observation: 'dry' | 'moist' | 'wet' | null;
   farmer_answers?: FarmerAnswers;
+  experiment_results?: Record<string, string>;
 };
 export type PassportField = {
   field: string; label: string; source?: string; unit?: string | null;
