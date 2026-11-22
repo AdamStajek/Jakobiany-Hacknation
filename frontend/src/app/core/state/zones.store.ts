@@ -22,6 +22,8 @@ export class ZonesStore {
   /** Komunikat ostatniej próby (poza działką, limit); pusty, gdy wszystko w porządku. */
   readonly notice = signal('');
   readonly markers = computed(() => this.zones().map((zone) => zone.coordinates));
+  /** Id działki, do której należą zaznaczone miejsca; pozwala je zachować, gdy formularz powstaje na nowo. */
+  parcelKey: string | null = null;
   private nextId = 1;
 
   /** Dodaje punkt tylko wewnątrz granicy i do limitu; w przeciwnym razie ustawia komunikat (tryb zostaje włączony). */

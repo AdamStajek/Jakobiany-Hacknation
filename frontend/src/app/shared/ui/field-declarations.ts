@@ -56,16 +56,20 @@ export class FieldDeclarations {
     let previous: Parcel | null = null;
     effect(() => {
       const parcel = this.parcel();
+      const key = parcel?.id ?? null;
+      // Komponent odtworzony po powrocie na stronę (np. po dodaniu pola): miejsca tej samej działki zostają.
+      const keepZones = previous === null && key !== null && key === this.store.parcelKey;
       const same = parcel?.id === previous?.id && (parcel?.source !== 'Import użytkownika' || parcel?.geometry === previous?.geometry);
       previous = parcel;
       if (same) return;
       untracked(() => {
+        if (!keepZones) this.store.reset();
+        this.store.parcelKey = key;
         for (const question of this.questionsWithControls()) question.control.reset();
         this.sources.reset();
         this.observations.reset();
         this.history.reset();
         this.watering.clear();
-        this.store.reset();
         this.warnings.set([]);
       });
     });
