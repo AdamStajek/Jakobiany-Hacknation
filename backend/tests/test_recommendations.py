@@ -65,6 +65,7 @@ def test_saved_report_uses_catalogue_costs_and_plain_explanations(monkeypatch):
         {"id": 15, "cost": "niski", "why": "Opis techniczny", "evidence": "Zapisana obserwacja."},
     ]}
     monkeypatch.setattr(main, "read", lambda *args: saved)
+    monkeypatch.setattr(main, "report_evidence", lambda _: {})
     recommendation, = main.get_report("a" * 32)["recommendations"]
     action = next(item for item in catalog() if item["id"] == 15)
     assert recommendation["cost_estimate"] == action["cost_estimate"]

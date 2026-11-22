@@ -60,6 +60,9 @@ export type ProblemZone = {geometry: {type: 'Point'; coordinates: [number, numbe
 export type Watering = {date: string; dose_mm: number | null};
 export type FarmerAnswers = Record<string, string | string[] | ProblemZone[] | Watering[] | null>;
 export type Report = {
+  evidence: {headline: string; reason: string; confidence_note: string; balance: string;
+    satellite: string; runoff: string; history_start: string; eligible_seasons: number; root_start: string | null};
+  model_version: string;
   farmer_answers?: FarmerAnswers;
   experiments?: ExperimentCheck[];
   experiment_results?: Record<string, string>;
@@ -71,7 +74,7 @@ export type Report = {
   soil_observation?: 'dry' | 'moist' | 'wet' | null;
   metrics: {
     risk: string; kc: number; stage: string; crop: {label: string; root_m: number};
-    weather_last_day: string | null; recent: Recent | null;
+    weather_first_day: string | null; weather_last_day: string | null; recent: Recent | null;
     root: {taw_mm: number; raw_mm: number; days: number; input_mm?: number; initially_wet: {depletion_mm: number}; initially_dry: {depletion_mm: number}} | null;
     history: {seasons: Season[]; negative_seasons: number; riskiest_months: string[]; matched_years: number;
       matched_balance_mm: number | null; matched_rain_mm: number | null; median_season_mm: number | null};

@@ -41,6 +41,7 @@ from wodo.passport_summary import passport_summary
 from wodo.recommendation_catalog import catalog, observation_options
 from wodo.recommendations import action_details
 from wodo.report import pdf
+from wodo.report_evidence import report_evidence
 from wodo.science import CROPS, years_ago
 from wodo.store import SourceError, read, timestamp, write
 
@@ -413,6 +414,7 @@ def execute_analysis(request: AnalysisRequest, on_progress=None):
         if answers := request.farmer_answers.model_dump(mode="json", exclude_unset=True):
             result["farmer_answers"] = answers
         result["situation"] = report_message(result)
+        result["evidence"] = report_evidence(result)
         result["experiments"] = experiment_checks(result)
         analysis_id = uuid4().hex
         report = {
@@ -598,6 +600,8 @@ def get_report(analysis_id):
         raise HTTPException(404, "Raport nie istnieje lub wygasł.")
     if "situation" not in report:
         report["situation"] = report_message(report)
+    if "evidence" not in report:
+        report["evidence"] = report_evidence(report)
     for recommendation in report.get("recommendations", ()):
         if "cost_estimate" not in recommendation:
             recommendation.update(action_details(recommendation.get("id")))
