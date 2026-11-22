@@ -201,7 +201,8 @@ async function run(name) {
     await noOverflow('raport');
 
     // 5. Oba widoki odnoszą się do tej samej diagnozy.
-    const balance = waterAnalysis.getByRole('button', {name: /^Bilans wodny uprawy/});
+    const balance = waterAnalysis.getByRole('button').and(page.locator('[aria-controls=bilans]'));
+    await balance.and(waterAnalysis.getByRole('button', {name: /^Bilans wodny uprawy/})).waitFor();
     await balance.press('Space');
     await balance.and(page.locator('[aria-expanded=true]')).waitFor();
     await waterAnalysis.locator('#bilans').getByText('Metoda oceny').waitFor();
@@ -209,6 +210,10 @@ async function run(name) {
     const mode = waterAnalysis.getByRole('group', {name: 'Widok raportu'});
     await mode.getByRole('button', {name: 'Zaawansowany'}).click();
     await verdict.waitFor();
+    if (report.agricultural && report.metrics.root) {
+      const scale = waterAnalysis.getByRole('figure', {name: 'Ubytek wody w strefie korzeni według FAO-56'});
+      await scale.getByText(/Próg stresu wodnego \(RAW\)/).waitFor();
+    }
     if (report.metrics.recent) {
       await waterAnalysis.locator('#bilans canvas').waitFor();
       await waterAnalysis.locator('#bilans summary').press('Enter');
@@ -216,6 +221,8 @@ async function run(name) {
     }
     await balance.press('Enter');
     await balance.and(page.locator('[aria-expanded=false]')).waitFor();
+    await balance.and(waterAnalysis.getByRole('button', {name: /^Bilans opadu i ewapotranspiracji uprawy/})).waitFor();
+    if (report.metrics.recent) await balance.getByText(/ETc.*Bilans/).waitFor();
     await noOverflow('zaawansowany');
     await waterAnalysis.getByText(report.experiments[0].title, {exact: false}).waitFor();
     await waterAnalysis.getByRole('button', {name: 'Zobacz eksperyment'}).press('Enter');
