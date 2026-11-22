@@ -15,7 +15,7 @@ const timing = run => mm(run.client_ms / 1000) + ' s';
 const photo = (name, alt) => '<img src="' + images[name] + '" alt="' + alt + '">';
 const source = text => '<footer>' + text + '</footer>';
 const tile = (label, value, unit = '') => '<div class="tile"><strong>' + value + ' <i>' + unit + '</i></strong><p>' + label + '</p></div>';
-const section = (title, content) => '<section><header><div class="mark">WodoStrażnik</div><h2>' + title + '</h2></header>' + content + '</section>';
+const section = (title, content) => '<section><header><div class="mark">Pole Widzenia</div><h2>' + title + '</h2></header>' + content + '</section>';
 
 const slides = [
   '<section class="cover"><div class="mark">Jakobiany · HackNation 2026 / KOWR</div><div class="split"><div><h1>Wodo<br>Strażnik<span>.</span></h1><p>Asystent gospodarowania wodą w rolnictwie</p></div>'
@@ -71,7 +71,7 @@ const style = [
 const browser = await chromium.launch({args:['--no-sandbox']});
 try {
   const page = await browser.newPage({viewport:{width:1280,height:720}});
-  await page.setContent('<!doctype html><html lang="pl"><meta charset="utf-8"><title>WodoStrażnik</title><style>'
+  await page.setContent('<!doctype html><html lang="pl"><meta charset="utf-8"><title>Pole Widzenia</title><style>'
     + style + '</style><body>' + slides.join('') + '</body></html>');
   await page.evaluate(() => Promise.all([...document.images].map(img => img.decode())));
   await page.pdf({path:resolve(submission,'WodoStraznik-prezentacja.pdf'),printBackground:true,preferCSSPageSize:true});

@@ -104,7 +104,7 @@ def write_json(path, data):
 # ---------------------------------------------------------------- remote
 
 def client():
-    return httpx.Client(follow_redirects=False, headers={"User-Agent": "WodoStraznik/1.0 (parcel updater)"},
+    return httpx.Client(follow_redirects=False, headers={"User-Agent": "PoleWidzenia/1.0 (parcel updater)"},
                         timeout=httpx.Timeout(60, connect=20),
                         limits=httpx.Limits(max_connections=64, max_keepalive_connections=0))
 

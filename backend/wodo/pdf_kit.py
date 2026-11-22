@@ -73,7 +73,7 @@ def p(text, style):
 class Banner(Flowable):
     """Okładka: kremowa karta z logo i napisem, tytułem i pomarańczowym akcentem."""
 
-    def __init__(self, title, subtitle, kind, width=CONTENT_W, height=118):
+    def __init__(self, title, subtitle, kind, width=CONTENT_W, height=142):
         super().__init__()
         self.title, self.subtitle, self.kind = title, subtitle, kind
         self.width, self.height = width, height
@@ -88,18 +88,18 @@ class Banner(Flowable):
         c.roundRect(0, 0, self.width, self.height, 10, fill=1, stroke=1)
         c.setFillColor(ORANGE)
         c.rect(0, 0, 7, self.height, fill=1, stroke=0)
-        logo_h = 64
-        c.drawImage(ImageReader(str(brand.LOGO_WORDMARK)), 24, self.height - logo_h - 14,
+        logo_h = 62
+        c.drawImage(ImageReader(str(brand.LOGO_WORDMARK)), 24, self.height - logo_h - 12,
                     width=logo_h * brand.LOGO_WORDMARK_ASPECT, height=logo_h, mask="auto")
         c.setFillColor(LEAF)
         c.setFont("WodoBold", 8)
         c.drawRightString(self.width - 16, self.height - 24, self.kind.upper())
         c.setFillColor(FOREST)
         c.setFont("WodoBold", 20)
-        c.drawString(24, 34, self.title)
+        c.drawString(24, 38, self.title)
         c.setFillColor(MUTED)
         c.setFont("Wodo", 9.5)
-        c.drawString(24, 16, self.subtitle)
+        c.drawString(24, 17, self.subtitle)
 
 
 def header_footer(doc_label):

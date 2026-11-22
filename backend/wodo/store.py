@@ -31,7 +31,7 @@ HOSTS = {
 INIT_LOCK = Lock()
 INITIALIZED = set()
 CLIENT = httpx.Client(timeout=httpx.Timeout(9, connect=4), limits=httpx.Limits(max_connections=24),
-                      headers={"User-Agent": "WodoStraznik/1.0 (HackNation research prototype)"})
+                      headers={"User-Agent": "PoleWidzenia/1.0 (HackNation research prototype)"})
 
 
 class SourceError(Exception):

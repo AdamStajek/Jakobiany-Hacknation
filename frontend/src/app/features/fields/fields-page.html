@@ -6,7 +6,7 @@
   <div class="grid min-h-0 flex-1" [class]="mapOpen() ? 'lg:grid-cols-[34rem_minmax(0,1fr)]' : 'lg:grid-cols-1'">
     <section aria-label="Lista pól" class="pw-scroll min-h-0 border-surface bg-surface-0 p-4 lg:block lg:border-r dark:bg-surface-900"
       [class.hidden]="view() !== 'list'">
-      <div class="mx-auto flex flex-col gap-4" [class.max-w-3xl]="!mapOpen()">
+      <div class="mx-auto flex w-full flex-col gap-4 @container" [class.max-w-7xl]="!mapOpen()">
         <header class="flex flex-wrap items-center gap-2">
           <h1 class="pw-h1 mr-auto">Moje pola</h1>
           <a routerLink="/powiadomienia" class="inline-flex min-h-10 items-center gap-2 rounded-full border border-surface px-4 text-sm font-medium hover:bg-surface-100 dark:hover:bg-surface-800">

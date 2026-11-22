@@ -11,7 +11,7 @@ import { FieldCard } from './field-card';
   host: {class: 'contents'},
   template: `
     <app-farm-summary [stats]="stats()" (download)="download.emit()" />
-    <ul class="flex flex-col gap-3" aria-label="Pola">
+    <ul class="grid items-start gap-3 @3xl:grid-cols-2 @6xl:grid-cols-3" aria-label="Pola">
       @for (field of sorted(); track field.id) {
         <li><app-field-card [field]="field" [cropLabel]="cropLabel()(field)"
           (analyze)="analyze.emit($event)" (located)="located.emit(field.id)" (passport)="passport.emit(field.id)" (removed)="removed.emit($event)" (renamed)="renamed.emit($event)" /></li>

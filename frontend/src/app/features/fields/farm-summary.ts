@@ -7,21 +7,14 @@ import type { FarmStats } from './farm-stats';
 @Component({
   selector: 'app-farm-summary',
   imports: [DatePipe, DecimalPipe, ButtonModule],
-  host: {class: 'block print:hidden'},
+  host: {class: 'block print:hidden @container'},
   template: `
     <section class="pw-card flex flex-col gap-3 p-4" aria-labelledby="farm-summary-title">
-      <header class="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <h2 id="farm-summary-title" class="text-base font-semibold">Moje gospodarstwo</h2>
+      <header class="flex flex-wrap items-center gap-2">
+        <h2 id="farm-summary-title" class="mr-auto text-base font-semibold">Moje gospodarstwo</h2>
         @if (stats().fields) {
-          <p class="mr-auto text-sm text-muted-color">
-            {{stats().fields}} {{stats().fields === 1 ? 'pole' : 'pól'}} · {{stats().parcels}} {{stats().parcels === 1 ? 'działka' : 'działek'}}@if (stats().totalAreaHa !== null) { · {{stats().totalAreaHa | number:'1.0-2'}} ha}
-          </p>
-          @if (stats().attention.length) {
-            <span class="inline-flex items-center gap-1 rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800 dark:bg-red-950 dark:text-red-200">
-              <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>{{stats().attention.length}} wymaga uwagi</span>
-          } @else if (stats().lastReportDate) {
-            <span class="inline-flex items-center gap-1 text-xs text-muted-color"><i class="pi pi-check-circle" aria-hidden="true"></i>Nic nie wymaga uwagi</span>
-          }
+          <p-button label="Pobierz raport o moich polach" icon="pi pi-download" severity="secondary" [outlined]="true" size="small"
+            styleClass="min-h-10" (onClick)="download.emit()" />
         }
         <button type="button" class="grid h-10 w-10 place-items-center rounded-full hover:bg-surface-100 dark:hover:bg-surface-800"
           [attr.aria-expanded]="open()" aria-controls="farm-summary-body" [attr.aria-label]="open() ? 'Zwiń szczegóły gospodarstwa' : 'Rozwiń szczegóły gospodarstwa'"
@@ -29,6 +22,28 @@ import type { FarmStats } from './farm-stats';
           <i class="pi" [class]="open() ? 'pi-chevron-up' : 'pi-chevron-down'" aria-hidden="true"></i>
         </button>
       </header>
+
+      @if (stats().fields) {
+        <dl class="grid grid-cols-2 gap-3 @2xl:grid-cols-4">
+          <div class="rounded-xl bg-surface-100 p-3 dark:bg-surface-800">
+            <dt class="text-xs text-muted-color">{{stats().fields === 1 ? 'Pole' : 'Pola'}}</dt>
+            <dd class="text-2xl font-semibold">{{stats().fields}}</dd>
+          </div>
+          <div class="rounded-xl bg-surface-100 p-3 dark:bg-surface-800">
+            <dt class="text-xs text-muted-color">Działki</dt>
+            <dd class="text-2xl font-semibold">{{stats().parcels}}</dd>
+          </div>
+          <div class="rounded-xl bg-surface-100 p-3 dark:bg-surface-800">
+            <dt class="text-xs text-muted-color">Powierzchnia</dt>
+            <dd class="text-2xl font-semibold">@if (stats().totalAreaHa !== null) { {{stats().totalAreaHa | number:'1.0-2'}} <span class="text-sm font-normal">ha</span> } @else { <span class="text-muted-color" title="Powierzchnia nie jest znana dla wszystkich działek">—</span> }</dd>
+          </div>
+          <div class="rounded-xl p-3" [class]="stats().attention.length ? 'bg-red-100 text-red-900 dark:bg-red-950 dark:text-red-100' : 'bg-green-100 text-green-900 dark:bg-green-950 dark:text-green-100'">
+            <dt class="text-xs">Wymaga uwagi</dt>
+            <dd class="flex items-center gap-2 text-2xl font-semibold">
+              <i class="pi text-lg" [class]="stats().attention.length ? 'pi-exclamation-triangle' : 'pi-check-circle'" aria-hidden="true"></i>{{stats().attention.length}}</dd>
+          </div>
+        </dl>
+      }
 
       <div id="farm-summary-body" class="flex-col gap-3 text-sm" [class]="open() ? 'flex' : 'hidden'">
         @if (!stats().fields) {
@@ -63,10 +78,6 @@ import type { FarmStats } from './farm-stats';
           </div>
         }
       </div>
-      @if (stats().fields) {
-        <p-button label="Pobierz raport o moich polach" icon="pi pi-download" severity="secondary" [outlined]="true" size="small"
-          styleClass="min-h-10 w-full sm:w-auto" (onClick)="download.emit()" />
-      }
     </section>
   `,
 })

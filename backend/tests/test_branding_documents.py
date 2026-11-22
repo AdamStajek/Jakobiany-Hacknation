@@ -161,3 +161,17 @@ def test_new_templates_branded():
     for _subject, text, html in (templates.weekly_summary("Ania", summary), templates.weather_alert("Ania", items)):
         assert "Pole Widzenia" in text and brand.FOREST in html and "<1>" not in html
         assert f"cid:{email_layout.LOGO_CID}" in html
+
+
+def test_analysis_pdf_draws_water_flow_on_parcel_map():
+    import test_report_evidence as t
+
+    report = t.report_with_weather(0)
+    report.update(parcel={"id": "Test", "area_ha": 1, "geometry": {"type": "Polygon", "coordinates": [
+        [[21, 52], [21.001, 52], [21.001, 52.001], [21, 52]]]}}, recommendations=[])
+    points = {"type": "FeatureCollection", "features": [
+        {"type": "Feature", "geometry": {"type": "Point", "coordinates": [21.0004, 52.0003]}, "properties": {"kind": "flow", "bearing": 135}},
+        {"type": "Feature", "geometry": {"type": "Point", "coordinates": [21.0007, 52.0004]}, "properties": {"kind": "depression"}}]}
+    with_flow = pdf({**report, "sources": [*report["sources"], {"key": "terrain", "surface_points": points}]})
+    without = pdf(report)
+    assert with_flow.startswith(b"%PDF-") and with_flow != without

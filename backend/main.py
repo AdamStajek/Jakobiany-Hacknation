@@ -46,7 +46,7 @@ from wodo.report_evidence import report_evidence
 from wodo.science import CROPS, years_ago
 from wodo.store import SourceError, read, timestamp, write
 
-app = FastAPI(title="WodoStrażnik", version="1.0.0")
+app = FastAPI(title="Pole Widzenia", version="1.0.0")
 analysis_slots = BoundedSemaphore(2)
 buckets = OrderedDict()
 PASSPORT_CACHE_TTL = 3600
@@ -657,7 +657,7 @@ def analysis_document(analysis_id: str, format: Literal["pdf"] = "pdf"):
     return Response(
         pdf(report),
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="wodostraznik-{report["date"]}.pdf"'},
+        headers={"Content-Disposition": f'attachment; filename="pole-widzenia-{report["date"]}.pdf"'},
     )
 
 

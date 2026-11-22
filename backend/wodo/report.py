@@ -1,5 +1,5 @@
 """PDF analizy działki w barwach Pole Widzenia (dwa warianty: analiza z źródeł i raport z paszportu pola)."""
-from math import floor, log10
+from math import cos, floor, log10, pi, radians, sin
 from urllib.parse import quote
 
 from reportlab.lib import colors
@@ -31,10 +31,13 @@ from wodo.pdf_kit import SOFT as PAPER
 from wodo.report_evidence import number, report_evidence
 from wodo.science import CROPS
 
+WATER = colors.HexColor("#075985")
+
 
 class ParcelMap(Flowable):
-    def __init__(self, parcel, width=175, height=115):
+    def __init__(self, parcel, width=175, height=115, surface=None):
         super().__init__()
+        self.surface = [f for f in (surface or {}).get("features", ()) if f.get("geometry", {}).get("type") == "Point"]
         self.geometry = transform(shape(parcel["geometry"]), TO_PL, interleaved=False)
         self.width, self.height = width, height
 
@@ -58,6 +61,10 @@ class ParcelMap(Flowable):
                 path.close()
         canvas.drawPath(path, fill=1, stroke=1)
         canvas.setFillAlpha(1)
+        for feature in self.surface:
+            x, y = TO_PL(*feature["geometry"]["coordinates"])
+            self.draw_surface_point((x - (x0 + x1) / 2) * scale + self.width / 2,
+                                    (y - (y0 + y1) / 2) * scale + self.height / 2, feature.get("properties", {}))
         canvas.setFillColor(FOREST)
         canvas.setFont("Wodo", 8)
         canvas.drawString(10, self.height - 14, "N ↑")
@@ -66,6 +73,40 @@ class ParcelMap(Flowable):
         canvas.setLineWidth(1.5)
         canvas.line(10, 10, 10 + metres * scale, 10)
         canvas.drawString(13 + metres * scale, 8, f"{metres:g} m")
+
+
+    def draw_surface_point(self, x, y, props):
+        """Strzałka kierunku spływu (azymut od północy) albo „≈” dla lokalnego obniżenia."""
+        canvas = self.canv
+        canvas.setStrokeColor(WATER)
+        canvas.setFillColor(WATER)
+        if props.get("kind") == "depression":
+            canvas.setFont("WodoBold", 11)
+            canvas.drawCentredString(x, y - 4, "≈")
+            return
+        if props.get("bearing") is None:
+            return
+        angle = radians(props["bearing"])
+        dx, dy = sin(angle), cos(angle)
+        tail, tip = (x - dx * 8, y - dy * 8), (x + dx * 8, y + dy * 8)
+        canvas.setLineWidth(1.6)
+        canvas.line(*tail, *tip)
+        head = canvas.beginPath()
+        head.moveTo(*tip)
+        for wing in (pi + 0.5, pi - 0.5):
+            head.lineTo(tip[0] + 5.5 * sin(angle + wing), tip[1] + 5.5 * cos(angle + wing))
+        head.close()
+        canvas.drawPath(head, fill=1, stroke=0)
+
+
+def surface_legend(report, st):
+    terrain = next((s for s in report.get("sources", ()) if s.get("key") == "terrain"), {})
+    features = (terrain.get("surface_points") or {}).get("features", ())
+    kinds = {f.get("properties", {}).get("kind") for f in features}
+    if not kinds & {"flow", "depression"}:
+        return p("Brak próbek terenu do pokazania kierunków spływu wody.", st["tiny"])
+    return p("Niebieskie strzałki: kierunek spływu wody po powierzchni. ≈ lokalne obniżenie, gdzie woda może się "
+             "zatrzymywać. Wskazania z kilku próbek wysokości terenu, nie z pomiaru na polu.", st["tiny"])
 
 
 def recommendation_details(rec, st):
@@ -85,7 +126,7 @@ def recommendation_details(rec, st):
 
 def priority_tag(n, st):
     """Mała pomarańczowa plakietka z numerem priorytetu."""
-    tag = Table([[p(f"Priorytet {n}", st["cellhead"])]], colWidths=[62])
+    tag = Table([[p(f"Priorytet {n}", st["cellhead"])]], colWidths=[78])
     tag.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(brand.ORANGE)),
                              ("TOPPADDING", (0, 0), (-1, -1), 2), ("BOTTOMPADDING", (0, 0), (-1, -1), 2)]))
     tag.hAlign = "LEFT"
@@ -194,11 +235,12 @@ def analysis_pdf(report, st):
         flows.append(p(f'Faza uprawy: {metrics["stage"]}.', st["tiny"]))
     verdict = [p(evidence["headline"], st["sub"]), p(evidence["reason"], st["body"]),
                p(evidence["confidence_note"], st["tiny"])]
-    verdict_table = Table([[ParcelMap(parcel), verdict]], colWidths=[185, 300])
+    terrain = next((x for x in report.get("sources", ()) if x.get("key") == "terrain"), {})
+    verdict_table = Table([[ParcelMap(parcel, surface=terrain.get("surface_points")), verdict]], colWidths=[185, 300])
     verdict_table.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                                        ("BACKGROUND", (1, 0), (-1, -1), IVORY),
                                        ("LINEBEFORE", (1, 0), (1, -1), 3, LEAF)]))
-    flows.extend([verdict_table, spacer(8), p("Czy deszcz pokrył potrzeby uprawy?", st["sub"]),
+    flows.extend([verdict_table, surface_legend(report, st), spacer(8), p("Czy deszcz pokrył potrzeby uprawy?", st["sub"]),
                   p(evidence["balance"], st["body"])])
     if recent := metrics["recent"]:
         flows.append(p(f'{recent["start"]} – {recent["end"]} · Dane z {recent["samples"]} z {recent["days"]} dni.', st["body"]))
