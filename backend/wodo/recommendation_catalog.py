@@ -3,96 +3,117 @@
 from csv import DictReader
 from pathlib import Path
 
+from wodo.recommendation_costs import cost_estimate
+from wodo.recommendation_descriptions import DESCRIPTIONS
+
 # Keys shared by the rules, the optional farmer checklist and report evidence.
 OBSERVATIONS = {
-    "harvested": "Zbiór zakończony, a na odkrytej glebie są zdrowe resztki pożniwne",
-    "cover_sowing": "Odkryta gleba między uprawami, z odpowiednią wilgocią i terminem na wschody międzyplonu",
-    "mulch_fit": "Odkryta gleba; uprawa i dostępny materiał pozwalają na ściółkowanie",
-    "less_tillage": "Przed siewem na tym stanowisku można ograniczyć orkę",
-    "no_till_fit": "Gleba, okrywa i płodozmian pozwalają przejść na uprawę bezorkową lub pasową",
-    "low_soc": "Badanie gleby i zalecenie agronomiczne potwierdzają potrzebę zwiększenia zawartości materii organicznej",
-    "compact_dry": "Po zbiorze potwierdzono warstwę zagęszczoną i odpowiednio suchą glebę na głębokości pracy",
-    "compaction_risk": "Gleba jest podatna na zagęszczenie, a planowane są przejazdy ciężkimi maszynami",
-    "weeds": "W rosnącej uprawie stwierdzono konkurujące chwasty",
-    "rotation_issue": "Monokultura lub pogarszająca się struktura gleby",
-    "reservoir_site": "Rozpoznano zagłębienie i dopływ; potwierdzono wykonalność techniczną i formalną zbiornika",
-    "pond_site": "Dawne oczko lub odpowiednie warunki terenowe; ocena przyrodnicza i formalna dopuszcza odtworzenie",
-    "ditch_control": "Rów odprowadza za dużo wody; zarządca uzgodnił regulację i sprawdzono ryzyko podtopień",
-    "windbreak_site": "Otwarty teren z częstym silnym wiatrem i erozją wietrzną; wybrano miejsce i odpowiednie gatunki",
-    "buffer_site": "Obserwowany spływ powierzchniowy lub bezpośrednie sąsiedztwo cieku",
-    "contour_safe": "Potwierdzony stok i możliwość bezpiecznej pracy maszyn w poprzek stoku",
-    "terrace_site": "Ekspertyza potwierdza duże nachylenie, erozję i wykonalność tarasowania",
-    "roof_site": "Jest dostępny dach oraz miejsce na magazynowanie deszczówki i możliwość jej wykorzystania",
-    "drain_control": "Sieć drenarska jest odpowiednia do regulacji, a na polu występują sezonowe nadmiary i niedobory wody",
-    "wetland": "Potwierdzone mokradło lub okresowo zalewany fragment o walorach przyrodniczych",
-    "root_deficit": "Pomiar zapasu wody przy korzeniach potwierdza deficyt wymagający nawodnienia",
-    "legal_water": "Potwierdzony legalny dostęp do wystarczającego źródła wody",
-    "irrigation_planned": "Zaplanowano nawadnianie w oknie najbliższych trzech pełnych dób",
-    "can_wait": "Pomiar przy korzeniach potwierdza zapas wystarczający na trzy kolejne pełne doby nawet bez deszczu",
-    "rain_infiltrates": "Sprawdzono, że prognozowany deszcz może wsiąknąć i dotrzeć do korzeni",
-    "sprinkler": "Zaplanowano deszczowanie",
-    "cool_window": "Poranny lub wieczorny termin ma akceptowalny wiatr i ryzyko chorób",
-    "small_dose": "Pomiar potwierdza niską pojemność wodną, płytkie korzenie lub przesiąkanie poniżej korzeni",
-    "zone_irrigation": "Pomiary wskazują suchszy fragment pola, a instalacja pozwala nim sterować oddzielnie",
-    "drip_fit": "Uprawa i warunki techniczne pozwalają na nawadnianie kropelkowe",
-    "tolerant_cultivar": "Dostępna jest lokalnie sprawdzona odmiana bardziej odporna na suszę",
-    "alternate_crop": "Możliwa jest mniej wodochłonna uprawa pasująca do stanowiska i mająca zapewniony zbyt",
-    "sowing_fit": "Dla tej uprawy niedobory przypadają na fazę krytyczną, a warunki pozwalają zmienić termin siewu",
-    "compaction_recurs": "Pomiary lub odkrywki potwierdzają powtarzające się zagęszczanie przez przejazdy",
-    "low_ph": "Badanie potwierdza pH poniżej wymagań uprawy i potrzebę wapnowania",
-    "terminate_cover": "Rośnie międzyplon, zapas wody maleje i zbliża się siew uprawy głównej",
-    "extra_tillage": "Planowane są dodatkowe uprawki bez potwierdzonej potrzeby",
-    "perennial_strip": "Na powtarzalnie erodującym fragmencie przydatność produkcyjna jest niska",
-    "flow_path": "Potwierdzono skoncentrowany spływ i rozmywanie gleby w obniżeniu",
-    "infiltration_site": "Jest dopływ z opadu, chłonny grunt i rozpoznano brak ryzyka zanieczyszczenia",
-    "strip_fit": "Na regularnie nachylonym polu występuje erozja wodna, a płodozmian pozwala na uprawę pasową",
-    "agroforestry_fit": "Występuje wieloletnia erozja; rozpoznano drzewa i rozstaw ograniczające konkurencję o wodę",
-    "pond_leak": "Sztuczny zbiornik ma potwierdzone niepożądane przecieki; oceniono skutki uszczelnienia",
-    "irrigation_leak": "Instalacja zużywa nietypowo dużo wody, traci ciśnienie lub ma widoczny wyciek",
-    "sprinkler_uneven": "Pomiar deszczowania lub zróżnicowanie łanu wskazuje możliwy nierówny rozkład wody",
-    "critical_priority": "Trwa deficyt, zapas wody jest ograniczony, a kilka upraw różni się wrażliwością w obecnych fazach",
-    "density_fit": "Dla gatunku i odmiany jest uzasadniony agronomicznie zakres zmiany obsady",
-    "late_drought": "Niedobory regularnie nasilają się późno w sezonie, a krótsza odmiana pasuje do stanowiska",
-    "deep_roots": "Niedobory dotyczą warstwy powierzchniowej, a głębszy profil ma dostępną wodę i brak barier dla korzeni",
-    "nitrogen_plan": "Deficyt już ogranicza oczekiwany plon i dostępny jest bilans składników",
-    "split_n": "Warunki wodne są zmienne, a plan nawożenia i potrzeby uprawy pozwalają podzielić dawkę azotu",
-    "farm_zones": "Pola gospodarstwa wyraźnie różnią się retencją i historyczną podatnością na suszę",
-    "water_limited": "Zapas wody do nawadniania w gospodarstwie jest ograniczony",
-    "check_water": "Zbliża się decyzja o nawadnianiu, a szacunek wilgotności lub obraz satelitarny budzi wątpliwości",
-    "local_anomaly": "W tym punkcie stwierdzono spadek NDVI lub NDMI względem porównywalnej fazy; przyczyna jest nieznana",
-    "soil_inconsistent": "Niepewne lub niespójne dane o glebie utrudniają ocenę deficytu",
-    "infiltration_issue": "Zastoiska, spływ mimo suchej gleby lub podejrzenie zagęszczenia wymagają sprawdzenia",
-    "seedbed_dry": "W warstwie siewnej brakuje wilgoci do wschodów, a termin można bezpiecznie przesunąć",
-    "waterlogged": "Zastoiska lub bardzo mokra gleba grożą koleinami przy wjeździe",
-    "spray_label": "Planowany oprysk przypada na temperaturę lub stres roślin poza warunkami etykiety środka",
-    "fertilizer_planned": "Przed prognozowaną ulewą planowane jest nawożenie narażone na spływ lub wymywanie",
-    "outlet_issue": "Po podtopieniu woda długo stoi lub istniejący odpływ może być niedrożny",
+    "harvested": "Zbiory się skończyły, a na odkrytej ziemi zostały zdrowe resztki roślin",
+    "cover_sowing": "Ziemia między uprawami jest odkryta i jest dość wilgoci oraz czasu, by wysiane rośliny zdążyły wzejść",
+    "mulch_fit": "Ziemia jest odkryta i można ją przykryć materiałem pasującym do uprawy, np. słomą",
+    "less_tillage": "Warunki na polu pozwalają ograniczyć orkę przed siewem",
+    "no_till_fit": ("Rodzaj gleby, osłona ziemi i kolejność upraw pozwalają zrezygnować z orki "
+                    "lub przygotować ziemię tylko w pasach pod siew"),
+    "low_soc": "Badanie gleby i zalecenie specjalisty potwierdzają, że gleba potrzebuje więcej materii organicznej, np. kompostu",
+    "compact_dry": "Po zbiorach potwierdzono, że pod powierzchnią jest ubita warstwa ziemi i jest na tyle sucha, że można ją rozluźnić",
+    "compaction_risk": "Koła łatwo ubijają tę ziemię, a na polu zaplanowano przejazdy ciężkimi maszynami",
+    "weeds": "Wśród rosnącej uprawy widać chwasty, które konkurują z nią o wodę",
+    "rotation_issue": "Na polu stale uprawia się ten sam gatunek albo pogarsza się struktura ziemi, np. ziemia tworzy twarde bryły",
+    "reservoir_site": "Jest zagłębienie, do którego dopływa woda. Sprawdzono, że można tam zbudować zbiornik i spełnić formalności",
+    "pond_site": "Było tu oczko wodne lub teren się do tego nadaje, a ocena przyrodnicza i sprawdzenie formalności pozwalają je odtworzyć",
+    "ditch_control": "Rów odprowadza za dużo wody. Zarządca zgodził się na regulację odpływu i sprawdzono ryzyko podtopień",
+    "windbreak_site": "Na otwartym polu silny wiatr często wywiewa ziemię. Wybrano miejsce oraz odpowiednie drzewa lub krzewy",
+    "buffer_site": "Widać, że woda płynie po powierzchni ziemi, lub pole bezpośrednio przylega do rowu lub strumienia",
+    "contour_safe": "Pole leży na zboczu i potwierdzono, że maszyny mogą bezpiecznie pracować w poprzek spadku",
+    "terrace_site": "Specjalista potwierdził, że zbocze jest strome, ziemia się wymywa i można tam wykonać tarasy",
+    "roof_site": "Jest dostępny dach, miejsce na zbiornik i sposób na późniejsze wykorzystanie deszczówki",
+    "drain_control": "Na polu czasem brakuje wody, a czasem jest jej za dużo. Istniejące rury odwadniające pozwalają regulować odpływ",
+    "wetland": "Na miejscu potwierdzono mokradło lub część terenu, która okresowo jest pod wodą i ma wartość dla przyrody",
+    "root_deficit": "Pomiar na głębokości korzeni pokazuje, że roślinom brakuje wody i trzeba je podlać",
+    "legal_water": "Jest źródło, z którego można zgodnie z prawem pobrać wystarczającą ilość wody",
+    "irrigation_planned": "Podlewanie zaplanowano w ciągu trzech pełnych dni po dniu analizy",
+    "can_wait": "Pomiar pokazuje, że wody przy korzeniach wystarczy na trzy pełne dni po dniu analizy, nawet bez deszczu",
+    "rain_infiltrates": "Sprawdzono, że zapowiadany deszcz może wsiąknąć do głębokości, na której są korzenie",
+    "sprinkler": "Zaplanowano podlewanie zraszaczami",
+    "cool_window": "Rano lub wieczorem wiatr pozwala na użycie zraszaczy, a ryzyko chorób roślin jest akceptowalne",
+    "small_dose": "Pomiar potwierdza, że ziemia zatrzymuje mało wody, korzenie są płytkie lub woda przesiąka poniżej korzeni",
+    "zone_irrigation": "Pomiary wskazują suchszy fragment pola, a instalacja pozwala podlewać go osobno",
+    "drip_fit": "Rodzaj uprawy i dostępny sprzęt pozwalają podawać wodę kroplami przy korzeniach",
+    "tolerant_cultivar": "Dostępna jest odmiana, która w miejscowych próbach lepiej znosiła suszę",
+    "alternate_crop": "Można wybrać roślinę, która potrzebuje mniej wody, pasuje do pola i ma zapewnionego odbiorcę po zbiorze",
+    "sowing_fit": "Wody brakuje wtedy, gdy uprawa jest na to najbardziej wrażliwa, a warunki pozwalają przesunąć siew",
+    "compaction_recurs": "Pomiar lub zajrzenie pod powierzchnię ziemi potwierdza, że przejazdy maszyn regularnie ją ubijają",
+    "low_ph": "Badanie wykazało, że gleba jest za kwaśna dla uprawy i potrzebuje wapnowania",
+    "terminate_cover": "Rosną rośliny wysiane między głównymi uprawami, ziemia wysycha i zbliża się kolejny siew",
+    "extra_tillage": "Zaplanowano dodatkowe prace przy glebie, choć ich potrzeby jeszcze nie potwierdzono",
+    "perennial_strip": "Na części pola uprawa słabo się udaje, a woda lub wiatr regularnie zabiera wierzchnią warstwę ziemi",
+    "flow_path": "Sprawdzono, że woda zbiera się w obniżeniu i płynie jednym szlakiem, wymywając tam ziemię",
+    "infiltration_site": "Dopływa tu deszczówka, grunt ją chłonie i sprawdzono, że wsiąkanie nie grozi zanieczyszczeniem",
+    "strip_fit": "Deszcz wymywa ziemię z równomiernie nachylonego pola, a kolejność upraw pozwala siać rośliny w naprzemiennych pasach",
+    "agroforestry_fit": "Ziemia jest wymywana lub wywiewana od lat. Dobrano drzewa i odstępy, by ograniczyć ich konkurencję o wodę z uprawą",
+    "pond_leak": "Potwierdzono, że sztuczny zbiornik traci wodę przez przecieki. Sprawdzono skutki uszczelnienia dla otoczenia",
+    "irrigation_leak": "Instalacja zużywa więcej wody niż zwykle, traci ciśnienie lub widać wyciek",
+    "sprinkler_uneven": "Pomiary lub różnice w wyglądzie roślin sugerują, że zraszacze mogą nierówno rozprowadzać wodę",
+    "critical_priority": "Brakuje wody, zapas do podlewania jest ograniczony i niektóre uprawy są teraz wrażliwsze na suszę niż inne",
+    "density_fit": "Dla danej rośliny i odmiany ustalono, o ile można zmienić liczbę roślin na metr kwadratowy",
+    "late_drought": "Wody regularnie brakuje pod koniec sezonu, a odmiana dojrzewająca wcześniej pasuje do warunków pola",
+    "deep_roots": "Ziemia przy powierzchni wysycha, ale głębiej jest dostępna woda i korzenie mogą do niej dotrzeć",
+    "nitrogen_plan": "Brak wody już obniża spodziewane zbiory i wiadomo, ile składników odżywczych jest dostępnych dla uprawy",
+    "split_n": "Ilość dostępnej wody się zmienia, a plan nawożenia i potrzeby roślin pozwalają podawać azot w kilku porcjach",
+    "farm_zones": "Pola gospodarstwa wyraźnie różnią się tym, ile wody zatrzymują i jak często dotykała je susza",
+    "water_limited": "W gospodarstwie jest ograniczony zapas wody do podlewania",
+    "check_water": "Trzeba niedługo zdecydować o podlewaniu, a szacunek wilgotności lub zdjęcie satelitarne budzi wątpliwości",
+    "local_anomaly": ("W tym miejscu wskaźnik zieleni roślin (NDVI) lub ich uwodnienia (NDMI) spadł względem porównania "
+                      "z podobnego etapu wzrostu. Przyczyna jest jeszcze nieznana"),
+    "soil_inconsistent": "Dane o glebie są niepewne lub się różnią, więc trudno ocenić, ile wody brakuje roślinom",
+    "infiltration_issue": "Woda stoi lub spływa mimo suchej ziemi albo są oznaki, że pod powierzchnią jest ubita warstwa",
+    "seedbed_dry": "Ziemia na głębokości siewu jest za sucha, by nasiona wykiełkowały, a siew można bezpiecznie opóźnić",
+    "waterlogged": "Na polu stoi woda lub ziemia jest tak mokra, że wjazd grozi koleinami",
+    "spray_label": "Temperatura lub stan roślin w planowanym terminie oprysku nie spełniają zaleceń z etykiety środka",
+    "fertilizer_planned": "Nawożenie zaplanowano przed ulewą, która może zmyć nawóz z pola lub wymyć go poniżej korzeni",
+    "outlet_issue": "Po podtopieniu woda długo stoi lub coś może blokować istniejący odpływ",
 }
 
 SIGNALS = {
-    "recent_deficit": "Ujemny bilans opad − ETc w oknie 30 dni kończącym się w ostatnich maks. 10 dobach",
-    "recurrent": "Niedobór prawie co roku lub co kilka lat według rolnika, albo ujemny bilans opad − ET₀ w co najmniej połowie z min. 3 sezonów, albo deficyt w co najmniej połowie sezonów w scenariuszu paszportu",
-    "root_risk": "W co najmniej jednym wariancie bilansu ubytek wody przy korzeniach przekracza próg RAW",
-    "available_irrigation": "Zadeklarowana możliwość nawadniania i brak deklaracji braku dostępu do wody",
-    "active_crop": "Znany gatunek w aktywnej fazie wzrostu",
-    "wet": "Rolnik ocenił glebę jako mokrą",
-    "field_dry": "Rolnik ocenił glebę jako suchą",
-    "drainage": "Zadeklarowana istniejąca melioracja lub drenaż",
-    "runoff": "Rolnik obserwuje spływ często lub czasami",
-    "slope": "Mediana nachylenia pola (w paszporcie średnia) z modelu wysokości wynosi co najmniej 3%",
-    "ponding": "Rolnik obserwuje długie zastoiska często lub czasami",
-    "point_recent_dry": "Punkt oznaczony jako przesuszenie w ostatnich 7 dobach, łącznie z dniem analizy",
-    "point_ponding": "Punkt oznaczony przez rolnika jako zastoiska",
-    "point_recent_ponding": "Punkt oznaczony jako zastoiska w ostatnich 3 dobach, łącznie z dniem analizy",
-    "sat_anomaly": "Scena Sentinel-2 z ostatnich 14 dni ma NDVI lub NDMI niższy o co najmniej 0,10 od mediany min. 3 porównywalnych scen sezonowych (w paszporcie od średniej dla min. 3 sezonów tej uprawy i fazy)",
-    "soil_missing": "Brak kompletnego modelu retencji na głębokość korzeni znanej uprawy przy sygnale deficytu",
-    "water_uncertain": "Brak bilansu korzeni lub wynik względem RAW zależy od stanu początkowego",
-    "evaporation": "W co najmniej jednej z kolejnych 3 pełnych dób prognozowane ET₀ wynosi co najmniej 4 mm",
-    "dry_forecast": "W 3 kolejnych pełnych dobach opad ciekły brutto jest o ponad 0,1 mm niższy niż ETc",
-    "rain_covers": "Przez 3 pełne doby 50% opadu ciekłego z dni o maks. prawdopodobieństwie opadu ≥70% pokrywa ETc; jeśli istnieje bilans korzeniowy, ubytek w suchszym wariancie mieści się w RAW nawet przed opadem",
-    "wind": "W kolejnych 3 pełnych dobach prognozowana maksymalna prędkość wiatru na 10 m wynosi co najmniej 5 m/s",
-    "heat": "W kolejnych 3 pełnych dobach prognozowana maksymalna temperatura wynosi co najmniej 30°C",
-    "heavy_rain": "W kolejnych 3 pełnych dobach prognozowany jest opad co najmniej 10 mm w godzinę",
+    "recent_deficit": ("W ciągu 30 dni spadło mniej deszczu, niż według obliczeń potrzebowała uprawa na tym etapie wzrostu. "
+                       "Koniec tego okresu przypada najwyżej 10 dni przed dniem analizy"),
+    "recurrent": ("Rolnik zgłasza niedobory wody prawie co roku lub co kilka lat. Aplikacja może też porównać co najmniej "
+                  "trzy sezony i sprawdzić, czy w połowie z nich lub częściej opad był niższy od wzorcowego zapotrzebowania "
+                  "na wodę obliczonego z danych pogodowych (ET₀). Warunek spełnia też wynik paszportu pola, jeśli wykazuje "
+                  "niedobór w co najmniej połowie sprawdzonych sezonów"),
+    "root_risk": ("W co najmniej jednym wariancie obliczeń ubyło więcej wody przy korzeniach, "
+                  "niż rośliny mogą pobrać bez odczuwania niedoboru. Ten próg nazywa się RAW"),
+    "available_irrigation": "Rolnik podał, że może podlewać pole, i nie zgłosił braku dostępu do wody",
+    "active_crop": "Wiadomo, jaka roślina jest uprawiana, a termin analizy przypada w czasie jej wzrostu",
+    "wet": "Rolnik ocenił ziemię jako mokrą",
+    "field_dry": "Rolnik ocenił ziemię jako suchą",
+    "drainage": "Rolnik zgłosił, że na całym polu lub jego części są urządzenia odprowadzające wodę, np. rowy lub rury pod ziemią",
+    "runoff": "Rolnik czasami lub często widzi, że woda spływa po powierzchni pola",
+    "slope": ("Według mapy wysokości nachylenie pola wynosi co najmniej 3%, czyli 3 m różnicy wysokości na 100 m w poziomie. "
+              "W analizie używamy środkowej wartości pomiarów, a w paszporcie pola średniej"),
+    "ponding": "Rolnik czasami lub często widzi miejsca, w których woda długo stoi",
+    "point_recent_dry": "To miejsce oznaczono jako przesuszone w dniu analizy lub w ciągu 6 poprzednich dni",
+    "point_ponding": "Rolnik oznaczył to miejsce jako takie, w którym stoi woda",
+    "point_recent_ponding": "To miejsce oznaczono jako zalane stojącą wodą w dniu analizy lub w ciągu 2 poprzednich dni",
+    "sat_anomaly": ("Na zdjęciu satelitarnym Sentinel-2 z dnia analizy lub do 14 dni wcześniej wskaźnik zieleni roślin (NDVI) "
+                    "lub ich uwodnienia (NDMI) jest niższy o co najmniej 0,10 punktu. Punktem odniesienia jest środkowa wartość "
+                    "z co najmniej 3 porównywalnych zdjęć. W paszporcie pola porównujemy do średniej z co najmniej 3 sezonów "
+                    "tej samej uprawy na podobnym etapie wzrostu"),
+    "soil_missing": ("Wiadomo, jaka roślina rośnie, a ostatnie obliczenia wskazują niedobór wody. Brakuje jednak pełnych danych "
+                     "o tym, ile wody gleba zatrzymuje na głębokości korzeni"),
+    "water_uncertain": ("Nie da się obliczyć zapasu wody przy korzeniach lub ocena, czy roślinom brakuje wody, "
+                        "zależy od tego, jak mokra była ziemia na początku obliczeń"),
+    "evaporation": ("W co najmniej jednym z trzech pełnych dni po dniu analizy prognoza wskazuje utratę co najmniej 4 mm wody "
+                    "na dobę przez parowanie z ziemi i rośliny wzorcowej (ET₀)"),
+    "dry_forecast": ("Aplikacja porównuje deszcz prognozowany na trzy pełne dni po dniu analizy z ilością wody, "
+                     "której uprawa potrzebuje na obecnym etapie wzrostu. Warunek jest spełniony, gdy zabraknie więcej niż 0,1 mm"),
+    "rain_covers": ("W prognozie na trzy pełne dni po dniu analizy liczymy połowę deszczu z dni, w których prognozowana "
+                    "szansa opadu sięga co najmniej 70%. Suma musi być większa od zera i wystarczyć na potrzeby uprawy. Jeśli da się obliczyć "
+                    "zapas przy korzeniach, również w suchszym wariancie ziemia musi mieć dość łatwo dostępnej wody "
+                    "dla roślin przed deszczem każdego dnia"),
+    "wind": "W co najmniej jednym z trzech pełnych dni po dniu analizy wiatr na wysokości 10 m ma osiągnąć co najmniej 5 m/s",
+    "heat": "W co najmniej jednym z trzech pełnych dni po dniu analizy temperatura ma osiągnąć co najmniej 30°C",
+    "heavy_rain": "W ciągu trzech pełnych dni po dniu analizy ma wystąpić ulewa z opadem co najmniej 10 mm w godzinę",
 }
 
 SOURCES = {
@@ -240,12 +261,13 @@ def catalog():
     return [
         {"id": key, "title": row["dzialanie"], "group": row["kategoria"], "when": row["termin_realizacji"],
          "cost": row["koszt"], "cost_details": row["skladniki_kosztu"], "conditions": row["warunki_rekomendacji"],
+         "description": DESCRIPTIONS[key], "cost_estimate": cost_estimate(key),
          "triggers": {location: [[LABELS[fact] for fact in alternative] for alternative in alternatives]
                       for location, alternatives in TRIGGERS[key].items() if alternatives},
          "sources": references(key), "why": RULES[key][3],
-         "exclusion": ("Zaobserwowana mokra gleba lub zastoiska na polu wstrzymują tę sugestię."
+         "exclusion": ("Aplikacja pomija tę podpowiedź, gdy rolnik zgłosił mokrą ziemię, stojącą wodę lub ryzyko kolein z powodu wilgoci."
                        if key in WET_FIELD_EXCLUSIONS else
-                       "Zastoiska w tym punkcie w ostatnich trzech dobach lub ryzyko kolein wstrzymują tę sugestię."
+                       "Aplikacja pomija podpowiedź dla tego miejsca, jeśli zgłoszono tam stojącą wodę w dniu analizy lub w dwóch poprzednich dniach albo ryzyko kolein z powodu wilgoci."
                        if key == 25 else None)}
         for key, row in ACTIONS.items()
     ]

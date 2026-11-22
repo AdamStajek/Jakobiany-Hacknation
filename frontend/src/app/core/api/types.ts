@@ -39,7 +39,8 @@ export type Recommendation = {
   sources?: ResearchSource[];
 };
 export type RecommendationAction = {
-  id: number; title: string; group: string; when: string; conditions: string; cost: string; cost_details: string;
+  id: number; title: string; group: string; description: string; when: string; conditions: string; cost: string; cost_details: string;
+  cost_estimate: {lower: number; upper: number; unit: string; basis: string; sources: ResearchSource[]};
   triggers: Partial<Record<'field' | 'point', string[][]>>; sources: ResearchSource[]; why: string; exclusion: string | null;
 };
 export type ObservationOption = {key: string; label: string};

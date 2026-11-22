@@ -4,5 +4,6 @@ cd "$(dirname "$0")"
 # Parcel data lives on the host (gitignored) so it survives container/volume cleanups.
 export WODO_PARCELS_HOST_DIR="${WODO_PARCELS_HOST_DIR:-$PWD/data/parcels}"
 export WODO_UID="$(id -u)" WODO_GID="$(id -g)"
+export WODO_NODE_IMAGE="${WODO_NODE_IMAGE:-mirror.gcr.io/library/node:24-slim}"
 mkdir -p "$WODO_PARCELS_HOST_DIR"
 exec docker compose up --build -d

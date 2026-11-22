@@ -24,6 +24,7 @@ def test_all_catalog_actions_have_runnable_sourced_triggers():
     for item in catalog():
         key = item["id"]
         assert item["sources"] and item["why"]
+        assert item["description"].strip()
         assert all(source["url"].startswith("https://") for source in item["sources"])
         assert item["triggers"]
 
@@ -45,6 +46,14 @@ def test_all_catalog_actions_have_runnable_sourced_triggers():
                     answers = FarmerAnswers(recommendation_observations=observations)
                 match = next(rec for rec in matching_actions(facts, answers, DAY) if rec["id"] == key)
                 assert match["scope"] == scope and bool(match["points"]) == (scope == "point")
+
+
+def test_catalog_costs_have_numeric_bounds_and_explain_the_estimate():
+    for action in catalog():
+        estimate = action["cost_estimate"]
+        assert 0 <= estimate["lower"] <= estimate["upper"]
+        assert estimate["unit"] and estimate["basis"]
+        assert all(source["url"].startswith("https://") for source in estimate["sources"])
 
 
 def test_root_measurements_and_forecast_gate_irrigation():

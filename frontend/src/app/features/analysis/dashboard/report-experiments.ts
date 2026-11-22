@@ -23,7 +23,7 @@ import { Panel } from '../../../shared/ui/panel';
               <p>{{check.reason}}</p>
               <p><strong>Jak zmieni diagnozę?</strong> {{check.impact}}</p>
               <a class="inline-block py-2 text-primary underline print:hidden"
-                [routerLink]="['/eksperymenty', check.slug]" target="_blank" rel="noopener">
+                [routerLink]="['/metody/eksperymenty', check.slug]" target="_blank" rel="noopener">
                 Instrukcja — {{check.title}} (nowa karta)
               </a>
               <div class="flex flex-wrap items-end gap-2 print:hidden">

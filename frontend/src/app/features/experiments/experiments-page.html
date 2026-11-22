@@ -1,7 +1,7 @@
-<article class="mx-auto max-w-6xl space-y-6 px-4 pt-4 pb-24 lg:px-8 lg:pt-8 lg:pb-8 text-lg leading-relaxed">
+<article class="space-y-6 text-lg leading-relaxed">
   @if (guide(); as test) {
     <nav aria-label="Eksperymenty na polu">
-      <a routerLink="/eksperymenty" class="inline-flex min-h-11 items-center gap-2 font-semibold text-primary underline underline-offset-4">
+      <a routerLink=".." class="inline-flex min-h-11 items-center gap-2 font-semibold text-primary underline underline-offset-4">
         <i class="pi pi-list" aria-hidden="true"></i> Wszystkie eksperymenty
       </a>
     </nav>
@@ -84,7 +84,7 @@
           <h2 id="wynik-proby" class="text-xl font-bold">Jak rozumieć wynik</h2>
           <p class="mt-2">{{ test.meaning }}</p>
           @if (test.slug === 'wsiakanie-wody') {
-            <a routerLink="/eksperymenty/struktura-gleby" class="mt-3 inline-block py-2 font-semibold text-primary underline underline-offset-4">
+            <a routerLink="../struktura-gleby" class="mt-3 inline-block py-2 font-semibold text-primary underline underline-offset-4">
               Zobacz, jak sprawdzić strukturę gleby
             </a>
           }
@@ -130,6 +130,5 @@
         </li>
       }
     </ul>
-    <p class="max-w-3xl">Wynik z jednego miejsca opisuje ten punkt pola. Żeby sprawdzić większy obszar, powtórz próbę w kilku podobnych miejscach.</p>
   }
 </article>

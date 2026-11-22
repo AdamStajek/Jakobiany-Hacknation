@@ -9,11 +9,17 @@ WodoStrażnik pomaga gospodarstwom zdecydować, kiedy sprawdzić zapas wody w gl
 Operator potrzebuje Docker Compose i dostępu HTTPS do publicznych źródeł. Rolnik otwiera aplikację w zwykłej przeglądarce.
 
 ```bash
-docker compose up --build -d
+./start.sh
 curl http://127.0.0.1:8080/health
 ```
 
 Otwórz [aplikację lokalną](http://127.0.0.1:8080) lub [API OpenAPI](http://127.0.0.1:8080/docs). Przykład pokazu to działka 301103_2.0009.549/7, ziemniak i 5 lipca 2024. Typ uprawy historycznej wymaga potwierdzenia przez użytkownika.
+
+`./start.sh` pobiera obraz Node z publicznego cache Google. Jeśli obrazu brakuje w cache, możesz wskazać Docker Hub w zmiennej `WODO_NODE_IMAGE`.
+
+```bash
+WODO_NODE_IMAGE=node:24-slim ./start.sh
+```
 
 Bez Dockera użyj Node.js 24, uv, Python 3.13 i fontów DejaVu. Na Ubuntu lub Debianie doinstaluj fonts-dejavu-core.
 

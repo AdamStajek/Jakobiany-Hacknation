@@ -21,7 +21,12 @@ export const routes: Routes = [
   {path: 'paszporty', redirectTo: 'pola?widok=paszporty'},
   {path: 'dzialka/:id/paszport', title: 'Pole Widzenia · Paszport działki',
     loadComponent: () => import('./features/fields/parcel-passport-page').then((m) => m.ParcelPassportPage)},
-  {path: 'eksperymenty', loadChildren: () => import('./features/experiments/experiments-page').then((m) => m.experimentRoutes)},
-  {path: 'metody', title: 'Pole Widzenia · Jak to działa', loadComponent: () => import('./features/methods/methods-page').then((m) => m.MethodsPage)},
+  {path: 'eksperymenty', pathMatch: 'full', redirectTo: 'metody/eksperymenty'},
+  {path: 'eksperymenty/:slug', pathMatch: 'full', redirectTo: 'metody/eksperymenty/:slug'},
+  {path: 'metody', loadComponent: () => import('./features/methods/methods-layout').then((m) => m.MethodsLayout), children: [
+    {path: '', pathMatch: 'full', title: 'Pole Widzenia · Jak to działa',
+      loadComponent: () => import('./features/methods/methods-page').then((m) => m.MethodsPage)},
+    {path: 'eksperymenty', loadChildren: () => import('./features/experiments/experiments-page').then((m) => m.experimentRoutes)},
+  ]},
   {path: '**', redirectTo: ''},
 ];

@@ -9,14 +9,13 @@ import { AccountMenu } from './account-menu';
 import { ConsentBanner } from './consent-banner';
 import { ReportPrompt } from './report-prompt';
 
-type Section = 'analiza' | 'pola' | 'eksperymenty' | 'metody';
+type Section = 'analiza' | 'pola' | 'metody';
 type NavItem = {id: Section; path: string; label: string; short: string; icon: string};
 
 const NAV: NavItem[] = [
   {id: 'analiza', path: '/', label: 'Analiza działki', short: 'Analiza', icon: 'pi-map'},
   {id: 'pola', path: '/pola', label: 'Moje pola', short: 'Pola', icon: 'pi-th-large'},
-  {id: 'eksperymenty', path: '/eksperymenty', label: 'Eksperymenty', short: 'Eksperymenty', icon: 'pi-list-check'},
-  {id: 'metody', path: '/metody', label: 'Jak to działa', short: 'Metody', icon: 'pi-book'},
+  {id: 'metody', path: '/metody', label: 'Jak to działa', short: 'Jak to działa', icon: 'pi-book'},
 ];
 
 /** Powłoka aplikacji: pasek boczny na desktopie, górny pasek i dolna nawigacja na telefonie. */
@@ -66,7 +65,7 @@ const NAV: NavItem[] = [
     <app-consent-banner />
     <app-report-prompt [active]="section() === 'analiza'" [url]="url()" />
 
-    <nav aria-label="Nawigacja główna" class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-surface bg-surface-0/95 pb-[env(safe-area-inset-bottom)] backdrop-blur print:hidden lg:hidden dark:bg-surface-900/95">
+    <nav aria-label="Nawigacja główna" class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 border-t border-surface bg-surface-0/95 pb-[env(safe-area-inset-bottom)] backdrop-blur print:hidden lg:hidden dark:bg-surface-900/95">
       @for (item of nav; track item.path) {
         <a [routerLink]="item.path" [attr.aria-current]="section() === item.id ? 'page' : null"
            class="flex h-16 flex-col items-center justify-center gap-1 text-xs"
@@ -93,7 +92,6 @@ export class Shell {
   /** Aktywna sekcja nawigacji (paszport działki leży pod /dzialka/:id/paszport i należy do „Moich pól”). */
   protected readonly section = computed<Section>(() => {
     const url = this.url().split(/[?#]/)[0];
-    if (url.startsWith('/eksperymenty')) return 'eksperymenty';
     if (url.startsWith('/metody')) return 'metody';
     return url.startsWith('/pola') || url.startsWith('/paszporty') || url.endsWith('/paszport') ? 'pola' : 'analiza';
   });

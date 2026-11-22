@@ -1,7 +1,10 @@
 name: wodostraznik
 services:
   wodo:
-    build: .
+    build: &app-build
+      context: .
+      args:
+        NODE_IMAGE: ${WODO_NODE_IMAGE:-node:24-slim}
     ports:
       - "127.0.0.1:${WODO_PORT:-8080}:8000"
     init: true
@@ -30,7 +33,7 @@ services:
     # The API starts immediately; parcel endpoints answer 503 until the updater publishes the index.
 
   parcels-updater:
-    build: .
+    build: *app-build
     command: ["/app/.venv/bin/python", "-m", "wodo.parcels_data", "loop"]
     init: true
     restart: unless-stopped

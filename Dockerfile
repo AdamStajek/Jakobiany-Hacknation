@@ -1,4 +1,5 @@
-FROM node:24-slim AS web
+ARG NODE_IMAGE=node:24-slim
+FROM ${NODE_IMAGE} AS web
 WORKDIR /build
 COPY frontend/package*.json ./
 RUN npm ci

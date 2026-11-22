@@ -1,7 +1,6 @@
 <section aria-labelledby="katalog-dzialan" class="pw-card space-y-3 p-4">
-  <h2 id="katalog-dzialan" class="text-lg font-semibold">Katalog działań KOWR</h2>
-  <p class="text-sm">Działanie pojawia się, gdy spełnione są wszystkie warunki z co najmniej jednego wariantu. Zaznaczając punkt na mapie, możesz dodać lokalne obserwacje. Dane pogodowe i uprawa są wspólne dla pola.</p>
-  <p class="text-sm text-muted-color">Prognozę sprawdzamy dla dzisiejszej analizy i trzech kolejnych pełnych dób w czasie polskim. ETc to ET₀ pomnożone przez współczynnik bieżącej fazy uprawy, a RAW to próg łatwo dostępnej wody przy korzeniach. Progi prognozy, nachylenia, historii i odchyleń satelitarnych służą do przesiewu w aplikacji. Publikacje uzasadniają zjawiska i metody wskazane przy każdym działaniu.</p>
+  <h2 id="katalog-dzialan" class="text-lg font-semibold">Katalog działań</h2>
+  <p class="text-sm">Tu znajdziesz sposoby na zatrzymanie deszczówki, ochronę gleby i lepsze wykorzystanie wody na polu. Rozwiń kategorię i wybierz działanie, żeby dowiedzieć się, na czym polega i kiedy może pomóc. W raporcie o polu aplikacja podpowiada działania na podstawie dostępnych danych i obserwacji z terenu.</p>
   @if (store.loading()) {
     <p class="text-sm" role="status">Wczytujemy katalog działań…</p>
   } @else if (store.error()) {
@@ -11,32 +10,64 @@
     <p class="text-sm text-muted-color">Katalog działań jest pusty.</p>
   }
   @for (group of groups(); track group[0]) {
-    <details class="rounded-lg border border-surface p-3">
-      <summary class="cursor-pointer font-semibold">{{group[0]}} ({{group[1].length}})</summary>
-      @for (action of group[1]; track action.id) {
-        <article class="mt-3 space-y-2 border-t border-surface pt-3 text-sm">
-          <h3 class="font-semibold">{{action.id}}. {{action.title}}</h3>
-          <p>{{action.why}}</p>
-          <p><strong>Warunki z arkusza KOWR.</strong> {{action.conditions}}</p>
-          @for (location of locations; track location.key) {
-            @if (action.triggers[location.key]; as alternatives) {
-              <h4 class="font-semibold">{{location.label}}</h4>
-              <ul class="ml-5 list-disc space-y-1">
-                @for (conditions of alternatives; track $index) {
-                  <li>{{conditions.join(' oraz ')}}.</li>
-                }
-              </ul>
-            }
-          }
-          @if (action.exclusion) { <p>{{action.exclusion}}</p> }
-          <p><strong>Termin.</strong> {{action.when}}. <strong>Koszt.</strong> {{action.cost}} · {{action.cost_details}}</p>
-          <ul class="ml-5 list-disc space-y-1" aria-label="Źródła naukowe">
-            @for (source of action.sources; track source.url) {
-              <li><a [href]="source.url" target="_blank" rel="noopener" class="text-primary underline">{{source.title}}</a></li>
-            }
-          </ul>
-        </article>
-      }
+    <details class="rounded-lg border border-surface px-3">
+      <summary class="min-h-11 cursor-pointer py-3 font-semibold">{{group[0]}}</summary>
+      <ol class="ml-7 list-decimal pb-3 text-sm">
+        @for (action of group[1]; track action.id) {
+          <li [value]="action.id" class="border-b border-surface last:border-b-0">
+            <details>
+              <summary class="min-h-11 cursor-pointer py-3 font-medium">{{action.title}}</summary>
+              <div class="space-y-2 pb-3">
+                <p>{{action.description}}</p>
+                <p class="font-semibold">Źródła</p>
+                <ul class="ml-5 list-disc space-y-1" aria-label="Źródła naukowe">
+                  @for (source of action.sources; track source.url) {
+                    <li><a [href]="source.url" target="_blank" rel="noopener" class="text-primary underline">{{source.title}}</a></li>
+                  }
+                </ul>
+                <details class="rounded-lg border border-surface px-3">
+                  <summary class="min-h-11 cursor-pointer py-3 font-medium">Warunki, termin i koszt</summary>
+                  <div class="space-y-2 pb-3">
+                    @for (location of locations; track location.key) {
+                      @if (action.triggers[location.key]; as alternatives) {
+                        <h4 class="font-semibold">{{location.label}}</h4>
+                        @for (conditions of alternatives; track $index) {
+                          @if (alternatives.length > 1) {
+                            <p class="font-medium">Wariant {{$index + 1}}</p>
+                          }
+                          <ul class="ml-5 list-disc space-y-1">
+                            @for (condition of conditions; track condition) {
+                              <li>{{condition}}.</li>
+                            }
+                          </ul>
+                        }
+                      }
+                    }
+                    @if (action.exclusion) { <p>{{action.exclusion}}</p> }
+                    <p><strong>Termin.</strong> {{action.when}}.</p>
+                    @if (action.cost_estimate; as estimate) {
+                      <div class="space-y-1">
+                        <p><strong>Przykładowy koszt.</strong>
+                          {{estimate.lower | number:'1.0-2'}}@if (estimate.upper !== estimate.lower) {–{{estimate.upper | number:'1.0-2'}}} zł {{estimate.unit}}.
+                        </p>
+                        <p>{{estimate.basis}}</p>
+                        @if (estimate.sources.length) {
+                          <ul class="ml-5 list-disc space-y-1" aria-label="Źródła stawek">
+                            @for (source of estimate.sources; track source.url) {
+                              <li><a [href]="source.url" target="_blank" rel="noopener" class="text-primary underline">{{source.title}}</a></li>
+                            }
+                          </ul>
+                        }
+                      </div>
+                    }
+                    <p><strong>Składniki kosztu.</strong> {{action.cost_details}}</p>
+                  </div>
+                </details>
+              </div>
+            </details>
+          </li>
+        }
+      </ol>
     </details>
   }
 </section>

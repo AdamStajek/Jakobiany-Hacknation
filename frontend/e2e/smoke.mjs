@@ -91,18 +91,43 @@ async function run(name) {
     // Nawigacja powłoki: pasek boczny (desktop) lub dolna nawigacja (telefon).
     const navs = page.getByRole('navigation', {name: 'Nawigacja główna'});
     const nav = navs.locator('visible=true').first();
-    for (const [label, path] of [['Moje pola', /\/pola$/], ['Eksperymenty', /\/eksperymenty/], ['Metody|Jak to działa', /\/metody$/], ['Analiza', /\/$/]]) {
-      await nav.getByRole('link', {name: new RegExp(label)}).click();
+    assert.equal(await nav.getByRole('link', {name: 'Eksperymenty'}).count(), 0);
+    for (const [label, path] of [[mobile ? 'Pola' : 'Moje pola', /\/pola$/], ['Jak to działa', /\/metody$/], ['Analiza', /\/$/]]) {
+      const link = nav.getByRole('link', {name: label});
+      await link.click();
       await page.waitForURL(path);
-      if (label.startsWith('Metody')) {
-        const catalog = page.getByRole('region', {name: 'Katalog działań KOWR'});
-        await catalog.locator('summary').first().waitFor();
-        assert.equal(await catalog.locator('article').count(), 60);
-        await catalog.getByText(/Retencja i infrastruktura/).click();
-        await catalog.getByRole('heading', {name: /Utworzenie trawiastych pasów buforowych/}).waitFor();
-        assert(await catalog.getByRole('link', {name: /Borin/}).isVisible());
+      if (label === 'Jak to działa') {
+        const catalog = page.getByRole('region', {name: 'Katalog działań', exact: true});
+        const actions = catalog.locator('ol > li');
+        const action = actions.filter({hasText: 'Utworzenie trawiastych pasów buforowych'});
+        const title = action.getByText('Utworzenie trawiastych pasów buforowych', {exact: true});
+        const category = catalog.getByText('Retencja i infrastruktura', {exact: true});
+        await category.waitFor();
+        assert.equal(await actions.count(), 60);
+        assert.equal(await action.getAttribute('value'), '15');
+        assert.equal(await catalog.locator('details[open]').count(), 0);
+        assert.equal(await title.isVisible(), false);
+        await category.press('Enter');
+        await title.waitFor();
+        assert.equal(await catalog.locator('details[open]').count(), 1);
+        await title.press('Enter');
+        await action.getByText(/Pas trawy na drodze spływu/).waitFor();
+        assert(await action.getByRole('link', {name: /Borin/}).isVisible());
+        const conditions = action.getByText(/Rolnik czasami lub często widzi/);
+        assert.equal(await conditions.isVisible(), false);
+        await action.getByText('Warunki, termin i koszt', {exact: true}).click();
+        await conditions.waitFor();
+        await action.getByText(/200\s*–\s*320 zł netto za ha pasa/).waitFor();
+        assert(await action.getByRole('link', {name: /Grenas/}).isVisible());
+
+        const experiments = page.getByRole('navigation', {name: 'Jak to działa'}).getByRole('link', {name: 'Eksperymenty'});
+        await experiments.click();
+        await page.waitForURL(/\/metody\/eksperymenty$/);
+        await page.getByRole('link', {name: /Wsiąkanie wody/}).click();
+        await page.waitForURL(/\/metody\/eksperymenty\/wsiakanie-wody$/);
+        assert.equal(await experiments.getAttribute('aria-current'), 'page');
       }
-      assert.equal(await nav.getByRole('link', {name: new RegExp(label)}).getAttribute('aria-current'), 'page', `${name}: aria-current dla ${label}`);
+      assert.equal(await link.getAttribute('aria-current'), 'page', `${name}: aria-current dla ${label}`);
     }
     await page.locator('.maplibregl-canvas').first().waitFor();
 
