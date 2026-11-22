@@ -1,5 +1,5 @@
 /* Service worker „Pole Widzenia”: powłoka aplikacji offline, ostatnie dane pól i Web Push. */
-const VERSION = 'v2';
+const VERSION = 'v3';
 const SHELL = `pw-shell-${VERSION}`;
 const PUBLIC = `pw-public-${VERSION}`;
 const PRIVATE = 'pw-private-v1';
@@ -28,7 +28,7 @@ async function networkFirst(request, cacheName, fallbackKey) {
   const cache = await caches.open(cacheName);
   try {
     const response = await fetch(request);
-    if (response.ok) { await cache.put(fallbackKey ?? request, response.clone()); void trim(cache); }
+    if (response.ok && !response.redirected) { await cache.put(fallbackKey ?? request, response.clone()); void trim(cache); }
     return response;
   } catch (error) {
     const cached = await cache.match(fallbackKey ?? request);
@@ -41,7 +41,8 @@ async function staleWhileRevalidate(request, cacheName) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
   const refresh = fetch(request).then((response) => {
-    if (response.ok) void cache.put(request, response.clone()).then(() => trim(cache));
+    const type = response.headers.get('content-type') || '';
+    if (response.ok && !type.includes('text/html')) void cache.put(request, response.clone()).then(() => trim(cache));
     return response;
   });
   if (cached) { refresh.catch(() => undefined); return cached; }

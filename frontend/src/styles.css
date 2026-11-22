@@ -64,4 +64,10 @@ html.app-dark body { background: var(--p-surface-950); color: var(--p-text-color
 :focus-visible { outline: 3px solid var(--pw-forest); outline-offset: 2px; }
 html.app-dark :focus-visible { outline-color: var(--pw-orange); }
 button, a { touch-action: manipulation; }
+/* Własne elementy Angulara domyślnie są inline; jako blok układ (fixed, wysokości dvh, przewijanie) jest przewidywalny na telefonach. */
+app-root, app-shell, app-home-page { display: block; }
+/* Telefon: treść nie chowa się pod dolną nawigacją. */
+@media (max-width: 1023.98px) {
+  main#tresc { padding-bottom: var(--shell-bottom); }
+}
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
