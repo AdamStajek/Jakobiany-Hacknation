@@ -1,8 +1,9 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { ApiService } from '../api/api.service';
 import { errorMessage } from '../api/errors';
-import type { Passport } from '../api/types';
+import type { Geometry, Passport } from '../api/types';
 import { AnalysisStore } from './analysis.store';
+import { isRegistryId } from './parcel.store';
 import type { Field } from './fields.store';
 
 export type PassportEntry = {loading: boolean; error: string; data: Passport | null; progress: string; percent: number | null};
@@ -23,10 +24,11 @@ export class PassportStore {
   /** Po cichu ładuje dane pierwszej działki pola, żeby były gotowe, zanim użytkownik je otworzy. */
   prefetch(field: Field) {
     const parcel = field.parcels[0];
-    if (parcel) void this.load(parcel.id, field.crop === 'unknown' ? null : field.crop ?? null);
+    if (parcel) void this.load(parcel.id, field.crop === 'unknown' ? null : field.crop ?? null, false, parcel.geometry);
   }
 
-  async load(parcelId: string, crop: string | null, force = false) {
+  /** `geometry`: granica działki zapisanej z importu GeoJSON (jej ID nie istnieje w rejestrze). */
+  async load(parcelId: string, crop: string | null, force = false, geometry?: Geometry | null) {
     const id = key(parcelId, crop);
     const current = this.entries()[id];
     if (this.running.has(id) || (current?.data && !force)) return;
@@ -37,11 +39,12 @@ export class PassportStore {
       await this.analysis.init();
       const asOf = this.analysis.range().max;
       if (!asOf) throw new Error('Brak daty analizy');
+      const geojson = geometry && !isRegistryId(parcelId) ? {type: 'Feature', properties: {}, geometry} : undefined;
       const data = await this.api.passportWithProgress(parcelId, asOf, crop, ({done, total, label}) => {
         if (abort.signal.aborted) return;
         this.set(id, {...EMPTY, loading: true, progress: total ? `Pobrano: ${label} (${done}/${total})` : 'Pobieramy dane ze źródeł…',
           percent: total ? Math.round((done / total) * 100) : null});
-      }, abort.signal);
+      }, abort.signal, geojson);
       this.set(id, {...EMPTY, data});
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') this.set(id, current ?? EMPTY);

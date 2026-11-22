@@ -34,16 +34,23 @@ export class ApiService {
     return firstValueFrom(this.http.get<{parcels: Parcel[]}>('/api/parcels/by-point', {params: {lat, lon}}));
   }
   importParcel(geojson: object) { return firstValueFrom(this.http.post<Parcel>('/api/parcels/import', geojson)); }
-  passport(parcelId: string, asOf: string, crop: string | null) {
+  passport(parcelId: string, asOf: string, crop: string | null, geojson?: object) {
+    // Działka z importu GeoJSON nie ma numeru w rejestrze: backend dostaje jej granicę zamiast ID.
+    if (geojson) {
+      return firstValueFrom(this.http.post<Passport>('/api/passport', geojson, {
+        params: {as_of: asOf, ...(crop ? {crop} : {}), irrigation_mm: 0, view: 'summary'},
+      }));
+    }
     return firstValueFrom(this.http.get<Passport>('/api/passport', {
       params: {parcel_id: parcelId, as_of: asOf, ...(crop ? {crop} : {}), irrigation_mm: 0, view: 'summary'},
     }));
   }
   /** Dane działki z postępem przez WebSocket (/api/ws/passport); bez WebSocketu wraca do GET `view=summary`. */
   passportWithProgress(parcelId: string, asOf: string, crop: string | null,
-    onProgress: (progress: AnalysisProgress) => void, signal?: AbortSignal): Promise<Passport> {
-    return this.socketRequest<'passport', Passport>('/api/ws/passport', {parcel_id: parcelId, as_of: asOf, ...(crop ? {crop} : {})},
-      'passport', onProgress, () => this.passport(parcelId, asOf, crop), signal);
+    onProgress: (progress: AnalysisProgress) => void, signal?: AbortSignal, geojson?: object): Promise<Passport> {
+    const selection = geojson ? {geojson} : {parcel_id: parcelId};
+    return this.socketRequest<'passport', Passport>('/api/ws/passport', {...selection, as_of: asOf, ...(crop ? {crop} : {})},
+      'passport', onProgress, () => this.passport(parcelId, asOf, crop, geojson), signal);
   }
   report(analysisId: string) { return firstValueFrom(this.http.get<Report>(`/api/analysis/${encodeURIComponent(analysisId)}`)); }
   saveExperiments(analysisId: string, results: Record<string, string>) {

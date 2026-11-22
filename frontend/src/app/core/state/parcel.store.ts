@@ -1,7 +1,11 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { ApiService } from '../api/api.service';
 import { errorMessage } from '../api/errors';
-import { Parcel } from '../api/types';
+import { Geometry, Parcel } from '../api/types';
+
+/** Identyfikator z rejestru (np. 301101_1.0001.123/4); inne ID to działki z importu GeoJSON. */
+export const isRegistryId = (id: string) => REGISTRY_ID.test(id);
+const REGISTRY_ID = /^\d{6}_[1-9]\.\d{4}\.(?:AR_\d+\.)?\d+(?:\/\d+)?\.?$/i;
 
 /** Stan wyboru działki: wyszukiwanie i wybór granicy na mapie. */
 @Injectable({providedIn: 'root'})
@@ -34,9 +38,13 @@ export class ParcelStore {
     await this.load(() => this.api.searchParcels(text));
   }
 
-  /** Ładuje działkę z linku, o ile nie jest już wybrana. */
-  async open(id: string) {
+  /**
+   * Ładuje działkę z linku, o ile nie jest już wybrana. ID spoza rejestru (działka z importu GeoJSON)
+   * nie da się wyszukać, więc wtedy używamy geometrii zapisanej w polu (`saved`).
+   */
+  async open(id: string, saved?: Geometry | null) {
     if (this.parcel()?.id === id) return;
+    if (saved && !isRegistryId(id)) { await this.importGeometry(saved); return; }
     await this.load(() => this.api.searchParcels(id));
   }
 

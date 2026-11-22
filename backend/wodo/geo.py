@@ -1,3 +1,4 @@
+import hashlib
 import os
 import re
 import sqlite3
@@ -98,9 +99,12 @@ def imported(geojson):
         if isinstance(commune, str) and 0 < len(commune.strip()) <= 90
         else None
     )
+    validated = validate_geometry(geom)
+    # Bez numeru w pliku ID wynika z geometrii: ta sama granica = to samo ID, różne granice nie kolidują.
+    digest = hashlib.sha1(repr(validated["geometry"]).encode()).hexdigest()[:6].upper()
     return {
-        **validate_geometry(geom),
-        "id": declared_id or "Działka z GeoJSON",
+        **validated,
+        "id": declared_id or f"Działka z GeoJSON #{digest}",
         "source": "Import użytkownika",
         "declared_parcel_id": declared_id,
         "commune": commune,

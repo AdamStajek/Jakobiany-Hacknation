@@ -58,4 +58,13 @@ describe('ParcelStore', () => {
     expect(store.importedGeometry()).not.toBeNull();
     expect(store.parcel()?.id).toBe('Działka z GeoJSON');
   });
+
+  it('open: ID spoza rejestru ładuje zapisaną geometrię zamiast wyszukiwać', async () => {
+    const search = vi.fn();
+    const store = setup({searchParcels: search, importParcel: async () => parcel('Działka z GeoJSON #ABC123')});
+    await store.open('Działka z GeoJSON #ABC123', {type: 'Polygon', coordinates: []});
+    expect(search).not.toHaveBeenCalled();
+    expect(store.parcel()?.id).toBe('Działka z GeoJSON #ABC123');
+    expect(store.importedGeometry()).not.toBeNull();
+  });
 });

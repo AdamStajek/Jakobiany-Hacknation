@@ -381,6 +381,7 @@ def passport_from_geojson(
     sowing: date | None = None,
     stage: int | None = None,
     irrigation_mm: float = 0,
+    view: Literal["full", "summary"] = "full",
 ):
     if isinstance(geojson, PassportSelection):
         selection = geojson.field_request
@@ -390,7 +391,7 @@ def passport_from_geojson(
         )
     if "field_request" in geojson:
         raise HTTPException(422, "Sprawdź datę, dane pola i zaznaczone obserwacje.")
-    return build_passport(None, geojson, as_of, crop, sowing, stage, irrigation_mm)
+    return passport_view(build_passport(None, geojson, as_of, crop, sowing, stage, irrigation_mm), view)
 
 
 def build_passport(parcel_id, geojson, as_of, crop, sowing, stage, irrigation_mm,
@@ -588,18 +589,28 @@ async def analysis_socket(ws: WebSocket):
             pass
 
 
+MAX_SOCKET_BYTES = 500_000
+
+
 class PassportSocketRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    parcel_id: str = Field(max_length=90)
+    parcel_id: str | None = Field(default=None, max_length=90)
+    geojson: dict | None = None
     as_of: date | None = None
     crop: str | None = None
+
+    @model_validator(mode="after")
+    def one_selection(self):
+        if (self.parcel_id is None) == (self.geojson is None):
+            raise ValueError("Podaj identyfikator działki albo jej granicę (GeoJSON).")
+        return self
 
 
 @app.websocket("/api/ws/passport")
 async def passport_socket(ws: WebSocket):
     """Dane działki z postępem na żywo.
 
-    Klient wysyła jeden JSON {"parcel_id","as_of","crop"}. Serwer odsyła zdarzenia
+    Klient wysyła jeden JSON {"parcel_id" albo "geojson" (działka z importu),"as_of","crop"}. Serwer odsyła zdarzenia
     {"type":"progress","done":n,"total":m,"label":"…"} i jedno {"type":"result","passport":{…}}
     (widok `summary`) albo {"type":"error","status":int,"detail":"…"}. Trafienie w cache = od razu wynik.
     """
@@ -612,8 +623,8 @@ async def passport_socket(ws: WebSocket):
 
     try:
         raw = await asyncio.wait_for(ws.receive_text(), timeout=10)
-        if len(raw) > 2_000:
-            raise HTTPException(413, "Dopuszczalny rozmiar danych to 2 kB.")
+        if len(raw) > MAX_SOCKET_BYTES:
+            raise HTTPException(413, "Dopuszczalny rozmiar danych to 500 kB.")
         request = PassportSocketRequest.model_validate_json(raw)
     except (WebSocketDisconnect, TimeoutError):
         return
@@ -632,7 +643,7 @@ async def passport_socket(ws: WebSocket):
     def work():
         try:
             result = build_passport(
-                request.parcel_id, None, request.as_of, request.crop, None, None, 0,
+                request.parcel_id, request.geojson, request.as_of, request.crop, None, None, 0,
                 on_progress=lambda done, total, label: emit(
                     {"type": "progress", "done": done, "total": total, "label": label}),
             )

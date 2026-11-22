@@ -58,6 +58,22 @@ def test_passport_ws_streams_progress_then_summary(monkeypatch):
     assert passport["analysis_as_of"] == "2024-01-01"
 
 
+def test_passport_ws_accepts_imported_geometry(monkeypatch):
+    seen = {}
+
+    def fake(parcel_id, geojson, *args, **kwargs):
+        seen.update(parcel_id=parcel_id, geojson=geojson)
+        return {"parcel_id": "Działka z GeoJSON #ABC123", "analysis_as_of": date(2024, 1, 1), "fields": [],
+                "summary": [], "farmer_report": {"situation": "ok", "next_check": None, "steps": []}}
+
+    monkeypatch.setattr(main, "build_passport", fake)
+    geojson = {"type": "Feature", "properties": {}, "geometry": {"type": "Polygon", "coordinates": []}}
+    events = _passport_events({"geojson": geojson, "crop": "wheat"})
+    assert events[-1]["type"] == "result" and seen == {"parcel_id": None, "geojson": geojson}
+    both = _passport_events({"geojson": geojson, "parcel_id": "141201_1.0001.1"})
+    assert both[-1]["type"] == "error" and both[-1]["status"] == 422
+
+
 def test_passport_ws_rejects_invalid_input():
     events = _passport_events({"parcel_id": "x" * 200})
     assert events[-1]["type"] == "error" and events[-1]["status"] == 422

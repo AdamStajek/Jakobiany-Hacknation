@@ -193,7 +193,7 @@ export class AnalysisPage {
       const [id, analysisId] = [this.id(), this.analysisId()];
       untracked(() => {
         if (analysisId) void this.analysis.load(analysisId);
-        else if (id) void this.parcels.open(id);
+        else if (id) void this.parcels.open(id, this.fields.fields().flatMap((f) => f.parcels).find((p) => p.id === id)?.geometry);
       });
     });
 

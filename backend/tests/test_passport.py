@@ -132,7 +132,7 @@ def test_passport_from_geojson_uses_imported_boundary(monkeypatch):
     monkeypatch.setattr(passport, "basin_flow", lambda *_: ({}, {}))
     result = passport_from_geojson({"type": "Feature", "geometry": geometry, "properties": {}}, date(2024, 7, 5))
     fields = {entry["field"]: entry for entry in result["fields"]}
-    assert result["parcel_id"] == "Działka z GeoJSON"
+    assert result["parcel_id"].startswith("Działka z GeoJSON #")
     assert fields["parcel_area_ha"]["value"] > 0
     assert fields["parcel_area_ha"]["source"] == "Import użytkownika"
     assert fields["parcel_number"]["value"] is None

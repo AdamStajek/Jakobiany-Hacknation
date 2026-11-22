@@ -32,7 +32,7 @@ export class FieldPassport {
   private readonly target = computed(() => {
     const field = this.field();
     const parcel = field.parcels[Math.min(this.index(), field.parcels.length - 1)];
-    return parcel ? {parcelId: parcel.id, crop: field.crop === 'unknown' ? null : field.crop ?? null} : null;
+    return parcel ? {parcelId: parcel.id, geometry: parcel.geometry, crop: field.crop === 'unknown' ? null : field.crop ?? null} : null;
   });
   protected readonly entry = computed(() => {
     const target = this.target();
@@ -48,7 +48,7 @@ export class FieldPassport {
     effect((onCleanup) => {
       const target = this.target();
       if (!target) return;
-      untracked(() => void this.store.load(target.parcelId, target.crop));
+      untracked(() => void this.store.load(target.parcelId, target.crop, false, target.geometry));
       // Zmiana pola/działki przerywa trwające pobieranie poprzedniego.
       onCleanup(() => this.store.cancel(target.parcelId, target.crop));
     });
@@ -58,6 +58,6 @@ export class FieldPassport {
 
   protected reload() {
     const target = this.target();
-    if (target) void this.store.load(target.parcelId, target.crop, true);
+    if (target) void this.store.load(target.parcelId, target.crop, true, target.geometry);
   }
 }

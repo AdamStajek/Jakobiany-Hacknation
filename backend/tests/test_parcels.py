@@ -369,3 +369,15 @@ def test_index_by_id_with_trailing_dot(base, tmp_path):
     assert [r["id"] for r in index.by_id("241606_4.0001.ar_19.7314.")] == ["241606_4.0001.AR_19.7314."]
     assert index.by_id("081201_5.0018") == []
     index.close()
+
+
+def test_imported_parcels_get_distinct_stable_ids():
+    from wodo.geo import imported
+
+    def square(x):
+        return {"type": "Polygon", "coordinates": [[[x, 52.08], [x + .01, 52.08], [x + .01, 52.09], [x, 52.09], [x, 52.08]]]}
+
+    a, b = imported(square(16.65)), imported(square(16.70))
+    assert a["id"] != b["id"]
+    assert a["id"] == imported(square(16.65))["id"]
+    assert a["id"].startswith("Działka z GeoJSON #")
