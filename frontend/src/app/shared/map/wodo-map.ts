@@ -1,4 +1,4 @@
-import { Component, computed, ElementRef, OnDestroy, afterNextRender, effect, input, output, signal, viewChild } from '@angular/core';
+import { Component, computed, ElementRef, OnDestroy, afterNextRender, effect, input, model, output, signal, viewChild } from '@angular/core';
 import type { GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl';
 import type { TerraDraw } from 'terra-draw';
 import { Geometry } from '../../core/api/types';
@@ -70,7 +70,8 @@ export class WodoMap implements OnDestroy {
   readonly hintSeen = input(false);
   readonly hintDismissed = output();
 
-  protected readonly basemap = signal<Basemap>('osm');
+  /** Podkład mapy; rodzic może go wiązać (`[(basemap)]`), by wybór przetrwał zmianę widoku. */
+  readonly basemap = model<Basemap>('osm');
   protected readonly ready = signal(false);
   protected readonly drawing = signal(false);
   protected readonly locateError = signal('');
@@ -100,6 +101,7 @@ export class WodoMap implements OnDestroy {
   constructor() {
     afterNextRender(() => void this.init());
     effect(() => { this.geometry(); this.waterPoint(); this.markers(); this.numberedMarkers(); this.pins(); this.ready(); this.draw(); });
+    effect(() => { const id = this.basemap(); if (this.ready()) this.applyBasemap(id); });
     effect(() => { if (this.markMode() && this.drawing()) this.stopDraw(); });
     effect(() => {
       const alert = !!this.markNotice();
@@ -115,8 +117,9 @@ export class WodoMap implements OnDestroy {
     this.zoomHintTimer = setTimeout(() => this.zoomHint.set(false), 6000);
   }
 
-  protected setBasemap(id: Basemap) {
-    this.basemap.set(id);
+  protected setBasemap(id: Basemap) { this.basemap.set(id); }
+
+  private applyBasemap(id: Basemap) {
     this.map?.setLayoutProperty('osm', 'visibility', id === 'osm' ? 'visible' : 'none');
     this.map?.setLayoutProperty('orto', 'visibility', id === 'orto' ? 'visible' : 'none');
   }

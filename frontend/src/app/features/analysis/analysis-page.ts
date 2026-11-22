@@ -6,6 +6,7 @@ import { MessageModule } from 'primeng/message';
 import { SkeletonModule } from 'primeng/skeleton';
 import { AnalysisStore } from '../../core/state/analysis.store';
 import { ConsentStore } from '../../core/state/consent.store';
+import { MapPrefsStore } from '../../core/state/map-prefs.store';
 import { toServerColor } from '../../core/state/fields.model';
 import { FieldsStore, fieldsGeometry } from '../../core/state/fields.store';
 import { ParcelStore } from '../../core/state/parcel.store';
@@ -60,7 +61,7 @@ type Pane = 'map' | 'report';
           </div>
 
           <div class="relative min-h-0 flex-1 print:hidden" [class.hidden]="pane() !== 'map'">
-            <app-wodo-map [locateUser]="true" [geometry]="parcels.parcel()?.geometry ?? null" [waterPoint]="analysis.waterPoint()"
+            <app-wodo-map [(basemap)]="prefs.basemap" [locateUser]="true" [geometry]="parcels.parcel()?.geometry ?? null" [waterPoint]="analysis.waterPoint()"
               [fields]="visibleShapes()" [fieldsMuted]="true" [fieldsToggleVisible]="shapes().length > 0" [fieldsShown]="showFields()"
               [markers]="zones.markers()" [numberedMarkers]="true" [markMode]="zones.marking()" [markAvailable]="!!parcels.parcel()" [markNotice]="zones.notice()"
               [hintSeen]="hintSeen() || !!parcels.parcel()" (hintDismissed)="dismissHint()"
@@ -116,6 +117,7 @@ type Pane = 'map' | 'report';
   `,
 })
 export class AnalysisPage {
+  protected readonly prefs = inject(MapPrefsStore);
   protected readonly parcels = inject(ParcelStore);
   protected readonly analysis = inject(AnalysisStore);
   protected readonly fields = inject(FieldsStore);
