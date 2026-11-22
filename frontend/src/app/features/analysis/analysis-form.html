@@ -36,57 +36,71 @@
       <p-message severity="warn" role="alert">{{catalog.error()}}</p-message>
       <p-button type="button" label="Ponów pobieranie katalogu" [text]="true" (onClick)="catalog.load()" />
     }
-    <section class="space-y-2" aria-labelledby="describe-title">
-      <h3 id="describe-title" class="text-sm font-semibold">Opisz pole własnymi słowami <span class="font-normal text-muted-color">(opcjonalnie)</span></h3>
-      @if (description.confirmed() && !editingDescription()) {
-        <dl class="pw-card space-y-1 p-3 text-sm">
-          @for (row of summaryRows(); track row.key) {
-            <div class="flex gap-1"><dt class="font-medium">{{row.title}}:</dt><dd>{{row.value ?? 'Nie rozpoznano'}}</dd></div>
-          }
-        </dl>
-        <p-button type="button" [text]="true" icon="pi pi-pencil" label="Zmień opis" (onClick)="editingDescription.set(true)" />
-      } @else {
-        <app-field-description (confirmed)="onDescribed($event)" />
-      }
-    </section>
-    <app-field-declarations [recommendationCatalog]="catalog.data()" [questions]="store.questions()" [parcel]="parcels.parcel()" [day]="form.controls.date.value">
-      <div soil class="space-y-3">
-        <div class="flex flex-col gap-1">
-          <label id="stage-label" for="stage" class="text-sm font-medium">Faza uprawy</label>
-          <p-select inputId="stage" ariaLabelledBy="stage-label" formControlName="stage" [options]="stages" optionLabel="label" optionValue="value"
-            appendTo="body" styleClass="w-full" />
-        </div>
-        <div class="flex flex-col gap-1">
-          <label for="sowing" class="text-sm font-medium">Siew lub wznowienie wegetacji</label>
-          <input id="sowing" type="date" formControlName="sowing" class="p-inputtext p-component h-11 w-full" [max]="form.controls.date.value" />
-        </div>
-        <div class="flex flex-col gap-1">
-          <label id="soil-label" for="soil" class="text-sm font-medium">Co widzisz po sprawdzeniu gleby?</label>
-          <p-select inputId="soil" ariaLabelledBy="soil-label" formControlName="soil_observation" [options]="soilOptions" optionLabel="label" optionValue="value"
-            appendTo="body" styleClass="w-full" />
-        </div>
-        <div class="flex items-start gap-2">
-          <p-checkbox inputId="confirm" formControlName="confirm_land" [binary]="true" />
-          <label for="confirm" class="text-sm">Potwierdzam uprawę, jeśli mapa wskazuje inne użytkowanie</label>
-        </div>
-      </div>
-      <div irrigation class="space-y-3">
-        <div class="flex items-center gap-2">
-          <p-checkbox inputId="irrigation" formControlName="irrigation" [binary]="true" />
-          <label for="irrigation" class="text-sm">Mam możliwość nawadniania</label>
-        </div>
-        @if (form.controls.irrigation.value) {
-          <div class="flex flex-col gap-1">
-            <label for="irrigation-mm" class="text-sm font-medium">Woda z nawadniania w dniu analizy [mm]</label>
-            <input id="irrigation-mm" type="number" min="0" max="150" step="0.1" formControlName="irrigation_mm" class="p-inputtext p-component h-11 w-full" />
+    <p-accordion [value]="[]">
+      <p-accordion-panel value="advanced">
+        <p-accordion-header>
+          <span class="flex flex-1 flex-wrap items-center justify-between gap-2 pr-2">
+            <span class="text-base font-semibold">Zaawansowane (opcjonalne)</span>
+            @if (filledCount() > 0) { <span class="text-sm font-normal text-muted-color">{{filledCount()}} uzupełnione</span> }
+          </span>
+        </p-accordion-header>
+        <p-accordion-content>
+          <div class="space-y-4 pt-1">
+          <section class="space-y-2" aria-labelledby="describe-title">
+            <h3 id="describe-title" class="text-sm font-semibold">Opisz pole własnymi słowami <span class="font-normal text-muted-color">(opcjonalnie)</span></h3>
+            @if (description.confirmed() && !editingDescription()) {
+              <dl class="pw-card space-y-1 p-3 text-sm">
+                @for (row of summaryRows(); track row.key) {
+                  <div class="flex gap-1"><dt class="font-medium">{{row.title}}:</dt><dd>{{row.value ?? 'Nie rozpoznano'}}</dd></div>
+                }
+              </dl>
+              <p-button type="button" [text]="true" icon="pi pi-pencil" label="Zmień opis" (onClick)="editingDescription.set(true)" />
+            } @else {
+              <app-field-description (confirmed)="onDescribed($event)" />
+            }
+          </section>
+          <app-field-declarations [recommendationCatalog]="catalog.data()" [questions]="store.questions()" [parcel]="parcels.parcel()" [day]="form.controls.date.value">
+            <div soil class="space-y-3">
+              <div class="flex flex-col gap-1">
+                <label id="stage-label" for="stage" class="text-sm font-medium">Faza uprawy</label>
+                <p-select inputId="stage" ariaLabelledBy="stage-label" formControlName="stage" [options]="stages" optionLabel="label" optionValue="value"
+                  appendTo="body" styleClass="w-full" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label for="sowing" class="text-sm font-medium">Siew lub wznowienie wegetacji</label>
+                <input id="sowing" type="date" formControlName="sowing" class="p-inputtext p-component h-11 w-full" [max]="form.controls.date.value" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label id="soil-label" for="soil" class="text-sm font-medium">Co widzisz po sprawdzeniu gleby?</label>
+                <p-select inputId="soil" ariaLabelledBy="soil-label" formControlName="soil_observation" [options]="soilOptions" optionLabel="label" optionValue="value"
+                  appendTo="body" styleClass="w-full" />
+              </div>
+              <div class="flex items-start gap-2">
+                <p-checkbox inputId="confirm" formControlName="confirm_land" [binary]="true" />
+                <label for="confirm" class="text-sm">Potwierdzam uprawę, jeśli mapa wskazuje inne użytkowanie</label>
+              </div>
+            </div>
+            <div irrigation class="space-y-3">
+              <div class="flex items-center gap-2">
+                <p-checkbox inputId="irrigation" formControlName="irrigation" [binary]="true" />
+                <label for="irrigation" class="text-sm">Mam możliwość nawadniania</label>
+              </div>
+              @if (form.controls.irrigation.value) {
+                <div class="flex flex-col gap-1">
+                  <label for="irrigation-mm" class="text-sm font-medium">Woda z nawadniania w dniu analizy [mm]</label>
+                  <input id="irrigation-mm" type="number" min="0" max="150" step="0.1" formControlName="irrigation_mm" class="p-inputtext p-component h-11 w-full" />
+                </div>
+              }
+              <div class="flex flex-col gap-1">
+                <label for="scenario" class="text-sm font-medium">Co jeśli zatrzymam dodatkowy opad? [mm]</label>
+                <input id="scenario" type="number" min="0" max="50" step="0.5" formControlName="scenario_mm" placeholder="np. 10" class="p-inputtext p-component h-11 w-full" />
+              </div>
+            </div>
+          </app-field-declarations>
           </div>
-        }
-        <div class="flex flex-col gap-1">
-          <label for="scenario" class="text-sm font-medium">Co jeśli zatrzymam dodatkowy opad? [mm]</label>
-          <input id="scenario" type="number" min="0" max="50" step="0.5" formControlName="scenario_mm" placeholder="np. 10" class="p-inputtext p-component h-11 w-full" />
-        </div>
-      </div>
-    </app-field-declarations>
+        </p-accordion-content>
+      </p-accordion-panel>
+    </p-accordion>
     @if (store.questions().length) {
       <p class="text-sm text-muted-color">Uzupełnione odpowiedzi zapiszą się w raporcie dostępnym przez jego link.</p>
     }
