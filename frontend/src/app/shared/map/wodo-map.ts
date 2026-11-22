@@ -29,6 +29,7 @@ export class WodoMap implements OnDestroy {
   /** [lon, lat] najbliższej stałej wody. */
   readonly waterPoint = input<[number, number] | null>(null);
   /** Dodatkowe punkty [lon, lat], np. oznaczone strefy problemowe. */
+  readonly surface = input<GeoJSON.FeatureCollection<GeoJSON.Point>>();
   readonly markers = input<[number, number][]>([]);
   /** Numeruje znaczniki 1, 2, 3… w kolejności listy. */
   readonly numberedMarkers = input(false);
@@ -101,7 +102,7 @@ export class WodoMap implements OnDestroy {
 
   constructor() {
     afterNextRender(() => void this.init());
-    effect(() => { this.geometry(); this.waterPoint(); this.markers(); this.numberedMarkers(); this.pins(); this.ready(); this.draw(); });
+    effect(() => { this.geometry(); this.surface(); this.waterPoint(); this.markers(); this.numberedMarkers(); this.pins(); this.ready(); this.draw(); });
     effect(() => { const id = this.basemap(); if (this.ready()) this.applyBasemap(id); });
     effect(() => { if (this.markMode() && this.drawing()) this.stopDraw(); });
     effect(() => {
@@ -219,7 +220,7 @@ export class WodoMap implements OnDestroy {
     if (!map || !this.ready()) return;
     const geometry = this.geometry();
     const water = this.waterPoint();
-    syncMapData(map, {geometry, water, markers: this.markers(), numberedMarkers: this.numberedMarkers(), pins: this.pins()});
+    syncMapData(map, {geometry, water, surface: this.surface(), markers: this.markers(), numberedMarkers: this.numberedMarkers(), pins: this.pins()});
     // Dopasowanie tylko przy zmianie działki lub wody (nie przy każdym dodanym znaczniku).
     if (geometry && (geometry !== this.fitted.geometry || water !== this.fitted.water)) this.fitTo(geometry, water);
     this.fitted = {geometry, water};

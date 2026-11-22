@@ -25,6 +25,7 @@ export class AnalysisStore {
   readonly savingExperiment = signal(false);
   readonly running = computed(() => !!this.progress());
   /** [lon, lat] najbliższej stałej wody z ostatniego raportu. */
+  readonly surfacePoints = computed(() => this.report()?.sources.find((s) => s.key === 'terrain')?.surface_points);
   readonly waterPoint = computed(() => this.report()?.sources.find((s) => s.key === 'land')?.nearest_water_point ?? null);
 
   /** Parametry ostatniej analizy uruchomionej w tej sesji, powiązane z identyfikatorem raportu. */
