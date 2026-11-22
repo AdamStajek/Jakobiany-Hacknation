@@ -8,8 +8,10 @@ def test_report_suggests_experiments_and_saves_field_diagnosis(monkeypatch):
     analysis_id = "a" * 32
     original = {
         "analysis_id": analysis_id,
+        "date": "2024-07-01", "missing": {},
         "agricultural": True,
-        "metrics": {"recent": {"crop_balance_mm": -12, "end": "2024-07-01"}, "root": None},
+        "metrics": {"stage_id": 2, "weather_last_day": "2024-07-01", "root": None,
+                    "recent": {"crop_balance_mm": -12, "end": "2024-07-01", "days": 30, "samples": 30}},
         "sources": [{"key": "terrain", "slope_pct": 4}],
     }
     cache = {f"report:{analysis_id}": original}

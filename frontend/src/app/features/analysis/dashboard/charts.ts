@@ -1,4 +1,3 @@
-import { DecimalPipe } from '@angular/common';
 import { Component, computed, input } from '@angular/core';
 import { NgxEchartsDirective } from 'ngx-echarts';
 import { Report, Scene } from '../../../core/api/types';
@@ -11,7 +10,7 @@ import { DataTable } from '../../../shared/ui/data-table';
   selector: 'app-water-balance-chart',
   imports: [NgxEchartsDirective, ChartCard, DataTable],
   template: `
-    <app-chart-card title="Opad i zapotrzebowanie uprawy" subtitle="Ostatnie 30 dni [mm]">
+    <app-chart-card title="Opad i zapotrzebowanie uprawy" subtitle="Okres bilansu [mm]">
       @if (options(); as o) { <div echarts [options]="o" class="h-64 w-full" role="img" [attr.aria-label]="label()"></div> }
       @else { <p class="text-sm text-muted-color">Brak wystarczających danych pogodowych.</p> }
       @if (table(); as t) { <app-data-table caption="Opad i zapotrzebowanie uprawy, ostatnie 30 dni" [columns]="['Wielkość', 'mm']" [rows]="t" /> }
@@ -47,19 +46,13 @@ export class WaterBalanceChart {
   selector: 'app-season-chart',
   imports: [NgxEchartsDirective, ChartCard, DataTable],
   template: `
-    <app-chart-card title="Bilans pogodowy sezonów" subtitle="Opad − ET₀, kwiecień–wrzesień [mm]. Czerwone: niedobór.">
+    <app-chart-card title="Bilans pogodowy sezonów" subtitle="Opad − ET₀, kwiecień–wrzesień [mm]. Wartość poniżej zera oznacza przewagę parowania referencyjnego.">
       @if (options(); as o) { <div echarts [options]="o" class="h-64 w-full" role="img" [attr.aria-label]="label()"></div> }
-      @else { <p class="text-sm text-muted-color">Brak kompletnych sezonów do porównania.</p> }
+      @else { <p class="text-sm text-muted-color">Brak sezonów z wystarczającymi danymi.</p> }
       @if (report().metrics.history.seasons.length) {
         <app-data-table caption="Bilans pogodowy sezonów" [columns]="['Rok', 'Opad [mm]', 'ET₀ [mm]', 'Bilans [mm]']" [rows]="table()" />
       }
     </app-chart-card>
-    @if (report().metrics.history; as h) {
-      @if (h.seasons.length) {
-        <p class="mt-2 text-sm text-muted-color"><strong>{{h.negative_seasons}} z {{h.seasons.length}}</strong> sezonów z ujemnym bilansem.
-          @if (h.riskiest_months.length) { Najniższy typowy bilans: <strong>{{h.riskiest_months.join(', ')}}</strong>. }</p>
-      }
-    }
   `,
 })
 export class SeasonChart {
@@ -69,7 +62,7 @@ export class SeasonChart {
     return `Bilans pogodowy w ${h.seasons.length} sezonach, ${h.negative_seasons} z ujemnym bilansem`;
   });
   protected readonly table = computed(() => this.report().metrics.history.seasons
-    .map((s) => [s.year, Math.round(s.rain_mm), Math.round(s.et0_mm), Math.round(s.balance_mm)]));
+    .map((s) => [s.year, s.rain_mm, s.et0_mm, s.balance_mm]));
   protected readonly options = computed<ChartOptions | null>(() => {
     const seasons = this.report().metrics.history.seasons;
     if (!seasons.length) return null;
@@ -78,7 +71,7 @@ export class SeasonChart {
       ...baseOptions(), tooltip: {trigger: 'axis', axisPointer: {type: 'shadow'}, confine: true, valueFormatter: (v) => `${v} mm`},
       xAxis: {type: 'category', data: seasons.map((s) => String(s.year)), ...axisStyle()},
       yAxis: {type: 'value', name: 'mm', ...axisStyle()},
-      series: [{name: 'Bilans', type: 'bar', barMaxWidth: 36, data: seasons.map((s) => ({value: Math.round(s.balance_mm),
+      series: [{name: 'Bilans', type: 'bar', barMaxWidth: 36, data: seasons.map((s) => ({value: s.balance_mm,
         itemStyle: {color: s.balance_mm < 0 ? c.bad : c.good}}))}],
     };
   });
@@ -86,17 +79,13 @@ export class SeasonChart {
 
 @Component({
   selector: 'app-soil-chart',
-  imports: [NgxEchartsDirective, ChartCard, DecimalPipe, DataTable],
+  imports: [NgxEchartsDirective, ChartCard, DataTable],
   template: `
     <app-chart-card title="Woda w profilu gleby" subtitle="Model SoilGrids 250 m [mm/m]. Różnica słupków = woda dostępna dla roślin.">
       @if (options(); as o) { <div echarts [options]="o" class="h-64 w-full" role="img" aria-label="Zawartość wody w warstwach gleby przy 33 i 1500 kPa"></div> }
       @else { <p class="text-sm text-muted-color">Brak wiarygodnych danych o retencji gleby.</p> }
       @if (table(); as t) { <app-data-table caption="Retencja wody w warstwach gleby" [columns]="['Warstwa', '33 kPa [mm/m]', '1500 kPa [mm/m]']" [rows]="t" /> }
     </app-chart-card>
-    @if (report().metrics.root; as root) {
-      <p class="mt-2 text-sm text-muted-color">Pojemność strefy korzeni (TAW) <strong>{{root.taw_mm | number:'1.0-1'}} mm</strong>,
-        próg łatwo dostępnej wody (RAW) <strong>{{root.raw_mm | number:'1.0-1'}} mm</strong>.</p>
-    }
   `,
 })
 export class SoilChart {
@@ -128,10 +117,10 @@ export class SoilChart {
   selector: 'app-satellite-chart',
   imports: [NgxEchartsDirective, ChartCard, DataTable],
   template: `
-    <app-chart-card title="Stan roślinności (Sentinel-2)" subtitle="NDVI: zieleń i wigor łanu. NDMI: woda w liściach. Wyższe = lepiej.">
+    <app-chart-card title="Stan roślinności (Sentinel-2)" subtitle="NDVI opisuje zieleń łanu, NDMI — sygnał uwilgotnienia roślin. Punkty oznaczają dostępne zdjęcia.">
       @if (options(); as o) { <div echarts [options]="o" class="h-64 w-full" role="img" aria-label="Wskaźniki NDVI i NDMI w czasie"></div> }
       @else { <p class="text-sm text-muted-color">Za mało użytecznych obrazów, aby narysować przebieg w czasie.</p> }
-      @if (scenes().length > 1) { <app-data-table caption="Wskaźniki satelitarne w czasie" [columns]="['Data', 'NDVI', 'NDMI']" [rows]="table()" /> }
+      @if (scenes().length) { <app-data-table caption="Wskaźniki satelitarne w czasie" [columns]="['Data', 'NDVI', 'NDMI']" [rows]="table()" /> }
     </app-chart-card>
   `,
 })

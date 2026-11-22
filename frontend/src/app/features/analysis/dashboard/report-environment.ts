@@ -9,7 +9,7 @@ import { Panel } from '../../../shared/ui/panel';
   imports: [DecimalPipe, Panel],
   template: `
     <app-panel heading="Teren i otoczenie" icon="pi-compass">
-      <div class="grid gap-5 text-sm md:grid-cols-3">
+      <div class="grid gap-5 text-sm lg:grid-cols-2">
         <div class="min-w-0">
           <h4 class="mb-1 font-semibold">Rzeźba terenu</h4>
           @if (source('terrain'); as t) {
@@ -32,10 +32,12 @@ import { Panel } from '../../../shared/ui/panel';
           <h4 class="mb-1 font-semibold">Woda w pobliżu</h4>
           @if (land(); as land) {
             @if (land.nearest_water_m !== null && land.nearest_water_m !== undefined) {
-              <p>Stała woda około <strong>{{land.nearest_water_m}} m</strong> od granicy (zaznaczona na mapie). To nie potwierdza prawa do poboru.</p>
+              <p>Stała woda około <strong>{{land.nearest_water_m}} m</strong> od granicy. To nie potwierdza prawa do poboru.</p>
             } @else { <p>Brak wykrytej stałej wody w odległości do {{land.search_m}} m.</p> }
           }
-          @if (gauge(); as g) { <p class="mt-1">Wodowskaz {{g.station}} ({{g.river}}): <strong>{{g.gauge_cm}} cm</strong>, {{g.distance_km}} km od działki.</p> }
+          @if (!land()) { <p>Brak mapy wód powierzchniowych.</p> }
+          @if (gauge(); as g) { <p class="mt-1">Wodowskaz {{g.station}} ({{g.river}}): <strong>{{g.gauge_cm}} cm</strong>, {{g.distance_km}} km od działki. Data odczytu: {{g.publication_date}}.</p> }
+          @else { <p class="text-muted-color">Brak odczytu wodowskazu dla wskazanej daty.</p> }
         </div>
       </div>
     </app-panel>

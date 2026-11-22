@@ -150,12 +150,14 @@ def pdf(report):
              p(f"Analiza {report['date']} · {metrics['crop']['label']} · {metrics['stage']}"), Spacer(1, 8)]
     context = [p(parcel["id"], sub), p(f'{parcel["area_ha"]:g} ha · {parcel["commune"] or "wskazana geometria"}'),
                p(f'Źródło granicy: {parcel["source"]}.', tiny), p(f'Ryzyko: {metrics["risk"]}', sub)]
-    if report["confidence"] != "Ograniczona":
-        context.append(p(f'Pewność oceny: {report["confidence"].lower()}'))
+    context.append(p(f'Pewność oceny: {report["confidence"].lower()}'))
     table = Table([[ParcelMap(parcel), context]], colWidths=[185, 300])
     table.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
     flows.append(table)
-    flows.append(p(report.get("situation") or report_message(report), reading))
+    if evidence := report.get("evidence"):
+        flows.extend([p(evidence["headline"], sub), p(evidence["reason"], reading), p(evidence["confidence_note"])])
+    else:
+        flows.append(p(report.get("situation") or report_message(report), reading))
     if report["recommendations"]:
         flows.append(p("Co możesz zrobić?", section))
     for rec in report["recommendations"]:

@@ -1,0 +1,31 @@
+<figure class="rounded-xl border border-surface bg-surface-50 p-4 dark:bg-surface-900" aria-labelledby="skala-korzeni">
+  <figcaption id="skala-korzeni" class="flex flex-wrap items-baseline justify-between gap-1">
+    <strong>Czy korzeniom wystarczy wody?</strong>
+    <span class="text-xs text-muted-color">Modelowany ubytek wody</span>
+  </figcaption>
+  @let r = root();
+  <div class="mt-4 flex items-center gap-2 text-sm">
+    <span aria-hidden="true" class="h-4 border-l-2 border-dashed"></span>
+    <strong>Próg niedoboru {{r.raw_mm | number:'1.0-1'}} mm</strong>
+  </div>
+  <div class="relative mt-2 grid gap-3">
+    @for (variant of [{label: 'Początkowo wilgotna gleba', value: r.initially_wet.depletion_mm},
+                      {label: 'Początkowo sucha gleba', value: r.initially_dry.depletion_mm}]; track variant.label; let dry = $last) {
+      <div>
+        <div class="mb-1 flex justify-between gap-2 text-sm">
+          <span>{{variant.label}}</span><strong class="shrink-0 tabular-nums">{{variant.value | number:'1.0-1'}} mm</strong>
+        </div>
+        <div aria-hidden="true" class="relative h-3 rounded-full bg-surface-200 dark:bg-surface-700">
+          <span class="absolute inset-y-0 left-0 rounded-full border border-current"
+            [class]="dry ? 'bg-primary-700 text-primary-700 dark:bg-primary-300 dark:text-primary-300' : 'bg-primary-400 text-primary-700 dark:bg-primary-600 dark:text-primary-300'"
+            [style.width.%]="100 * variant.value / r.taw_mm"></span>
+          <span class="absolute -inset-y-1 border-l-2 border-dashed border-surface-950 dark:border-white"
+            [style.left.%]="100 * r.raw_mm / r.taw_mm"></span>
+        </div>
+      </div>
+    }
+  </div>
+  <div class="mt-2 flex justify-between gap-3 text-xs text-muted-color">
+    <span>0 mm · pełny zapas</span><span class="text-right">{{r.taw_mm | number:'1.0-1'}} mm · zapas wyczerpany</span>
+  </div>
+</figure>

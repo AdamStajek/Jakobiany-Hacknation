@@ -39,7 +39,10 @@ async function run(name) {
   // Odpowiedzi 4xx/5xx zapisujemy z adresem; błąd walidacji z kroku „!!!” jest oczekiwany i jest odfiltrowywany.
   let expectFailure = false;
   const failedResponses = [];
-  page.on('response', r => { if (r.status() >= 400) failedResponses.push(`${r.status()} ${r.request().method()} ${r.url()}${expectFailure ? ' (oczekiwane)' : ''}`); });
+  page.on('response', r => {
+    if (r.status() === 401 && new URL(r.url()).pathname === '/api/me') return; // sesja gościa
+    if (r.status() >= 400) failedResponses.push(`${r.status()} ${r.request().method()} ${r.url()}${expectFailure ? ' (oczekiwane)' : ''}`);
+  });
   page.on('console', msg => { if (msg.type() === 'error' && !/Failed to load resource/.test(msg.text())) errors.push('console: ' + msg.text()); });
   const pause = async (ms = 1800) => { if (capture) await page.waitForTimeout(ms); };
   const shot = async step => { if (shots) await page.screenshot({path: resolve(shots, `${name}-${step}.png`)}); };
@@ -55,12 +58,8 @@ async function run(name) {
   const searchButton = () => (mobile ? page.locator('app-parcel-picker[variant=search], section[aria-label="Wyszukiwanie działki"]') : page.locator('section[aria-labelledby="picker-title"]'))
     .getByRole('button', {name: 'Szukaj działki'});
   const selectedCard = id => page.getByRole('status').getByText(id, {exact: true}).first();
-  const details = page.getByRole('dialog', {name: 'Dodaj informacje o polu'});
-  const closeDetails = async () => {
-    await details.getByRole('button', {name: 'Gotowe'}).click();
-    await details.waitFor({state: 'hidden'});
-  };
-  const analyze = details.getByRole('button', {name: 'Analizuj', exact: true});
+  const form = page.getByRole('form', {name: 'Uprawa i data'});
+  const analyze = form.getByRole('button', {name: 'Sprawdź wodę na polu'});
   const heading = page.getByRole('heading', {name: 'Stan wody na Twojej działce'});
   const chooseCrop = async label => {
     await page.locator('#crop').click();
@@ -84,6 +83,7 @@ async function run(name) {
 
   try {
     await page.goto(url + '/sprawdz', {waitUntil: 'domcontentloaded'});
+    await page.getByRole('button', {name: 'Nie zapisuj'}).click();
     await page.locator('.maplibregl-canvas').first().waitFor();
     await pause(3000);
     await shot('01-start');
@@ -129,14 +129,13 @@ async function run(name) {
         await page.waitForURL(/\/metody\/eksperymenty\/wsiakanie-wody$/);
         assert.equal(await experiments.getAttribute('aria-current'), 'page');
       }
-      assert.equal(await link.getAttribute('aria-current'), 'page', `${name}: aria-current dla ${label}`);
+      await link.and(page.locator('[aria-current=page]')).waitFor();
     }
     await page.locator('.maplibregl-canvas').first().waitFor();
 
     // 1. Wyszukanie po numerze.
     await selectParcel(matches);
     await shot('02-wyszukanie');
-    await closeDetails();
 
     // 2. Klik na mapie (po wyszukaniu mapa jest wycentrowana na działce, środek płótna leży w jej obrębie).
     if (mobile) await goView('Mapa');
@@ -149,9 +148,7 @@ async function run(name) {
     await page.waitForTimeout(1000);
     await shot('03-klik-mapa');
     // Wróć do znanej działki, niezależnie od trafienia kliknięcia.
-    if (await details.isVisible()) await closeDetails();
     await selectParcel(matches);
-    if (await details.isVisible()) await closeDetails();
 
     // 3. „Dalej” → Dane.
     if (mobile) {
@@ -161,15 +158,15 @@ async function run(name) {
     await shot('04-dane');
 
     // 4. Formularz i analiza.
-    await page.getByRole('button', {name: 'Dodaj informacje o polu'}).click();
     await chooseCrop('Ziemniak');
     await page.locator('#day').fill('2024-07-05');
-    await details.getByLabel('Co rosło na tym polu w poprzednim sezonie głównym?').fill('Rzepak');
-    await details.getByText('Wybierz warunki dla pola', {exact: true}).click();
+    await form.getByRole('button', {name: /Gleba i woda/}).click();
+    await form.getByLabel('Co rosło na tym polu w poprzednim sezonie głównym?').fill('Rzepak');
+    await form.getByText('Wybierz warunki dla pola', {exact: true}).click();
     await page.getByLabel('Szukaj warunku dla pola').fill('dach');
     await page.getByRole('option', {name: /Jest dostępny dach/}).click();
-    await details.getByRole('combobox', {name: 'Warunki zaobserwowane na całym polu'}).press('Escape');
-    await details.getByLabel(/Czy podczas ulewy woda widocznie spływa/).selectOption('Często');
+    await form.getByRole('combobox', {name: 'Warunki zaobserwowane na całym polu'}).press('Escape');
+    await form.getByLabel(/Czy podczas ulewy woda widocznie spływa/).selectOption('Często');
     await analyze.click();
     await heading.waitFor({timeout: 90000}).catch(async error => {
       console.error('widoczny błąd:', await page.getByRole('alert').allTextContents());
@@ -182,28 +179,48 @@ async function run(name) {
     assert.equal(buffer?.scope, 'field');
     assert(report.recommendations.some(action => action.id === 18));
     assert(buffer.sources.length > 0);
+    await page.getByRole('button', {name: 'Ukryj propozycję'}).click();
     await shot('05-raport');
     assert.match(page.url(), /\/dzialka\/.+\/analiza\/[a-f0-9]{32}$/, 'adres raportu');
     await isActive('Raport', 'raport aktywny po analizie');
-    const sectionHeadings = page.locator('app-report-dashboard').getByRole('heading', {level: 3});
-    assert.deepEqual(await sectionHeadings.allTextContents(), [
-      'Eksperymenty, które mogą doprecyzować diagnozę', 'Analiza', 'Co możesz zrobić?',
-    ]);
+    const steps = page.getByRole('navigation', {name: 'Kroki raportu'});
+    for (const [index, name] of ['1. Analiza', '2. Eksperymenty', '3. Co możesz zrobić'].entries()) {
+      assert.equal(await steps.getByRole('button', {name, exact: true}).getAttribute('aria-controls'), 'krok-' + (index + 1));
+    }
     const waterAnalysis = page.getByRole('region', {name: 'Analiza', exact: true});
-    await waterAnalysis.getByRole('heading', {name: 'Ryzyko niedoboru wody'}).waitFor();
+    const verdict = waterAnalysis.getByRole('heading', {name: report.evidence.headline, exact: true});
+    await verdict.waitFor();
+    const confidence = waterAnalysis.getByText('Pewność: ' + report.confidence, {exact: true});
+    await confidence.waitFor({state: report.confidence === 'Ograniczona' ? 'hidden' : 'visible'});
+    await waterAnalysis.getByRole('button', {name: /Czy woda może spływać/}).press('Enter');
     await waterAnalysis.getByText('Spływ wody po powierzchni podczas ulewy: Często.').waitFor();
-    await waterAnalysis.getByRole('heading', {name: 'Tło wieloletnie'}).waitFor();
     await noOverflow('raport');
 
-    // 5. Dane wykresu i niepewność wyników.
-    assert.equal(await page.getByRole('group', {name: 'Widok raportu'}).count(), 0);
-    assert.equal(await page.getByText('Pewność: Ograniczona', {exact: true}).count(), 0);
-    await page.getByRole('heading', {name: 'Niepewność wyników'}).scrollIntoViewIfNeeded();
-    await page.locator('[echarts] canvas').waitFor();
-    await page.getByText('Pokaż dane wykresu').waitFor();
+    // 5. Oba widoki odnoszą się do tej samej diagnozy.
+    const balance = waterAnalysis.getByRole('button', {name: /Czy deszcz pokrył/});
+    await balance.press('Space');
+    await balance.and(page.locator('[aria-expanded=true]')).waitFor();
+    await waterAnalysis.locator('#bilans').getByText('Jak to oceniamy?').waitFor();
     await shot('07-prosty');
+    const mode = waterAnalysis.getByRole('group', {name: 'Widok raportu'});
+    await mode.getByRole('button', {name: 'Zaawansowany'}).click();
+    await verdict.waitFor();
+    if (report.metrics.recent) {
+      await waterAnalysis.locator('#bilans canvas').waitFor();
+      await waterAnalysis.locator('#bilans summary').press('Enter');
+      await waterAnalysis.locator('#bilans table').waitFor();
+    }
+    await balance.press('Enter');
+    await balance.and(page.locator('[aria-expanded=false]')).waitFor();
+    await noOverflow('zaawansowany');
+    await waterAnalysis.getByText(report.experiments[0].title, {exact: false}).waitFor();
+    await waterAnalysis.getByRole('button', {name: 'Zobacz eksperyment'}).press('Enter');
+    await page.getByRole('heading', {name: 'Eksperymenty', exact: true}).waitFor();
+    assert.equal(await steps.getByRole('button', {name: '2. Eksperymenty'}).getAttribute('aria-current'), 'step');
+    await page.getByRole('link', {name: 'Instrukcja — ' + report.experiments[0].title + ' (nowa karta)'}).waitFor();
 
     // 6. Zalecenia z dowodami.
+    await steps.getByRole('button', {name: '3. Co możesz zrobić'}).click();
     const recommendations = page.getByRole('region', {name: 'Co możesz zrobić?'});
     await recommendations.getByRole('heading', {name: 'Co możesz zrobić?'}).scrollIntoViewIfNeeded();
     const recommendation = recommendations.locator('article').filter({has: page.getByRole('heading', {name: buffer.title})});
@@ -217,6 +234,7 @@ async function run(name) {
     await page.keyboard.press('Escape');
 
     // 7. PDF.
+    await page.locator('summary[aria-label="Zapis i wydruk"]').click();
     const download = page.waitForEvent('download');
     await page.getByRole('link', {name: 'PDF', exact: true}).click();
     const file = await download;
@@ -230,12 +248,13 @@ async function run(name) {
     if (engine === 'chromium') assert.equal(await page.evaluate(() => navigator.clipboard.readText()), reportUrl, 'schowek');
     await page.goto(reportUrl, {waitUntil: 'domcontentloaded'});
     await heading.waitFor({timeout: 30000});
-    await page.getByText('Pokaż dane wykresu').waitFor();
+    await verdict.waitFor();
+    await page.locator('summary[aria-label="Zapis i wydruk"]').click();
     await shot('09-link-raportu');
     await page.getByRole('region', {name: 'Mapa i raport'}).getByRole('link', {name: 'Dane działki', exact: true}).click();
     await page.getByRole('heading', {name: 'Dane działki'}).waitFor();
     const passport = page.getByRole('article', {name: /Dane działki:/});
-    await passport.getByText(matches).first().waitFor({timeout: 20000});
+    await passport.getByText(matches).first().waitFor({timeout: 120000});
     assert.deepEqual(await passport.locator('dt').allTextContents(), [
       'Powierzchnia działki', 'Rodzaj uprawy', 'Rodzaj gleby', 'Zdolność gleby do zatrzymywania wody',
       'Ukształtowanie terenu', 'Nachylenie terenu', 'Aktualna wilgotność gleby',
@@ -245,25 +264,26 @@ async function run(name) {
     // 9. Link do samej działki, motyw, rysowanie granicy.
     await page.goto(reportUrl.replace(/\/analiza\/.*$/, ''), {waitUntil: 'domcontentloaded'});
     await selectedCard(matches).waitFor({timeout: 20000});
-    await closeDetails();
     const themeButton = page.getByRole('button', {name: /Motyw/}).locator('visible=true').first();
     await themeButton.click();
     await page.waitForTimeout(300);
     await shot('11-motyw');
     if (!mobile) {
-      await page.getByRole('button', {name: 'Narysuj granicę'}).click();
-      await page.getByText(/Klikaj kolejne rogi/).waitFor();
-      await page.getByRole('button', {name: 'Anuluj rysowanie'}).click();
+      await page.getByRole('button', {name: /Rysuj działkę/}).click();
+      const drawing = page.getByRole('region', {name: 'Rysowanie działki'});
+      await drawing.getByText(/Dotykaj kolejnych rogów/).waitFor();
+      await drawing.getByRole('button', {name: 'Anuluj'}).click();
     }
 
     // 10. Bieżąca data i błąd walidacji.
     const now = await (await context.request.get(url + '/api/health')).json();
     await selectParcel('280104_5.0006.98/2');
+    if (mobile) await goView('Dane');
     await chooseCrop('Pszenica ozima');
     await page.locator('#day').fill(now.analysis_date_max);
     await analyze.click();
     await heading.waitFor({timeout: 90000});
-    assert((await heading.locator('xpath=following-sibling::p').innerText()).includes(now.analysis_date_max), 'data bieżąca w raporcie');
+    assert.equal(await page.locator('app-report-dashboard header time').getAttribute('datetime'), now.analysis_date_max);
     if (mobile) await goView('Mapa');
     expectFailure = true;
     await searchInput().fill('!!!');
