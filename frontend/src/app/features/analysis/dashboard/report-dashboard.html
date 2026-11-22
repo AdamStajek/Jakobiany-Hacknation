@@ -2,7 +2,8 @@
   <header class="space-y-3">
     <div>
       <h2 id="wynik" tabindex="-1" class="text-xl font-bold tracking-tight outline-none lg:text-2xl">Stan wody na Twojej działce</h2>
-      <p class="text-sm text-muted-color">{{report().parcel.id}} · Dzień analizy {{report().date}}</p>
+      <p class="text-sm text-muted-color">{{report().parcel.id}} · {{report().metrics.crop.label}} · {{report().metrics.stage}} ·
+        {{report().parcel.area_ha | number:'1.0-4'}} ha · {{report().date}}</p>
     </div>
     <div class="flex flex-wrap items-center gap-2 print:hidden">
       <a pButton [href]="'/api/analysis/' + report().analysis_id + '/report'" download icon="pi pi-file-pdf">PDF</a>
@@ -12,120 +13,201 @@
       <a pButton [href]="'/api/analysis/' + report().analysis_id + '/report?format=json'" download icon="pi pi-download" aria-label="Pobierz JSON"
         severity="secondary" [outlined]="true"></a>
     </div>
+    <div class="space-y-1 print:hidden">
+      <app-segmented label="Widok raportu" [options]="modes" [value]="mode()" (valueChange)="setMode($event)" />
+      <p class="px-1 text-xs text-muted-color" aria-live="polite">
+        @if (advanced()) { Pełne liczby, wykresy, dane o terenie i lista źródeł. Dla agronoma i analityka. }
+        @else { Najważniejsze wnioski prostym językiem i co z nimi zrobić. }
+      </p>
+    </div>
   </header>
 
-  <app-report-experiments [report]="report()" />
-
-  <section aria-labelledby="analiza-wodna" class="space-y-3">
-    <h3 id="analiza-wodna" class="text-lg font-semibold">Analiza</h3>
-
-    <div class="flex flex-wrap items-center gap-4 rounded-2xl border p-4" [class]="riskClass()">
-      <i class="pi {{risk().icon}} text-3xl" aria-hidden="true"></i>
-      <div class="min-w-0 flex-1">
-        <h4 class="text-xs font-semibold uppercase tracking-wide opacity-80">Ryzyko niedoboru wody</h4>
-        <p class="text-2xl font-bold">{{report().metrics.risk}}</p>
-        @if (report().metrics.weather_last_day && report().metrics.weather_last_day !== report().date) {
-          <p class="text-sm opacity-80">Ostatnia pełna doba danych: {{report().metrics.weather_last_day}}</p>
-        }
-      </div>
-      @if (risk().tone !== 'info') {
-        <app-risk-scale class="w-full sm:w-64" [risk]="report().metrics.risk" />
-      }
-      @if (report().confidence !== 'Ograniczona') {
-        <app-confidence-chip [level]="report().confidence" />
+  <div class="flex flex-wrap items-center gap-4 rounded-2xl border p-4" [class]="riskClass()">
+    <i class="pi {{risk().icon}} text-3xl" aria-hidden="true"></i>
+    <div class="min-w-0 flex-1">
+      <h3 class="text-xs font-semibold uppercase tracking-wide opacity-80">Ryzyko niedoboru wody</h3>
+      <p class="text-2xl font-bold">{{report().metrics.risk}}</p>
+      @if (report().metrics.weather_last_day && report().metrics.weather_last_day !== report().date) {
+        <p class="text-sm opacity-80">Ostatnia pełna doba danych: {{report().metrics.weather_last_day}}</p>
       }
     </div>
-
-    @if (!report().agricultural) {
-      <p-message severity="warn">Mapa z 2021 r. wskazuje głównie inne użytkowanie. Jeśli prowadzisz tu uprawę, potwierdź ją w dodatkowych informacjach i ponów analizę.</p-message>
-    } @else if (report().metrics.root; as root) {
-      <app-panel>
-        <h4 class="mb-1 font-semibold">Woda dostępna dla korzeni</h4>
-        <p class="text-sm">Szacowany ubytek wody wynosi <strong>{{root.initially_wet.depletion_mm | number:'1.0-1'}}–{{root.initially_dry.depletion_mm | number:'1.0-1'}} mm</strong>, zależnie od tego, ile wody było wcześniej w glebie. Przy ubytku powyżej <strong>{{root.raw_mm | number:'1.0-1'}} mm</strong> uprawa może odczuwać niedobór.</p>
-      </app-panel>
+    @if (risk().tone !== 'info') {
+      <app-risk-scale class="w-full sm:w-64" [risk]="report().metrics.risk" />
     }
+    @if (advanced() || report().confidence !== 'Ograniczona') {
+      <app-confidence-chip [level]="report().confidence" />
+    }
+  </div>
 
-    <app-panel>
-      <h4 class="mb-2 font-semibold">Bilans i możliwe przyczyny</h4>
-      @if (report().metrics.recent; as recent) {
-        <p class="mb-3 text-sm text-muted-color">{{recent.start}} – {{recent.end}} · {{recent.samples}} z {{recent.days}} dni z danymi. Ujemny bilans oznacza, że opad nie pokrył obliczonego zapotrzebowania uprawy.</p>
-        <div class="grid grid-cols-2 gap-3">
-          <app-kpi-card label="Bilans wodny uprawy" [value]="(recent.crop_balance_mm | number:'1.0-1') ?? ''" unit="mm" />
-          <app-kpi-card label="Najdłuższa przerwa bez deszczu" [value]="recent.dry_spell_days" unit="dni" hint="Dni z opadem poniżej 1 mm" />
+  @if (!report().agricultural) {
+    <p-message severity="warn">Mapa z 2021 r. wskazuje głównie inne użytkowanie. Jeśli prowadzisz tu uprawę, potwierdź ją w dodatkowych informacjach i ponów analizę.</p-message>
+  }
+
+  @if (advanced()) {
+    <!-- ───────── Tryb zaawansowany: liczby, wykresy, źródła ───────── -->
+    <section aria-labelledby="zaw-liczby" class="space-y-3">
+      <h3 id="zaw-liczby" class="text-lg font-semibold">Wskaźniki</h3>
+      @if (report().metrics.recent; as r) {
+        <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <app-kpi-card label="Bilans uprawy · 30 dni" [value]="(r.crop_balance_mm | number:'1.0-1') ?? ''" unit="mm"
+            [hint]="'Opad minus zapotrzebowanie · ' + r.samples + '/' + r.days + ' dni z danymi'" />
+          <app-kpi-card label="Opad · 30 dni" [value]="(r.rain_mm | number:'1.0-1') ?? ''" unit="mm"
+            [hint]="r.rain_anomaly_mm !== undefined ? 'Względem mediany z lat: ' + (r.rain_anomaly_mm | number:'1.0-1') + ' mm' : ''" />
+          <app-kpi-card label="Najdłuższa przerwa bez deszczu" [value]="r.dry_spell_days" unit="dni" hint="Dni z opadem poniżej 1 mm" />
+          <app-kpi-card label="Współczynnik uprawy Kc" [value]="(report().metrics.kc | number:'1.2-3') ?? ''" [hint]="report().metrics.stage" />
         </div>
+        <p class="text-xs text-muted-color">Okres {{r.start}} – {{r.end}}. ET₀ {{r.et0_mm | number:'1.0-1'}} mm, ETc {{r.etc_mm | number:'1.0-1'}} mm@if (r.mean_temp_c !== null) {, średnia temperatura {{r.mean_temp_c | number:'1.0-1'}} °C}.</p>
       } @else {
-        <p class="text-sm">Brak wystarczających danych pogodowych do obliczenia bilansu za 30 dni.</p>
+        <p-message severity="info">Brak wystarczających danych pogodowych dla ostatnich 30 dni.</p-message>
       }
-      @let runoff = report().farmer_answers?.['surface_runoff_frequency'];
-      @let ponding = report().farmer_answers?.['ponding_frequency'];
-      @if (runoff || ponding) {
-        <p class="mt-3 text-sm font-semibold">Obserwacje z pola</p>
-        <ul class="mt-1 ml-5 list-disc text-sm">
-          @if (runoff) { <li>Spływ wody po powierzchni podczas ulewy: {{runoff}}.</li> }
-          @if (ponding) { <li>Długo utrzymująca się woda po deszczu: {{ponding}}.</li> }
-        </ul>
+      @if (report().agricultural && report().metrics.root; as root) {
+        <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <app-kpi-card label="TAW · pojemność strefy korzeni" [value]="(root.taw_mm | number:'1.0-1') ?? ''" unit="mm" hint="Cała woda dostępna dla roślin" />
+          <app-kpi-card label="RAW · próg łatwo dostępnej wody" [value]="(root.raw_mm | number:'1.0-1') ?? ''" unit="mm" hint="Powyżej tego ubytku roślina odczuwa niedobór" />
+          <app-kpi-card label="Ubytek · gleba wilgotna" [value]="(root.initially_wet.depletion_mm | number:'1.0-1') ?? ''" unit="mm" hint="Wariant optymistyczny" />
+          <app-kpi-card label="Ubytek · gleba sucha" [value]="(root.initially_dry.depletion_mm | number:'1.0-1') ?? ''" unit="mm" hint="Wariant pesymistyczny" />
+        </div>
+      }
+    </section>
+
+    <section aria-labelledby="zaw-wykresy" class="space-y-3">
+      <h3 id="zaw-wykresy" class="text-lg font-semibold">Wykresy</h3>
+      <div class="grid gap-3 lg:grid-cols-2">
+        <app-water-balance-chart class="block min-w-0" [report]="report()" />
+        <app-season-chart class="block min-w-0" [report]="report()" />
+        <app-soil-chart class="block min-w-0" [report]="report()" />
+        <div class="min-w-0">
+          <app-satellite-chart class="block" [report]="report()" />
+          @if (satellite()?.scene; as scene) {
+            <div class="mt-3 grid grid-cols-3 gap-3">
+              <app-kpi-card label="NDVI" [value]="(scene.ndvi | number:'1.2-2') ?? ''" hint="Zieleń łanu" />
+              <app-kpi-card label="NDMI" [value]="(scene.ndmi | number:'1.2-2') ?? ''" hint="Woda w liściach" />
+              <app-kpi-card label="NDWI" [value]="(scene.ndwi | number:'1.2-2') ?? ''" hint="Woda na powierzchni" />
+            </div>
+            <p class="mt-3 text-sm text-muted-color">Scena {{scene.date}} · {{scene.clear_share * 100 | number:'1.0-0'}}% użytecznej powierzchni.
+              @if (scene.crop_stage) { Faza kalendarzowa: {{scene.crop_stage}}. }
+              @if (report().metrics.satellite_comparison; as cmp) { {{cmp.interpretation}} Odchylenie NDMI od mediany {{cmp.n}} scen sezonowych: {{cmp.ndmi_delta | number:'1.2-2'}}. }
+            </p>
+          } @else {
+            <p class="mt-2 text-sm text-muted-color">Brak użytecznego obrazu satelitarnego dla tej daty.</p>
+          }
+        </div>
+      </div>
+    </section>
+
+    @let history = report().metrics.history;
+    <app-panel heading="Tło wieloletnie" icon="pi-history">
+      @if (history.seasons.length) {
+        <p class="text-sm">W <strong>{{history.negative_seasons}} z {{history.seasons.length}} sezonów</strong> od kwietnia do września opad był niższy od zapotrzebowania rośliny referencyjnej.
+          @if (history.riskiest_months.length) { Miesiące z najniższym typowym bilansem: {{history.riskiest_months.join(', ')}}. }</p>
+        @if (history.matched_years) {
+          <p class="mt-2 text-sm text-muted-color">Porównanie z {{history.matched_years}} poprzednimi latami w tym samym okresie.
+            @if (report().metrics.recent?.rain_anomaly_mm !== undefined) { Różnica opadu: <strong>{{report().metrics.recent?.rain_anomaly_mm | number:'1.0-1'}} mm</strong>. }
+            @if (report().metrics.recent?.balance_anomaly_mm !== undefined) { Różnica bilansu: <strong>{{report().metrics.recent?.balance_anomaly_mm | number:'1.0-1'}} mm</strong>. }</p>
+        }
+      } @else {
+        <p class="text-sm text-muted-color">Brak pełnych sezonów do porównania.</p>
       }
     </app-panel>
 
-    @if (report().metrics.recent) {
-      <app-water-balance-chart class="block min-w-0" [report]="report()" />
-    }
-
-    <div class="grid gap-3 lg:grid-cols-2">
-      <app-panel>
-        <h4 class="mb-1 font-semibold">Tło wieloletnie</h4>
-        @let history = report().metrics.history;
-        @if (history.seasons.length) {
-          <p class="text-sm">W <strong>{{history.negative_seasons}} z {{history.seasons.length}} sezonów</strong> od kwietnia do września opad był niższy od zapotrzebowania rośliny referencyjnej.</p>
-          @if (history.riskiest_months.length) {
-            <p class="mt-2 text-sm">Miesiące z najniższym typowym bilansem: {{history.riskiest_months.join(', ')}}.</p>
-          }
-        } @else {
-          <p class="text-sm">Brak pełnych sezonów do porównania.</p>
-        }
-        @let rainAnomaly = report().metrics.recent?.rain_anomaly_mm ?? null;
-        @if (rainAnomaly !== null) {
-          <p class="mt-2 text-sm">Różnica między ostatnim opadem z 30 dni a typową sumą dla tego samego okresu w {{history.matched_years}} poprzednich latach: <strong>{{rainAnomaly | number:'1.0-1'}} mm</strong>.</p>
-        }
-      </app-panel>
-
-      <app-panel>
-        <h4 class="mb-1 font-semibold">Sygnał z obserwacji satelitarnych</h4>
-        @if (satellite()?.scene; as scene) {
-          @if (report().metrics.satellite_comparison; as comparison) {
-            <p class="text-sm">Scena z {{scene.date}} na tle {{comparison.n}} scen z tej samej fazy rozwoju. Ujemne odchylenie oznacza odczyt poniżej mediany dla tej fazy.</p>
-            <ul class="mt-1 ml-5 list-disc text-sm">
-              <li>Wskaźnik uwilgotnienia roślin (NDMI): {{comparison.ndmi_delta | number:'1.2-2'}}.</li>
-              <li>Wskaźnik zieleni roślin (NDVI): {{comparison.ndvi_delta | number:'1.2-2'}}.</li>
-            </ul>
-            <p class="mt-2 text-sm text-muted-color">Na oba wskaźniki wpływają też płodozmian i terminy prac polowych.</p>
-          } @else {
-            <p class="text-sm">Dla sceny z {{scene.date}} brakuje porównywalnych zdjęć z tej fazy wzrostu.</p>
-          }
-        } @else {
-          <p class="text-sm">Brak użytecznego zdjęcia satelitarnego dla dnia analizy.</p>
-        }
-      </app-panel>
-    </div>
+    <app-report-environment [report]="report()" />
 
     @if (report().scenario; as scenario) {
-      <app-panel>
-        <h4 class="mb-1 font-semibold">Co jeśli zatrzymasz więcej wody?</h4>
+      <app-panel heading="Co jeśli zatrzymasz więcej wody?" icon="pi-cloud">
         <p class="text-sm">Dodatkowe <strong>{{scenario.input_mm}} mm</strong> w scenariuszu zmniejsza modelowany ubytek o
           <strong>{{scenario.depletion_reduction_mm[0] | number:'1.0-1'}}–{{scenario.depletion_reduction_mm[1] | number:'1.0-1'}} mm</strong>. {{scenario.note}}</p>
       </app-panel>
     }
 
-    <app-panel>
-      <h4 class="mb-2 font-semibold">Niepewność wyników</h4>
+    <app-report-recommendations [items]="report().recommendations" [geometry]="report().parcel.geometry" />
+    <app-report-experiments [report]="report()" />
+
+    <app-panel heading="Skąd pochodzą dane?" icon="pi-database">
+      @if (missing().length) {
+        <p-message severity="warn" styleClass="mb-3">
+          <div><strong>Braki i ograniczenia dla tej analizy</strong>
+            <ul class="ml-5 mt-1 list-disc">@for (entry of missing(); track entry[0]) { <li><strong>{{entry[0]}}.</strong> {{entry[1]}}</li> }</ul></div>
+        </p-message>
+      }
+      <ul class="space-y-3 md:hidden" aria-label="Źródła danych">
+        @for (s of sourceRows(); track s.key) {
+          <li class="rounded-lg border border-surface p-3 text-sm">
+            <div class="font-semibold">{{s.name}}</div>
+            <dl class="mt-1 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
+              <dt class="text-muted-color">Rodzaj</dt><dd>{{s.kind}}</dd>
+              <dt class="text-muted-color">Rozdzielczość</dt><dd>{{s.resolution}}</dd>
+              <dt class="text-muted-color">Pobrano</dt><dd>{{s.retrieved}} @if (s.cached) { <p-tag value="cache" severity="secondary" /> }</dd>
+              <dt class="text-muted-color">Publikacja</dt><dd>{{s.published}}</dd>
+            </dl>
+            <a [href]="s.url" target="_blank" rel="noopener" class="mt-2 inline-block text-xs text-primary underline">Otwórz źródło: {{s.name}} ↗</a>
+          </li>
+        }
+      </ul>
+      <p-table class="hidden md:block" [value]="sourceRows()" [scrollable]="true" size="small" stripedRows>
+        <ng-template #header>
+          <tr><th>Źródło</th><th>Rodzaj</th><th>Rozdzielczość</th><th>Pobrano</th><th>Publikacja</th><th><span class="sr-only">Odnośnik</span></th></tr>
+        </ng-template>
+        <ng-template #body let-s>
+          <tr>
+            <td class="font-medium">{{s.name}}</td><td>{{s.kind}}</td><td>{{s.resolution}}</td>
+            <td class="whitespace-nowrap">{{s.retrieved}} @if (s.cached) { <p-tag value="cache" severity="secondary" /> }</td>
+            <td class="whitespace-nowrap">{{s.published}}</td>
+            <td><a [href]="s.url" target="_blank" rel="noopener" class="text-primary underline" [attr.aria-label]="'Otwórz źródło: ' + s.name">Otwórz ↗</a></td>
+          </tr>
+        </ng-template>
+      </p-table>
+      <p class="mt-3 text-xs text-muted-color">Czas analizy {{report().elapsed_ms / 1000 | number:'1.1-1'}} s · Geometria: {{report().parcel.source}} ·
+        ID analizy: {{report().analysis_id}}. Wynik ma charakter przesiewowy i nie zastępuje pomiaru w polu.</p>
+    </app-panel>
+  } @else {
+    <!-- ───────── Tryb prosty: wnioski i co zrobić ───────── -->
+    @if (report().metrics.recent; as r) {
+      <div class="grid grid-cols-2 gap-3">
+        <app-kpi-card label="Deszcz w ostatnich 30 dniach" [value]="(r.rain_mm | number:'1.0-0') ?? ''" unit="mm"
+          [hint]="r.rain_anomaly_mm !== undefined ? (r.rain_anomaly_mm < 0 ? 'Mniej niż zwykle' : 'Tyle samo lub więcej niż zwykle') : ''" />
+        <app-kpi-card label="Najdłuższa przerwa bez deszczu" [value]="r.dry_spell_days" unit="dni" />
+      </div>
+    } @else {
+      <p-message severity="info">Brak wystarczających danych pogodowych dla ostatnich 30 dni.</p-message>
+    }
+
+    @if (report().agricultural && report().metrics.root; as root) {
+      <app-panel heading="Woda dla korzeni" icon="pi-sun">
+        <p class="text-sm">W glebie może brakować około <strong>{{root.initially_wet.depletion_mm | number:'1.0-0'}}–{{root.initially_dry.depletion_mm | number:'1.0-0'}} mm</strong> wody
+          (zależy, jak mokra była gleba wcześniej). Od <strong>{{root.raw_mm | number:'1.0-0'}} mm</strong> uprawa może zacząć odczuwać niedobór.</p>
+      </app-panel>
+    }
+
+    <app-report-recommendations [items]="report().recommendations" [geometry]="report().parcel.geometry" />
+    <app-report-experiments [report]="report()" />
+
+    <div class="grid gap-3 lg:grid-cols-2">
+      <app-water-balance-chart class="block min-w-0" [report]="report()" />
+      <app-panel heading="Jak wyglądają rośliny?" icon="pi-sun">
+        @if (plantsText(); as text) {
+          <p class="text-sm">{{text}}</p>
+          <p class="mt-2 text-xs text-muted-color">Na podstawie zdjęcia satelitarnego z {{satellite()?.scene?.date}}.</p>
+        } @else {
+          <p class="text-sm text-muted-color">Brak użytecznego zdjęcia satelitarnego dla tej daty.</p>
+        }
+      </app-panel>
+    </div>
+
+    @if (report().scenario; as scenario) {
+      <app-panel heading="Co jeśli zatrzymasz więcej wody?" icon="pi-cloud">
+        <p class="text-sm">Dodatkowe <strong>{{scenario.input_mm}} mm</strong> w scenariuszu zmniejsza modelowany ubytek o
+          <strong>{{scenario.depletion_reduction_mm[0] | number:'1.0-1'}}–{{scenario.depletion_reduction_mm[1] | number:'1.0-1'}} mm</strong>. {{scenario.note}}</p>
+      </app-panel>
+    }
+
+    <app-panel heading="Na czym opieramy wynik?" icon="pi-database">
       @if (missing().length) {
         <p-message severity="warn" styleClass="mb-3">
           <ul class="ml-5 list-disc">@for (entry of missing(); track entry[0]) { <li><strong>{{entry[0]}}.</strong> {{entry[1]}}</li> }</ul>
         </p-message>
       }
-      <p class="text-sm">Ocena jest szacunkiem opartym na pogodzie, obrazach satelitarnych oraz mapach gleby i terenu. Źródła i daty danych zawiera plik JSON raportu.</p>
+      <p class="text-sm">Korzystamy ze zdjęć satelitarnych Sentinel-2, pogody z ostatnich dni i lat oraz map gleby i terenu. Pełną listę źródeł znajdziesz w widoku zaawansowanym.</p>
+      <p class="mt-3 text-xs text-muted-color">Wynik ma charakter przesiewowy i nie zastępuje pomiaru w polu.</p>
     </app-panel>
-  </section>
-
-  <app-report-recommendations [items]="report().recommendations" [geometry]="report().parcel.geometry" />
+  }
 </section>
