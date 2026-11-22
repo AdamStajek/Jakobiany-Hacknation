@@ -1,1 +1,1 @@
-"""WodoStrażnik parcel water analysis."""
+"""Pole Widzenia parcel water analysis."""

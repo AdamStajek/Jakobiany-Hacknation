@@ -147,7 +147,7 @@ def test_geojson_identity_and_weather_fallback():
     from wodo.geo import imported
     from wodo.passport_sources import ERA, egib
 
-    fixture = Path(__file__).resolve().parents[2] / "docs/dzialka-koscian.geojson"
+    fixture = Path(__file__).resolve().parent / "fixtures/dzialka-koscian.geojson"
     parcel = imported(json.loads(fixture.read_text()))
     end = date(2024, 7, 5)
     values, metadata = egib(parcel, end, end)

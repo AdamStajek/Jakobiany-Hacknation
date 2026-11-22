@@ -19,7 +19,7 @@ terms = {
     "parcel": "https://opendata.geoportal.gov.pl/",
 }
 artifacts = [
-    submission / "live-verification.json", submission / "WodoStraznik-prezentacja.pdf",
+    submission / "live-verification.json", submission / "Pole-widzenia-prezentacja.pdf",
     submission / "demo.mp4", *sorted((submission / "reports").glob("*.pdf")),
 ]
 manifest = {

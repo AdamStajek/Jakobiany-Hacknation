@@ -38,7 +38,7 @@ def test_real_passport_through_api():
 
     from main import app
 
-    docs = Path(__file__).resolve().parents[2] / "docs"
+    docs = Path(__file__).resolve().parent / "fixtures"
     passport = json.loads((docs / "field-passport-koscian.json").read_text())
     with TestClient(app) as client:
         response = client.post("/api/analysis/passport", params={"as_of": passport["analysis_as_of"]}, json=passport)

@@ -10,7 +10,7 @@ from wodo.notify import email_layout, mailer, templates
 from wodo.pdf_kit import qr_block, styles
 from wodo.report import pdf
 
-DOCS = Path(__file__).resolve().parents[2] / "docs"
+DOCS = Path(__file__).resolve().parent / "fixtures"
 ROWS = [
     {"name": "Za stodołą", "crop_label": "Pszenica ozima", "area_ha": 3.2, "parcels": 2, "risk": "Podwyższone",
      "reasons": ["ryzyko: Podwyższone"], "report_date": "2026-11-20", "stale": False},
@@ -59,7 +59,7 @@ def test_every_template_has_branded_html():
              templates.recommendations("Ania", "f1", "Łąka", "P1", [{"action": "a", "why": "w", "evidence": "e", "when": "k", "limits": "l"}]),
              templates.test_recommendation("Ania")]
     for subject, text, html in mails:
-        assert "Pole Widzenia" in subject + text and "WodoStra" not in subject + text + html
+        assert brand.APP_NAME in subject + text and brand.APP_NAME in html
         assert f"cid:{email_layout.LOGO_CID}" in html and brand.ORANGE in html and brand.FOREST in html
         assert "<1>" not in html and text.strip()
 

@@ -17,7 +17,7 @@ from wodo.spatial import WCS_DEPTHS
 from wodo.store import SourceError
 from wodo.weather import nasa
 
-CATALOG = Path(__file__).resolve().parents[2] / "docs/paszport_pola_katalog_danych.csv"
+CATALOG = Path(__file__).resolve().parent / "catalogs/paszport_pola_katalog_danych.csv"
 PIPELINE = "Własny pipeline"
 METHOD_VERSION = "passport-1"
 

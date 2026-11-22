@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a portable private source package from the WodoStrażnik files."""
+"""Build a portable private source package from the Pole Widzenia files."""
 
 import argparse
 from pathlib import Path
@@ -16,7 +16,7 @@ FILES = [
 PATTERNS = [
     "frontend/src/**/*.ts", "frontend/src/**/*.html", "frontend/src/**/*.css",
     "docs/baza_60_rekomendacji_KOWR.csv", "docs/paszport_pola_*danych*.csv", "docs/FRONTEND_REBUILD_PLAN.md",
-    "backend/wodo/*.py", "scripts/*.py", "scripts/run.sh", "docs/DATA_*.md", "docs/REQUIREMENTS_MATRIX.md",
+    "backend/wodo/catalogs/*.csv", "backend/wodo/*.py", "scripts/*.py", "scripts/run.sh", "docs/DATA_*.md", "docs/REQUIREMENTS_MATRIX.md",
     "docs/COMPONENTS.tsv", "docs/VERIFICATION.md", "submission/*.md", "submission/live-verification.json",
     "submission/*.pdf", "submission/demo.mp4", "submission/reports/*.pdf",
 ]
@@ -37,5 +37,5 @@ def package(path):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("output", type=Path, nargs="?", default=ROOT / "submission" / "WodoStraznik-source.zip")
+    parser.add_argument("output", type=Path, nargs="?", default=ROOT / "submission" / "Pole-widzenia-source.zip")
     package(parser.parse_args().output)

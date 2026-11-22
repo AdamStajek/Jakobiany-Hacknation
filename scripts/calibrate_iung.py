@@ -42,7 +42,7 @@ def choose_rule(training):
 def main():
     by_parcel = defaultdict(list)
     for filename in ("iung_results_100.csv", "iung_additional_results.csv"):
-        with (ROOT / "docs" / filename).open() as f:
+        with (ROOT / "data" / filename).open() as f:
             for c in csv.DictReader(f):
                 pct = float(c["iung_pct"])
                 if pct == 0 or pct >= 95:

@@ -242,7 +242,7 @@ RULES = {
     61: ("point", "ditch_site", "melioration ditch", "Rów może odprowadzić nadmiar wody z podtapianego miejsca. Projekt powinien ograniczyć przesuszenie pola i ryzyko podtopień poniżej odpływu."),
 }
 
-with (Path(__file__).resolve().parents[2] / "docs/baza_60_rekomendacji_KOWR.csv").open(encoding="utf-8-sig", newline="") as file:
+with (Path(__file__).resolve().parent / "catalogs/baza_60_rekomendacji_KOWR.csv").open(encoding="utf-8-sig", newline="") as file:
     ACTIONS = {int(row["id"]): row for row in DictReader(file, delimiter=";")}
 
 LABELS = OBSERVATIONS | SIGNALS

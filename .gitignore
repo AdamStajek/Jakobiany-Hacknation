@@ -36,9 +36,17 @@ build/
 !.env.sample
 !.env.template
 
-# WodoStrażnik runtime cache and browser output
+# Pole Widzenia runtime cache and browser output
 .wodo-cache/
-submission/.capture/
+
+# Lokalne materiały projektu
+/docs/
+/submission/
+/TODO/
+/AGENTS.md
+/CLAUDE.md
+/SCIENTIFIC_BASIS.md
+/SUBMISSION_CHECKLIST.md
 
 # Parcel data (GeoParquet download, index, metadata) - never commit
 data/parcels/

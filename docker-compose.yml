@@ -1,4 +1,4 @@
-name: wodostraznik
+name: pole-widzenia
 services:
   wodo:
     build: &app-build
