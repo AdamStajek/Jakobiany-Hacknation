@@ -49,7 +49,7 @@ W sekcji Analiza działki pracujesz w trzech widokach: **Mapa** (wyszukiwanie i 
 - Wyszukiwanie pełnym identyfikatorem, z mapy lub przez nazwę i numer obrębu. Można też narysować własną granicę na mapie.
 - Sześć upraw, ruchomy przedział dziesięciu lat, opcjonalna faza, początek wegetacji, lokalna obserwacja i znane nawadnianie.
 - Bilans pogodowy, porównania sezonowe, model strefy korzeni, indeksy Sentinel-2, pokrycie terenu, wody powierzchniowe, stacje IMGW i spadek terenu.
-- Sugestie z katalogu 60 działań KOWR dla całego pola lub punktów z mapy, z uzasadnieniem, terminem i kosztem. Warunki i publikacje są w zakładce „Jak to działa?”.
+- Sugestie z katalogu działań KOWR rozszerzonego o wykopanie rowu melioracyjnego dla całego pola lub punktów z mapy, z uzasadnieniem, terminem i kosztem. Warunki i publikacje są w zakładce „Jak to działa?”.
 - Scenariusz dodatkowej wody, raport PDF z granicą działki, eksperymentami i zaleceniami oraz druk.
 
 ## Architektura i dane
@@ -63,7 +63,7 @@ Angular, PrimeNG i ECharts renderują formularz, wykresy i raport, a MapLibre GL
 | POST /api/analysis | Pobranie danych i obliczenie oceny |
 | GET /api/analysis/{id} | Odczyt raportu |
 | GET /api/analysis/{id}/provenance, /api/analysis/{id}/report | Metadane oraz eksport PDF |
-| GET /api/recommendations/catalog | 60 działań KOWR, warunki i źródła |
+| GET /api/recommendations/catalog | 61 działań, warunki, wpływ na areał uprawny i źródła |
 | GET /api/data-sources/status | Dostępność źródeł w ostatniej analizie |
 
 Geometria pochodzi z krajowego zbioru EGiB GUGiK (GeoParquet, lokalny indeks). NASA POWER i IMGW dostarczają meteorologię, Sentinel-2 obserwacje powierzchni, SoilGrids charakterystyki retencji, ESA WorldCover informację o pokryciu i wodach, a Copernicus modele powierzchni. IMGW hydro uzupełnia bieżący raport o najbliższy przydatny wodowskaz. Źródła są pobierane na żądanie według ważności cache. SQLite przechowuje metadane, serie i pochodne z sumą SHA-256. Identyfikator raportu jest losowy i wygasa najpóźniej po 14 dniach. Raporty i zalecenia są obliczane po każdym uruchomieniu analizy. Pełne zbiory dostawców pozostają poza repozytorium.

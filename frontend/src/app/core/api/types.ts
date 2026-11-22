@@ -37,14 +37,14 @@ export type RecommendationPoint = {
 };
 export type Recommendation = {
   group: string; title: string; action: string; why: string; evidence: string; when: string; confidence: string; limits: string;
-  id?: number; cost?: string; cost_details?: string; cost_estimate?: CostEstimate; scope?: 'field' | 'point' | 'site'; location?: string; points?: RecommendationPoint[];
+  id?: number; area_impact?: string; cost?: string; cost_details?: string; cost_estimate?: CostEstimate; scope?: 'field' | 'point' | 'site'; location?: string; points?: RecommendationPoint[];
   sources?: ResearchSource[];
   /** Krótki plan działań (3–4 kroki) z katalogu rekomendacji. */
   steps?: string[];
 };
 export type RecommendationAction = {
   id: number; title: string; group: string; description: string; when: string; conditions: string; cost: string; cost_details: string;
-  cost_estimate: CostEstimate;
+  cost_estimate: CostEstimate; area_impact: string;
   triggers: Partial<Record<'field' | 'point', string[][]>>; sources: ResearchSource[]; why: string; exclusion: string | null;
 };
 export type ObservationOption = {key: string; label: string};

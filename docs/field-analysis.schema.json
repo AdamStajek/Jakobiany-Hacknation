@@ -126,6 +126,10 @@
               "why": {
                 "type": "string"
               },
+              "area_impact": {
+                "type": "string",
+                "description": "Wpływ działania na powierzchnię dostępną pod uprawę"
+              },
               "condition": {
                 "type": "string"
               }

@@ -10,6 +10,7 @@ from wodo.recommendation_catalog import (
     RULES,
     TRIGGERS,
     WET_FIELD_EXCLUSIONS,
+    area_impact,
     references,
 )
 from wodo.recommendation_costs import cost_estimate
@@ -26,7 +27,8 @@ GROUPS = (11, 1, 27, 30, 21)
 def action_details(action_id):
     if action_id not in ACTIONS:
         return {}
-    return {"why": DESCRIPTIONS[action_id], "cost_estimate": cost_estimate(action_id)}
+    return {"why": DESCRIPTIONS[action_id], "cost_estimate": cost_estimate(action_id),
+            "area_impact": area_impact(action_id)}
 
 
 def forecast_facts(rows, day, metrics, active_crop):
@@ -147,6 +149,7 @@ SITE_LABELS = {
     54: "Miejsca pobrania próbek gleby",
     55: "Miejsca zastoisk lub utrudnionego wsiąkania wody",
     60: "Wyloty drenów i miejsca odpływu wody",
+    61: "Miejsce podtopień do oceny przebiegu rowu",
 }
 
 
