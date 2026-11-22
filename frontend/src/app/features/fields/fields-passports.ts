@@ -21,7 +21,7 @@ import { FieldPassport } from './field-passport';
         <app-field-passport [field]="current" />
       </div>
     } @else {
-      <app-empty-state icon="pi-id-card" title="Paszporty pojawią się tutaj" text="Dodaj pierwsze pole, a pokażemy jego krótki paszport." />
+      <app-empty-state icon="pi-id-card" title="Dane działek pojawią się tutaj" text="Dodaj pierwsze pole, a pokażemy krótkie dane jego działki." />
     }
   `,
 })

@@ -11,14 +11,14 @@ import type { Passport } from '../../core/api/types';
   imports: [DatePipe, DecimalPipe, RouterLink, ButtonModule, MessageModule, SkeletonModule],
   template: `
     @if (loading()) {
-      <div role="status" aria-label="Pobieramy paszport"><p-skeleton height="12rem" borderRadius="14px" /></div>
+      <div role="status" aria-label="Pobieramy dane działki"><p-skeleton height="12rem" borderRadius="14px" /></div>
     } @else if (error()) {
       <p-message severity="error" icon="pi pi-exclamation-circle" role="alert">
         <span>{{error()}}</span>
         <p-button label="Spróbuj ponownie" size="small" severity="secondary" [text]="true" (onClick)="retry.emit()" />
       </p-message>
     } @else if (data(); as passport) {
-    <article class="pw-card flex flex-col gap-4 p-4" [attr.aria-label]="'Paszport: ' + title()">
+    <article class="pw-card flex flex-col gap-4 p-4" [attr.aria-label]="'Dane działki: ' + title()">
       <header>
         <h2 class="break-words text-lg font-bold">{{title()}}</h2>
         <p class="text-sm text-muted-color">

@@ -16,7 +16,7 @@ type Item = {name: string; what: string; url: string};
       <app-recommendation-methods class="block" />
 
       <details class="pw-card p-4">
-        <summary class="cursor-pointer font-semibold">Szczegóły modelu paszportu pola</summary>
+        <summary class="cursor-pointer font-semibold">Szczegóły modelu danych działki</summary>
         <app-model-page />
       </details>
 

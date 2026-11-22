@@ -44,9 +44,9 @@
       </div>
     </section>
 
-    <section aria-label="Mapa i paszporty pól" class="flex min-h-0 min-w-0 flex-col lg:flex" [class.hidden]="view() === 'list'">
+    <section aria-label="Mapa i dane działek pól" class="flex min-h-0 min-w-0 flex-col lg:flex" [class.hidden]="view() === 'list'">
       <div class="hidden items-center border-b border-surface bg-surface-0 px-4 py-2 lg:flex dark:bg-surface-900">
-        <div class="w-64"><app-segmented label="Mapa lub paszporty" [options]="paneOptions" [value]="pane()" (valueChange)="view.set($event)" /></div>
+        <div class="w-64"><app-segmented label="Mapa lub dane działek" [options]="paneOptions" [value]="pane()" (valueChange)="view.set($event)" /></div>
       </div>
 
       <app-fields-map-panel [class.hidden]="pane() !== 'map'" [fields]="fields.fields()" [selected]="selected()" [hintSeen]="hintSeen()"

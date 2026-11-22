@@ -43,11 +43,11 @@ export class FieldsPage {
   protected readonly views: SegmentOption<View>[] = [
     {value: 'list', label: 'Pola', icon: 'pi-list'},
     {value: 'map', label: 'Mapa', icon: 'pi-map'},
-    {value: 'passports', label: 'Paszporty', icon: 'pi-id-card'},
+    {value: 'passports', label: 'Dane działek', icon: 'pi-id-card'},
   ];
   protected readonly paneOptions: SegmentOption<View>[] = [
     {value: 'map', label: 'Mapa', icon: 'pi-map'},
-    {value: 'passports', label: 'Paszporty', icon: 'pi-id-card'},
+    {value: 'passports', label: 'Dane działek', icon: 'pi-id-card'},
   ];
   /** Parametr zapytania `widok=paszporty` (stary adres /paszporty) otwiera od razu widok paszportów. */
   readonly widok = input<string>();

@@ -23,7 +23,7 @@ const STEPS: Step[] = [
       <div class="flex flex-col gap-3 sm:flex-row">
         <a routerLink="/sprawdz"
           class="inline-flex min-h-14 flex-1 items-center justify-center gap-3 rounded-xl bg-primary px-6 py-3 text-lg font-bold text-primary-contrast hover:bg-primary-emphasis">
-          <i class="pi pi-search" aria-hidden="true"></i>Sprawdź pole
+          <i class="pi pi-search" aria-hidden="true"></i>Analizuj pole
         </a>
         <a routerLink="/pola"
           class="inline-flex min-h-14 flex-1 items-center justify-center gap-3 rounded-xl border-2 border-primary px-6 py-3 text-lg font-bold text-primary hover:bg-primary-50 dark:hover:bg-primary-950">
@@ -38,7 +38,7 @@ const STEPS: Step[] = [
             <li class="pw-card flex items-start gap-4 p-4">
               <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-primary text-lg font-bold text-primary-contrast" aria-hidden="true">{{i + 1}}</span>
               <div class="min-w-0">
-                <p class="text-lg font-semibold">{{i + 1}}. {{step.title}}</p>
+                <p class="text-lg font-semibold">{{step.title}}</p>
                 <p class="text-muted-color">{{step.text}}</p>
               </div>
             </li>

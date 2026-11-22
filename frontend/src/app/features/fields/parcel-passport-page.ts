@@ -18,7 +18,7 @@ import { PassportSummary } from '../../shared/ui/passport-summary';
   template: `
     <div class="mx-auto flex max-w-3xl flex-col gap-4 p-4">
       <header>
-        <h1 class="text-2xl font-extrabold tracking-tight">Paszport działki</h1>
+        <h1 class="text-2xl font-extrabold tracking-tight">Dane działki</h1>
       </header>
       <app-passport-summary [data]="entry().data" [loading]="entry().loading" [error]="entry().error"
         [title]="id() ?? ''" [subtitle]="subtitle()" (retry)="reload()" />

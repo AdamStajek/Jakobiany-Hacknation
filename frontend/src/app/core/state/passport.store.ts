@@ -29,7 +29,7 @@ export class PassportStore {
       if (!asOf) throw new Error('Brak daty analizy');
       this.set(id, {loading: false, error: '', data: await this.api.passport(parcelId, asOf, crop)});
     } catch (error) {
-      this.set(id, {loading: false, error: errorMessage(error, 'Nie udało się pobrać paszportu pola. Spróbuj ponownie.'), data: null});
+      this.set(id, {loading: false, error: errorMessage(error, 'Nie udało się pobrać danych działki. Spróbuj ponownie.'), data: null});
     }
   }
 

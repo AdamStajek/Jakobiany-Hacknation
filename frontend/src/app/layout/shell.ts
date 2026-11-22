@@ -14,7 +14,7 @@ type NavItem = {id: Section; path: string; label: string; short: string; icon: s
 
 const NAV: NavItem[] = [
   {id: 'start', path: '/', label: 'Start', short: 'Start', icon: 'pi-home'},
-  {id: 'analiza', path: '/sprawdz', label: 'Sprawdź pole', short: 'Sprawdź', icon: 'pi-map'},
+  {id: 'analiza', path: '/sprawdz', label: 'Analizuj pole', short: 'Analizuj', icon: 'pi-map'},
   {id: 'pola', path: '/pola', label: 'Moje pola', short: 'Pola', icon: 'pi-th-large'},
   {id: 'metody', path: '/metody', label: 'Jak to działa', short: 'Jak działa', icon: 'pi-book'},
 ];

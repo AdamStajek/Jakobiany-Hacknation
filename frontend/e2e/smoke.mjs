@@ -92,7 +92,7 @@ async function run(name) {
     const navs = page.getByRole('navigation', {name: 'Nawigacja główna'});
     const nav = navs.locator('visible=true').first();
     assert.equal(await nav.getByRole('link', {name: 'Eksperymenty'}).count(), 0);
-    for (const [label, path] of [['Moje pola', /\/pola$/], ['Jak to działa', /\/metody$/], ['Sprawdź pole', /\/sprawdz$/]]) {
+    for (const [label, path] of [['Moje pola', /\/pola$/], ['Jak to działa', /\/metody$/], ['Analizuj pole', /\/sprawdz$/]]) {
       const link = nav.getByRole('link', {name: label});
       await link.click();
       await page.waitForURL(path);
@@ -232,15 +232,15 @@ async function run(name) {
     await heading.waitFor({timeout: 30000});
     await page.getByText('Pokaż dane wykresu').waitFor();
     await shot('09-link-raportu');
-    await page.getByRole('region', {name: 'Mapa i raport'}).getByRole('link', {name: 'Paszport', exact: true}).click();
-    await page.getByRole('heading', {name: 'Paszport działki'}).waitFor();
-    const passport = page.getByRole('article', {name: /Paszport:/});
+    await page.getByRole('region', {name: 'Mapa i raport'}).getByRole('link', {name: 'Dane działki', exact: true}).click();
+    await page.getByRole('heading', {name: 'Dane działki'}).waitFor();
+    const passport = page.getByRole('article', {name: /Dane działki:/});
     await passport.getByText(matches).first().waitFor({timeout: 20000});
     assert.deepEqual(await passport.locator('dt').allTextContents(), [
       'Powierzchnia działki', 'Rodzaj uprawy', 'Rodzaj gleby', 'Zdolność gleby do zatrzymywania wody',
       'Ukształtowanie terenu', 'Nachylenie terenu', 'Aktualna wilgotność gleby',
     ]);
-    await shot('10-paszport');
+    await shot('10-dane-dzialki');
 
     // 9. Link do samej działki, motyw, rysowanie granicy.
     await page.goto(reportUrl.replace(/\/analiza\/.*$/, ''), {waitUntil: 'domcontentloaded'});
