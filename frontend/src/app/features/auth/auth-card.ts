@@ -6,6 +6,7 @@ import { Component, input } from '@angular/core';
   host: {class: 'block'},
   template: `
     <div class="mx-auto flex min-h-[calc(100dvh-var(--shell-top)-var(--shell-bottom))] max-w-md flex-col justify-center gap-4 px-4 py-8">
+      <p class="text-center text-sm font-semibold text-primary">Pole Widzenia · Dane, które dają plony.</p>
       <header class="flex items-center gap-3">
         <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-primary-50 dark:bg-primary-950">
           <i class="pi {{icon()}} text-xl text-primary" aria-hidden="true"></i>

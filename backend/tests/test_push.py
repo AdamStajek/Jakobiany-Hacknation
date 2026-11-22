@@ -109,3 +109,17 @@ def test_push_email_logs_are_independent(client, push_env):  # noqa: F811
     assert push.send_attention_push(lambda *_: "ok") == 1
     assert rules.send_attention_emails() == 1
     assert security.now()
+
+
+def test_demo_push_kinds_and_validation(client, push_env, monkeypatch):  # noqa: F811
+    verified_user_with_field(client, BAD)
+    client.put("/api/me/push/subscription", json=SUB)
+    sent = []
+    monkeypatch.setattr(push, "deliver", lambda sub, payload: sent.append(payload) or "ok")
+    for kind in push.DEMOS:
+        assert client.post("/api/me/push/test", json={"kind": kind, "field_name": "Łąka"}).status_code == 204
+    assert len(sent) == len(push.DEMOS)
+    assert all("Przykład demonstracyjny" in p["body"] and p["actions"] for p in sent)
+    assert "Łąka" in sent[0]["body"] or "Łąka" in sent[0]["title"]
+    assert client.post("/api/me/push/test", json={"kind": "nieznany"}).status_code == 422
+    assert client.post("/api/me/push/test").status_code == 204

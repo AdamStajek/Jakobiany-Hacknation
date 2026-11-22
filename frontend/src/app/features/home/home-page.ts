@@ -4,9 +4,9 @@ import { RouterLink } from '@angular/router';
 type Step = {title: string; text: string};
 
 const STEPS: Step[] = [
-  {title: 'Wybierz pole', text: 'Wskaż działkę na mapie lub wpisz jej numer.'},
-  {title: 'Powiedz, co rośnie', text: 'Wybierz uprawę i datę.'},
-  {title: 'Zobacz, co zrobić', text: 'Dostaniesz prosty wynik i podpowiedzi.'},
+  {title: 'Wybierz pole', text: 'Na mapie lub po numerze działki.'},
+  {title: 'Wskaż uprawę', text: 'I datę siewu.'},
+  {title: 'Zobacz wynik', text: 'Zapas wody i co zrobić.'},
 ];
 
 /** Strona startowa: cel aplikacji, dwa duże przyciski i trzy kroki. */
@@ -17,7 +17,7 @@ const STEPS: Step[] = [
     <article class="mx-auto flex max-w-3xl flex-col gap-8 px-4 pb-8 pt-6 text-base lg:px-8 lg:pt-12">
       <header class="flex flex-col gap-3">
         <h1 class="text-3xl font-extrabold tracking-tight lg:text-4xl">Pole Widzenia</h1>
-        <p class="pw-lead">Sprawdź, czy Twojemu polu nie zabraknie wody, i dowiedz się, co możesz zrobić.</p>
+        <p class="text-xl font-semibold text-primary lg:text-2xl">Dane, które dają plony.</p>
       </header>
 
       <div class="flex flex-col gap-3 sm:flex-row">
@@ -32,14 +32,14 @@ const STEPS: Step[] = [
       </div>
 
       <section aria-labelledby="kroki" class="flex flex-col gap-3">
-        <h2 id="kroki" class="pw-h2">Jak to działa</h2>
+        <h2 id="kroki" class="pw-h2">3 kroki</h2>
         <ol class="flex flex-col gap-3">
           @for (step of steps; track step.title; let i = $index) {
-            <li class="pw-card flex items-start gap-4 p-4">
-              <span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-primary text-lg font-bold text-primary-contrast" aria-hidden="true">{{i + 1}}</span>
+            <li class="pw-card flex items-center gap-4 p-3">
+              <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary text-base font-bold text-primary-contrast" aria-hidden="true">{{i + 1}}</span>
               <div class="min-w-0">
-                <p class="text-lg font-semibold">{{step.title}}</p>
-                <p class="text-muted-color">{{step.text}}</p>
+                <p class="font-semibold">{{step.title}}</p>
+                <p class="text-sm text-muted-color">{{step.text}}</p>
               </div>
             </li>
           }

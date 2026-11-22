@@ -1,5 +1,5 @@
 /* Service worker „Pole Widzenia”: powłoka aplikacji offline, ostatnie dane pól i Web Push. */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL = `pw-shell-${VERSION}`;
 const PUBLIC = `pw-public-${VERSION}`;
 const PRIVATE = 'pw-private-v1';
@@ -72,12 +72,18 @@ self.addEventListener('push', (event) => {
     badge: '/icons/icon-192.png',
     tag: data.tag || 'pole-widzenia',
     lang: 'pl',
+    vibrate: data.urgent ? [300, 120, 300, 120, 500] : [200, 100, 200],
+    requireInteraction: data.urgent === true,
+    renotify: true,
+    timestamp: Date.now(),
+    actions: Array.isArray(data.actions) ? data.actions.slice(0, 2) : [],
     data: {url: typeof data.url === 'string' && data.url.startsWith('/') ? data.url : '/pola'},
   }));
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  if (event.action === 'later') return;
   const target = new URL(event.notification.data?.url || '/pola', self.location.origin).href;
   event.waitUntil((async () => {
     const windows = await self.clients.matchAll({type: 'window', includeUncontrolled: true});

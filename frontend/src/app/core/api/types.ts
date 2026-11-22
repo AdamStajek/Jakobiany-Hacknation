@@ -125,6 +125,7 @@ export type DeliverySettings = {
 export type NotificationPrefs = NotificationSettings & DeliverySettings & {
   email?: string; email_verified?: boolean; push_available: boolean; push_devices: number;
 };
+export type PushDemoKind = 'basic' | 'water' | 'rain' | 'frost' | 'heat' | 'residue';
 export type PushSubscriptionInput = {endpoint: string; keys: {p256dh: string; auth: string}};
 export type TestEmailEvent =
   | ({type: 'progress'} & AnalysisProgress)

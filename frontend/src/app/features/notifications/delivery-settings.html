@@ -15,8 +15,15 @@
         <p class="mt-2 text-sm" role="alert">Powiadomienia są zablokowane w ustawieniach przeglądarki dla tej strony. Odblokuj je i spróbuj ponownie.</p>
       }
       @if (push.state() === 'on' && p.push_enabled) {
-        <p-button class="mt-2 block" label="Wyślij powiadomienie testowe" icon="pi pi-send" severity="secondary" [outlined]="true"
-          styleClass="min-h-12" (onClick)="sendTest()" />
+        <h4 class="mt-4 text-sm font-semibold">Wyślij przykładowe powiadomienie na to urządzenie</h4>
+        <p class="text-sm text-muted-color">Tak mogą wyglądać prawdziwe alerty. To przykłady demonstracyjne, nie prognoza.</p>
+        <ul class="mt-2 flex flex-wrap gap-2">
+          @for (demo of demos; track demo.kind) {
+            <li><p-button [label]="demo.label" [icon]="'pi ' + demo.icon" severity="secondary" [outlined]="true" size="small"
+              styleClass="min-h-11" (onClick)="sendTest(demo.kind)" /></li>
+          }
+          <li><p-button label="Test połączenia" icon="pi pi-send" severity="secondary" [text]="true" size="small" styleClass="min-h-11" (onClick)="sendTest()" /></li>
+        </ul>
       }
     }
   </app-panel>

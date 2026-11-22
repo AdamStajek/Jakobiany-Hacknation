@@ -3,12 +3,20 @@ import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
 import { ApiService } from '../../core/api/api.service';
 import { errorMessage } from '../../core/api/errors';
-import { DeliverySettings, NotificationPrefs } from '../../core/api/types';
+import { DeliverySettings, NotificationPrefs, PushDemoKind } from '../../core/api/types';
 import { AuthStore } from '../../core/state/auth.store';
+import { FieldsStore } from '../../core/state/fields.store';
 import { PushStore } from '../../core/state/push.store';
 import { Panel } from '../../shared/ui/panel';
 
 const FALLBACK_ZONES = ['Europe/Warsaw'];
+const DEMOS: {kind: PushDemoKind; label: string; icon: string}[] = [
+  {kind: 'water', label: 'Warto podlać pole', icon: 'pi-cloud-download'},
+  {kind: 'rain', label: 'Intensywne opady', icon: 'pi-cloud'},
+  {kind: 'frost', label: 'Przymrozek tej nocy', icon: 'pi-star'},
+  {kind: 'heat', label: 'Upał jutro', icon: 'pi-sun'},
+  {kind: 'residue', label: 'Zbiory kukurydzy', icon: 'pi-calendar'},
+];
 
 /** Powiadomienia push na tym urządzeniu oraz godziny ciszy i strefa czasowa (dla zalogowanych). */
 @Component({
@@ -21,6 +29,8 @@ export class DeliverySettingsPanel {
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthStore);
   protected readonly push = inject(PushStore);
+  private readonly fields = inject(FieldsStore);
+  protected readonly demos = DEMOS;
 
   protected readonly prefs = signal<NotificationPrefs | null>(null);
   protected readonly error = signal('');
@@ -85,12 +95,12 @@ export class DeliverySettingsPanel {
     }
   }
 
-  protected async sendTest() {
+  protected async sendTest(kind: PushDemoKind = 'basic') {
     this.error.set('');
     this.info.set('');
     try {
-      await this.api.sendTestPush();
-      this.info.set('Wysłano powiadomienie testowe.');
+      await this.api.sendTestPush(kind, this.fields.fields()[0]?.name ?? null);
+      this.info.set('Wysłano powiadomienie. Powinno pojawić się za chwilę.');
     } catch (error) {
       this.error.set(errorMessage(error, 'Nie udało się wysłać powiadomienia testowego.'));
     }

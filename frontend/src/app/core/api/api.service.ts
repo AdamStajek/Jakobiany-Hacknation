@@ -4,7 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import {
   AnalysisProgress, AnalysisRequest, Crop, DemoNotification, DemoNotificationKind,
   DemoNotificationQuery, FarmerQuestion, FieldDescription, Health, LastReportInput, LoginRequest,
-  DeliverySettings, NotificationPrefs, NotificationSettings, Parcel, PushSubscriptionInput, Passport, PasswordChange, RecommendationCatalog,
+  DeliverySettings, NotificationPrefs, PushDemoKind, NotificationSettings, Parcel, PushSubscriptionInput, Passport, PasswordChange, RecommendationCatalog,
   RegisterRequest, Report, ServerField, ServerFieldInput, TestEmailEvent, User,
 } from './types';
 
@@ -76,7 +76,9 @@ export class ApiService {
   removePushSubscription(endpoint: string) {
     return firstValueFrom(this.http.post<void>('/api/me/push/unsubscribe', {endpoint}, STATE_CHANGING));
   }
-  sendTestPush() { return firstValueFrom(this.http.post<void>('/api/me/push/test', {}, STATE_CHANGING)); }
+  sendTestPush(kind: PushDemoKind = 'basic', fieldName: string | null = null) {
+    return firstValueFrom(this.http.post<void>('/api/me/push/test', {kind, ...(fieldName ? {field_name: fieldName} : {})}, STATE_CHANGING));
+  }
 
   sendTestEmail(onProgress: (progress: AnalysisProgress) => void) {
     const sendOverHttp = () => firstValueFrom(

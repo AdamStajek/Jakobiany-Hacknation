@@ -58,8 +58,9 @@ def subscription_info(row):
     return {"endpoint": row["endpoint"], "keys": {"p256dh": row["p256dh"], "auth": row["auth"]}}
 
 
-def push_to_user(db, user_id, payload, send=deliver):
+def push_to_user(db, user_id, payload, send=None):
     """Wysyła do wszystkich urządzeń użytkownika i usuwa wygasłe. Zwraca liczbę dostarczonych."""
+    send = send or deliver
     delivered = 0
     for row in db.execute("SELECT * FROM push_subscriptions WHERE user_id = ?", (user_id,)).fetchall():
         result = send(subscription_info(row), payload)
@@ -78,6 +79,50 @@ def attention_payload(items):
         "url": "/pola",
         "tag": "pole-uwaga",
     }
+
+
+DEMO_NOTE = "Przykład demonstracyjny, nie prognoza."
+
+
+def _demo(title, body, *, urgent=False, tag):
+    return {"title": title, "body": f"{body} {DEMO_NOTE}", "url": "/pola", "tag": f"demo-{tag}", "urgent": urgent,
+            "actions": [{"action": "open", "title": "Otwórz raport"}, {"action": "later", "title": "Później"}]}
+
+
+DEMOS = {
+    "water": lambda name: _demo(
+        f"Warto podlać {name}",
+        "7 dni bez istotnego opadu, bilans wody uprawy −18 mm. Najlepiej rano: 15–20 mm.",
+        tag="water",
+    ),
+    "rain": lambda name: _demo(
+        "Nadchodzą intensywne opady",
+        f"Nie pogłębiaj rowów na {name}. Pasy roślinności spowolnią odpływ i zatrzymają wodę w glebie.",
+        tag="rain",
+    ),
+    "frost": lambda name: _demo(
+        "Przymrozek tej nocy: −3 °C",
+        f"Najzimniej około 4:00. Zabezpiecz wrażliwe uprawy na {name}, jeśli są po wschodach.",
+        urgent=True,
+        tag="frost",
+    ),
+    "heat": lambda name: _demo(
+        "Upał jutro: 34 °C",
+        f"Na {name} ryzyko stresu wodnego w fazie kwitnienia. Nawadniaj wcześnie rano, nie w południe.",
+        urgent=True,
+        tag="heat",
+    ),
+    "residue": lambda name: _demo(
+        "Zbiory kukurydzy za tydzień",
+        f"Na górnej części {name} pozostaw resztki pożniwne: wcześniejszy eksperyment pokazał lepsze utrzymanie wilgoci.",
+        tag="residue",
+    ),
+}
+
+
+def demo_payload(kind, field_name=None):
+    name = f"pole „{field_name}”" if field_name else "swoim polu"
+    return DEMOS[kind](name)
 
 
 def notify_user(user_id, send=deliver):

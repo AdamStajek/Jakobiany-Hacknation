@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Literal
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
@@ -47,6 +48,12 @@ class PushSubscription(BaseModel):
     model_config = ConfigDict(extra="ignore")
     endpoint: str = Field(min_length=1, max_length=1024, pattern=r"^https://")
     keys: PushKeys
+
+
+class PushDemo(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    kind: Literal["basic", *push.DEMOS] = "basic"
+    field_name: str | None = Field(default=None, max_length=80)
 
 
 class PushEndpoint(BaseModel):
@@ -150,15 +157,15 @@ def delete_push_subscription(body: PushEndpoint, user=User):
 
 
 @router.post("/push/test", status_code=204)
-def send_test_push(user=User):
+def send_test_push(body: PushDemo | None = None, user=User):
     if not push.configured():
         raise HTTPException(503, "Powiadomienia push nie są skonfigurowane na tym serwerze.")
-    payload = {
-        "title": "Pole Widzenia: test",
-        "body": "Powiadomienia działają na tym urządzeniu.",
-        "url": "/powiadomienia",
-        "tag": "test",
-    }
+    body = body or PushDemo()
+    payload = (
+        push.demo_payload(body.kind, body.field_name)
+        if body.kind != "basic"
+        else {"title": "Pole Widzenia: test", "body": "Powiadomienia działają na tym urządzeniu.", "url": "/powiadomienia", "tag": "test"}
+    )
     with connect() as db:
         if not push.push_to_user(db, user["id"], payload):
             raise HTTPException(503, "Nie udało się wysłać powiadomienia. Włącz je ponownie na tym urządzeniu.")
