@@ -29,6 +29,7 @@ from wodo.auth.router import router as auth_router
 from wodo.declarations import FarmerAnswers
 from wodo.describe_field import router as describe_router
 from wodo.experiments import experiment_checks, experiment_diagnosis
+from wodo.farm_pdf import FarmReportIn, farm_pdf
 from wodo.farmer_report import report_message
 from wodo.field_analysis import analyze_field
 from wodo.fields.router import router as fields_router
@@ -227,6 +228,15 @@ def matches(parcels):
             404, "Nie znaleziono działki. Sprawdź identyfikator lub wybierz inny punkt."
         )
     return {"parcels": parcels}
+
+
+@app.post("/api/farm-report")
+def farm_report(body: FarmReportIn):
+    return Response(
+        farm_pdf(body),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="raport-moje-pola-{date.today()}.pdf"'},
+    )
 
 
 @app.post("/api/analysis/passport")

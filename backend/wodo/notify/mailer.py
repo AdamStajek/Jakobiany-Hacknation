@@ -6,8 +6,10 @@ import os
 import smtplib
 from email.message import EmailMessage
 
+from wodo import brand
 from wodo.auth import security
 from wodo.db import data_dir
+from wodo.notify import email_layout
 
 log = logging.getLogger(__name__)
 
@@ -38,8 +40,8 @@ def outbox():
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
 
 
-def send(to, subject, body):
-    """Zwraca True, gdy wiadomość wysłano albo zapisano w outboxie (dev)."""
+def send(to, subject, body, html=None):
+    """Zwraca True, gdy wiadomość wysłano albo zapisano w outboxie (dev). `html` dodaje wersję HTML z logo."""
     config = smtp_config()
     if config is None:
         from wodo.auth.deps import is_dev
@@ -51,17 +53,22 @@ def send(to, subject, body):
         with outbox_path().open("a", encoding="utf-8") as file:
             file.write(
                 json.dumps(
-                    {"at": security.now(), "to": to, "subject": subject, "body": body},
+                    {"at": security.now(), "to": to, "subject": subject, "body": body, "html": html},
                     ensure_ascii=False,
                 )
                 + "\n"
             )
         return True
     message = EmailMessage()
-    message["From"] = config["sender"] or "wodostraznik@localhost"
+    message["From"] = config["sender"] or "polewidzenia@localhost"
     message["To"] = to
     message["Subject"] = subject
     message.set_content(body)
+    if html:
+        message.add_alternative(html, subtype="html")
+        message.get_payload()[1].add_related(
+            brand.LOGO_WORDMARK.read_bytes(), "image", "png", cid=f"<{email_layout.LOGO_CID}>", filename="logo.png"
+        )
     try:
         if config["tls"] == "ssl":
             client = smtplib.SMTP_SSL(config["host"], config["port"], timeout=15)

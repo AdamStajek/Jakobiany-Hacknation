@@ -83,6 +83,20 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
     created_at REAL NOT NULL
 );
 CREATE INDEX IF NOT EXISTS push_subscriptions_user ON push_subscriptions(user_id);
+CREATE TABLE IF NOT EXISTS digest_log (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL,
+    sent_at REAL NOT NULL,
+    PRIMARY KEY (user_id, kind)
+);
+CREATE TABLE IF NOT EXISTS alert_log (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    field_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    day TEXT NOT NULL,
+    sent_at REAL NOT NULL,
+    PRIMARY KEY (user_id, field_id, kind, day)
+);
 CREATE TABLE IF NOT EXISTS push_log (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     field_id TEXT NOT NULL,

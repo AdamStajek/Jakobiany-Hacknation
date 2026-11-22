@@ -1,5 +1,7 @@
 import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { ApiService } from '../../core/api/api.service';
+import { errorMessage } from '../../core/api/errors';
 import { ButtonModule } from 'primeng/button';
 import { SkeletonModule } from 'primeng/skeleton';
 import { AnalysisStore } from '../../core/state/analysis.store';
@@ -17,7 +19,6 @@ import { FieldsList } from './fields-list';
 import { FieldsMapPanel } from './fields-map-panel';
 import { FieldsNotices } from './fields-notices';
 import { FieldsPassports } from './fields-passports';
-import { FarmReport } from './farm-report';
 import { farmStats } from './farm-stats';
 
 /** Zapamiętanie zamkniętej wskazówki mapy (tylko za zgodą, przez ConsentStore). */
@@ -29,7 +30,7 @@ type Pane = 'map' | 'passports';
 /** Pulpit „Moje pola”: karty pól, lista „wymaga uwagi” i mapa wszystkich pól (mapa i paszporty pól). */
 @Component({
   selector: 'app-fields-page',
-  imports: [ButtonModule, SkeletonModule, EmptyState, LoginPrompt, Segmented, FieldForm, FarmReport, FieldsList, FieldsMapPanel, FieldsNotices, FieldsPassports, RouterLink],
+  imports: [ButtonModule, SkeletonModule, EmptyState, LoginPrompt, Segmented, FieldForm, FieldsList, FieldsMapPanel, FieldsNotices, FieldsPassports, RouterLink],
   host: {class: 'block'},
   templateUrl: './fields-page.html',
 })
@@ -40,6 +41,7 @@ export class FieldsPage {
   protected readonly auth = inject(AuthStore);
   protected readonly consent = inject(ConsentStore);
   private readonly router = inject(Router);
+  private readonly api = inject(ApiService);
   private readonly passports = inject(PassportStore);
 
   protected readonly views: SegmentOption<View>[] = [
@@ -73,7 +75,7 @@ export class FieldsPage {
 
   /** Podsumowanie gospodarstwa: tylko sumowanie i grupowanie, status i powody pochodzą ze sklepu. */
   protected readonly stats = computed(() => farmStats(this.fields.fields(), (id) => this.analysis.crops().find((c) => c.id === id)?.label ?? ''));
-  protected readonly generatedAt = signal(new Date());
+  protected readonly reportError = signal<string | null>(null);
 
   protected readonly passportField = computed(() => this.selected() ?? this.fields.fields()[0] ?? null);
   protected readonly prefill = computed(() => (this.prefillCurrent() ? this.parcels.parcel() : null));
@@ -153,10 +155,23 @@ export class FieldsPage {
     event.done(await this.fields.rename(event.id, event.name));
   }
 
-  /** Odświeża datę raportu i otwiera okno drukowania (zapis do PDF); ekran wraca do normy po zamknięciu okna. */
-  protected print() {
-    this.generatedAt.set(new Date());
-    window.print();
+  /** Pobiera PDF „Raport o moich polach” złożony przez backend. */
+  protected async download() {
+    this.reportError.set(null);
+    const rows = this.stats().rows.map((r) => ({
+      name: r.name, crop_label: r.cropLabel, area_ha: r.areaHa, parcels: r.parcels, risk: r.risk,
+      reasons: r.reasons, report_date: r.reportDate, stale: r.stale,
+    }));
+    try {
+      const url = URL.createObjectURL(await this.api.farmReportPdf(rows));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `raport-moje-pola-${new Date().toISOString().slice(0, 10)}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      this.reportError.set(errorMessage(error, 'Nie udało się przygotować raportu. Spróbuj ponownie.'));
+    }
   }
 
   protected analyze(parcelId: string) {

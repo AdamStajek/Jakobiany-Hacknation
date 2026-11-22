@@ -5,7 +5,7 @@ import {
   AnalysisProgress, AnalysisRequest, Crop, DemoNotification, DemoNotificationKind,
   DemoNotificationQuery, FarmerQuestion, FieldDescription, Health, LastReportInput, LoginRequest,
   DeliverySettings, NotificationPrefs, PushDemoKind, NotificationSettings, Parcel, PushSubscriptionInput, Passport, PasswordChange, RecommendationCatalog,
-  RegisterRequest, Report, ServerField, ServerFieldInput, TestEmailEvent, User,
+  FarmReportRow, RegisterRequest, Report, ServerField, ServerFieldInput, TestEmailEvent, User,
 } from './types';
 
 /** Nagłówek wymagany przez serwer przy żądaniach zmieniających stan (ochrona przed CSRF). */
@@ -117,6 +117,10 @@ export class ApiService {
   }
 
   // Pola na serwerze (wymagają sesji).
+  /** PDF „Raport o moich polach” składany przez backend. */
+  farmReportPdf(rows: FarmReportRow[]) {
+    return firstValueFrom(this.http.post('/api/farm-report', {rows}, {...STATE_CHANGING, responseType: 'blob'}));
+  }
   serverFields() { return firstValueFrom(this.http.get<ServerField[]>('/api/fields', READ)); }
   createServerField(body: ServerFieldInput) { return firstValueFrom(this.http.post<ServerField>('/api/fields', body, STATE_CHANGING)); }
   updateServerField(id: string, body: Partial<ServerFieldInput>) { return firstValueFrom(this.http.patch<ServerField>(`/api/fields/${encodeURIComponent(id)}`, body, STATE_CHANGING)); }

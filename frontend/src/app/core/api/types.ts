@@ -142,6 +142,11 @@ export type ServerField = {
   parcels: {id: string; geometry: Geometry}[];
   last_report?: ServerLastReport | null;
 };
+/** Wiersz raportu o polach wysyłany do backendu, który składa PDF. */
+export type FarmReportRow = {
+  name: string; crop_label: string; area_ha: number | null; parcels: number; risk: string | null;
+  reasons: string[]; report_date: string | null; stale: boolean;
+};
 export type ServerFieldInput = {name: string; color: string; crop: string | null; parcels: {id: string; geometry: Geometry}[]};
 
 /** Opis pola własnymi słowami (POST /api/describe-field). */

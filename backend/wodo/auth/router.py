@@ -161,6 +161,14 @@ def mail_reset(email, username, token):
     mailer.send(email, *templates.reset(username, token))
 
 
+def mail_welcome(email, username):
+    mailer.send(email, *templates.welcome(username))
+
+
+def mail_password_changed(email, username):
+    mailer.send(email, *templates.password_changed(username))
+
+
 def check_throttle(keys):
     wait = max(security.throttle.wait(key, free) for key, free in keys)
     if wait > 0:
@@ -194,10 +202,14 @@ def register(body: Register, request: Request, response: Response, tasks: Backgr
 
 
 @router.post("/auth/verify")
-def verify(body: Token):
+def verify(body: Token, tasks: BackgroundTasks):
     with connect() as db:
         user_id = consume_token(db, body.token, "verify")
+        was_verified = db.execute("SELECT email_verified FROM users WHERE id = ?", (user_id,)).fetchone()[0]
         db.execute("UPDATE users SET email_verified = 1 WHERE id = ?", (user_id,))
+        user = db.execute("SELECT email, username FROM users WHERE id = ?", (user_id,)).fetchone()
+    if not was_verified and user:
+        tasks.add_task(mail_welcome, user["email"], user["username"])
     return {"email_verified": True}
 
 
@@ -263,14 +275,17 @@ def forgot(body: Forgot, request: Request, tasks: BackgroundTasks):
 
 
 @router.post("/auth/reset")
-def reset(body: Reset):
+def reset(body: Reset, tasks: BackgroundTasks):
     with connect() as db:
         user_id = consume_token(db, body.token, "reset")
+        user = db.execute("SELECT email, username FROM users WHERE id = ?", (user_id,)).fetchone()
         db.execute(
             "UPDATE users SET password_hash = ?, email_verified = 1 WHERE id = ?",
             (security.hash_password(body.password), user_id),
         )
         db.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+    if user:
+        tasks.add_task(mail_password_changed, user["email"], user["username"])
     return {"reset": True}
 
 
@@ -280,7 +295,7 @@ def me(user=User):
 
 
 @router.post("/me/password")
-def change_password(body: ChangePassword, user=User):
+def change_password(body: ChangePassword, tasks: BackgroundTasks, user=User):
     key = ("pw", user["id"])
     check_throttle([(key, 4)])
     if not security.verify_password(body.current, user["password_hash"]):
@@ -295,6 +310,7 @@ def change_password(body: ChangePassword, user=User):
             "DELETE FROM sessions WHERE user_id = ? AND token_hash != ?",
             (user["id"], user["session_hash"]),
         )
+    tasks.add_task(mail_password_changed, user["email"], user["username"])
     return {"changed": True}
 
 

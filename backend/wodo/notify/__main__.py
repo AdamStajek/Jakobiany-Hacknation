@@ -7,9 +7,11 @@ from main import AnalysisRequest, ensure_analyzable, today
 from wodo.analysis import run
 from wodo.db import db_path
 from wodo.geo import imported
+from wodo.notify.digest import send_weekly_digests
 from wodo.notify.push import send_attention_push
 from wodo.notify.recommendation_emails import send_recommendation_emails
 from wodo.notify.rules import send_attention_emails
+from wodo.notify.weather_alerts import send_weather_alerts
 from wodo.science import UNKNOWN_CROP
 
 
@@ -34,6 +36,8 @@ def main():
             return
         print(f"Wysłano wiadomości: {send_attention_emails()}")
         print(f"Wysłano powiadomienia push: {send_attention_push()}")
+        print(f"Wysłano alerty pogodowe: {send_weather_alerts()}")
+        print(f"Wysłano podsumowania tygodniowe: {send_weekly_digests()}")
         print(f"Wysłano e-maile o nowych rekomendacjach: {send_recommendation_emails(analyze)}")
 
 

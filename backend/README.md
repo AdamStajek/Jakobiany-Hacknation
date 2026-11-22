@@ -41,6 +41,8 @@ Wystarczy dowolny dostawca SMTP z darmowym limitem, np. Brevo (300 wiadomości d
 
 Z cron-a (np. raz na dobę): `uv run python -m wodo.notify`. Wysyła jedną wiadomość na użytkownika (z potwierdzonym e-mailem i włączonym powiadomieniem) o polach, których ostatni raport (`PUT /api/fields/{id}/last-report`) spełnia: ryzyko „Podwyższone” lub „Sygnał niedoboru”, `dry_spell_days >= 7` albo `crop_balance_mm < 0`. Ten sam zestaw powodów dla pola nie jest wysyłany ponownie, dopóki pole nie wróci do normy lub nie zmienią się powody.
 
+Ten sam przebieg wysyła też: **alerty pogodowe** (prognoza Open-Meteo na 3 dni: opad ≥ 20 mm na dobę lub ≥ 10 mm na godzinę albo upał ≥ 32 °C; raz na pole, rodzaj i dzień; wymaga `WODO_NONCOMMERCIAL_OPEN_METEO=1`) oraz **podsumowanie tygodniowe** (pola wymagające uwagi, bez raportu i z nieaktualnym raportem; najwyżej raz na 7 dni). Oba respektują godziny ciszy i zgodę na e-maile. Wiek raportu jest szacowany po ostatniej zmianie pola (`updated_at`), bo raport nie zapisuje daty. Przy cronie raz na dobę alert o pogodzie wyprzedza zdarzenie o 1–3 dni.
+
 ### E-maile o nowych rekomendacjach
 
 To samo polecenie odświeża analizy zapisanych działek użytkowników z potwierdzonym adresem i włączonym ustawieniem „E-maile o nowych rekomendacjach” w `/konto`. Ustawienie jest domyślnie wyłączone. Zadanie korzysta z zapisanej geometrii i uprawy. Porady wymagające dodatkowych deklaracji z formularza analizy pojawią się tylko wtedy, gdy silnik ma wymagane dane.
