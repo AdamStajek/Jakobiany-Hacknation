@@ -1,6 +1,8 @@
 import type { Geometry, LastReportInput, Parcel, Report, ServerField } from '../api/types';
 
 export const FIELD_COLORS = ['green', 'blue', 'amber', 'purple', 'teal', 'pink'] as const;
+/** Maksymalna długość nazwy pola (jak w formularzu; backend dopuszcza 80). */
+export const FIELD_NAME_MAX = 60;
 export type FieldColor = (typeof FIELD_COLORS)[number];
 
 /** `area_ha` zna tylko kopia lokalna i świeżo dodane pole; serwer jej nie zwraca. */

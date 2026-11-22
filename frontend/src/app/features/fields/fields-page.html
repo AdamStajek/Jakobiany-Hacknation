@@ -39,7 +39,7 @@
           }
         } @else {
           <app-fields-list [fields]="fields.fields()" [attention]="fields.attention()" [stats]="stats()" [cropLabel]="cropLabel"
-            (download)="print()" (analyze)="analyze($event)" (located)="locate($event)" (passport)="showPassport($event)" (removed)="remove($event)" />
+            (download)="print()" (analyze)="analyze($event)" (located)="locate($event)" (passport)="showPassport($event)" (removed)="remove($event)" (renamed)="rename($event)" />
         }
       </div>
     </section>

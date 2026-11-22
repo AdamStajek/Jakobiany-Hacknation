@@ -145,6 +145,10 @@ export class FieldsPage {
     this.fields.remove(id);
   }
 
+  protected async rename(event: {id: string; name: string; done: (ok: boolean) => void}) {
+    event.done(await this.fields.rename(event.id, event.name));
+  }
+
   /** Odświeża datę raportu i otwiera okno drukowania (zapis do PDF); ekran wraca do normy po zamknięciu okna. */
   protected print() {
     this.generatedAt.set(new Date());

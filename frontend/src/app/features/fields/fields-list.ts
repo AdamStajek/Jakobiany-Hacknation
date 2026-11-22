@@ -29,7 +29,7 @@ export type AttentionItem = {field: Field; reasons: string[]};
     <ul class="flex flex-col gap-3" aria-label="Pola">
       @for (field of fields(); track field.id) {
         <li><app-field-card [field]="field" [cropLabel]="cropLabel()(field)"
-          (analyze)="analyze.emit($event)" (located)="located.emit(field.id)" (passport)="passport.emit(field.id)" (removed)="removed.emit($event)" /></li>
+          (analyze)="analyze.emit($event)" (located)="located.emit(field.id)" (passport)="passport.emit(field.id)" (removed)="removed.emit($event)" (renamed)="renamed.emit($event)" /></li>
       }
     </ul>
   `,
@@ -46,4 +46,5 @@ export class FieldsList {
   readonly located = output<string>();
   readonly passport = output<string>();
   readonly removed = output<string>();
+  readonly renamed = output<{id: string; name: string; done: (ok: boolean) => void}>();
 }

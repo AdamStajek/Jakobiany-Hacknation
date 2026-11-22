@@ -119,6 +119,7 @@ export class ApiService {
   // Pola na serwerze (wymagają sesji).
   serverFields() { return firstValueFrom(this.http.get<ServerField[]>('/api/fields', READ)); }
   createServerField(body: ServerFieldInput) { return firstValueFrom(this.http.post<ServerField>('/api/fields', body, STATE_CHANGING)); }
+  updateServerField(id: string, body: Partial<ServerFieldInput>) { return firstValueFrom(this.http.patch<ServerField>(`/api/fields/${encodeURIComponent(id)}`, body, STATE_CHANGING)); }
   deleteServerField(id: string) { return firstValueFrom(this.http.delete<unknown>(`/api/fields/${encodeURIComponent(id)}`, STATE_CHANGING)); }
   putLastReport(id: string, body: LastReportInput) {
     return firstValueFrom(this.http.put<ServerField>(`/api/fields/${encodeURIComponent(id)}/last-report`, body, STATE_CHANGING));
