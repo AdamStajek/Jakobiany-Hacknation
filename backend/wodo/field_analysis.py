@@ -173,15 +173,15 @@ def analyze_field(field_passport: dict, analysis_date: date, *, farmer_answers=N
     facts = field_facts(metrics, {"forecast": {"rows": forecast}, "retention_available": "taw_mm" in root},
                         request, answers)
     if number(slope) and slope < 90 and (grade := 100 * tan(radians(slope))) >= 3:
-        facts["slope"] = f"Średnie nachylenie według NMT: {grade:.1f}%."
+        facts["slope"] = f"Według mapy terenu średnie nachylenie pola wynosi {grade:.1f}%."
     if number(history) and 50 <= history <= 100:
-        facts.setdefault("recurrent", f"Scenariusz paszportu: deficyt modelowy w {history:g}% sezonów.")
+        facts.setdefault("recurrent", f"Obliczenia w paszporcie pola wskazują, że wody brakowało w {history:g}% sprawdzonych sezonów.")
     if (scene_day := stamp(fields.get("ndmi_anomaly", fields.get("ndvi_anomaly", {})).get("provenance", {}).get("observed_at"))
             ) and 0 <= (analysis_date - scene_day).days <= 14:
         if any(anomaly <= -.1 for anomaly in satellite.values()):
-            facts["sat_anomaly"] = f"Scena {scene_day}: " + ", ".join(
-                f"{key[:4].upper()} {delta:+.2f}" for key, delta in satellite.items()
-            ) + " względem porównywalnych sezonów."
+            indicators = {"ndvi_anomaly": "zieleni roślin", "ndmi_anomaly": "wody w roślinach"}
+            differences = ", ".join(f"{indicators[key]} {delta:+.2f}" for key, delta in satellite.items())
+            facts["sat_anomaly"] = f"Zdjęcie z {scene_day} porównaliśmy z podobnymi sezonami. Różnice wskaźników to {differences}."
     actions = ordered_recommendations(facts, answers, analysis_date)
     if root["status"] != "model" and crop_key != UNKNOWN_CROP and phase == 4:
         message = "Wybrana data wypada poza okresem wzrostu tej uprawy według typowego kalendarza."

@@ -114,8 +114,12 @@ def pdf(report):
 
     def recommendation_details(rec):
         details = [p(rec["why"]), p(rec["evidence"]), p(rec["limits"], tiny)]
-        if rec.get("cost"):
-            details.append(p(f'{rec["cost"]} · {rec["cost_details"]}', tiny))
+        if estimate := rec.get("cost_estimate"):
+            lower, upper = estimate["lower"], estimate["upper"]
+            amount = f"{lower:g}" if lower == upper else f"{lower:g}–{upper:g}"
+            details.append(p(f'Przykładowy koszt. {amount.replace(".", ",")} zł {estimate["unit"]}. {estimate["basis"]}', tiny))
+            for source in estimate["sources"]:
+                details.append(p(f'{source["title"]} · {source["url"]}', tiny))
         for point in rec.get("points", ()):
             lon, lat = point["coordinates"]
             details.append(p(f'{point["type"]} · {point["date"]} · {lat:.5f}° N, {lon:.5f}° E. {point["description"]}', tiny))
@@ -145,8 +149,9 @@ def pdf(report):
     flows = [p("WODOSTRAŻNIK / RAPORT DZIAŁKI", tiny), p("Stan wody na Twojej działce", title),
              p(f"Analiza {report['date']} · {metrics['crop']['label']} · {metrics['stage']}"), Spacer(1, 8)]
     context = [p(parcel["id"], sub), p(f'{parcel["area_ha"]:g} ha · {parcel["commune"] or "wskazana geometria"}'),
-               p(f'Źródło granicy: {parcel["source"]}.', tiny), p(f'Ryzyko: {metrics["risk"]}', sub),
-               p(f'Pewność oceny: {report["confidence"].lower()}')]
+               p(f'Źródło granicy: {parcel["source"]}.', tiny), p(f'Ryzyko: {metrics["risk"]}', sub)]
+    if report["confidence"] != "Ograniczona":
+        context.append(p(f'Pewność oceny: {report["confidence"].lower()}'))
     table = Table([[ParcelMap(parcel), context]], colWidths=[185, 300])
     table.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
     flows.append(table)

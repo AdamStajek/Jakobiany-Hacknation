@@ -26,8 +26,10 @@ export class ApiService {
     return firstValueFrom(this.http.get<{parcels: Parcel[]}>('/api/parcels/by-point', {params: {lat, lon}}));
   }
   importParcel(geojson: object) { return firstValueFrom(this.http.post<Parcel>('/api/parcels/import', geojson)); }
-  passport(parcelId: string, asOf: string, crop: string) {
-    return firstValueFrom(this.http.get<Passport>('/api/passport', {params: {parcel_id: parcelId, as_of: asOf, crop, irrigation_mm: 0}}));
+  passport(parcelId: string, asOf: string, crop: string | null) {
+    return firstValueFrom(this.http.get<Passport>('/api/passport', {
+      params: {parcel_id: parcelId, as_of: asOf, ...(crop ? {crop} : {}), irrigation_mm: 0},
+    }));
   }
   report(analysisId: string) { return firstValueFrom(this.http.get<Report>(`/api/analysis/${encodeURIComponent(analysisId)}`)); }
   saveExperiments(analysisId: string, results: Record<string, string>) {

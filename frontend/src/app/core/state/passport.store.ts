@@ -14,11 +14,11 @@ export class PassportStore {
   private readonly analysis = inject(AnalysisStore);
   private readonly entries = signal<Record<string, PassportEntry>>({});
 
-  entry(parcelId: string, crop: string): PassportEntry {
+  entry(parcelId: string, crop: string | null): PassportEntry {
     return this.entries()[key(parcelId, crop)] ?? EMPTY;
   }
 
-  async load(parcelId: string, crop: string, force = false) {
+  async load(parcelId: string, crop: string | null, force = false) {
     const id = key(parcelId, crop);
     const current = this.entries()[id];
     if (current?.loading || (current?.data && !force)) return;
@@ -38,4 +38,4 @@ export class PassportStore {
   }
 }
 
-const key = (parcelId: string, crop: string) => `${parcelId}|${crop}`;
+const key = (parcelId: string, crop: string | null) => `${parcelId}|${crop ?? ''}`;

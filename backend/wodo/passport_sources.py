@@ -184,12 +184,14 @@ def terrain_profile(parcel, start, end):
             values = {"elevation_mean_m": float(z[valid].mean())}
             if valid.sum() == inside.sum():
                 values.update(hydro(z, src.transform, inside, local))
+                if valid.sum() > 1:
+                    values["elevation_range_m"] = float(np.ptp(z[valid]))
             slopes = slope[valid & np.isfinite(slope)]
             if slopes.size:
                 values["slope_mean_deg"] = float(slopes.mean())
             return {"values": values, "coverage_fraction": float(valid.sum() / inside.sum())}
 
-    data = cached("passport-nmt-depressions-v1", parcel["geometry"], 90, download)
+    data = cached("passport-nmt-depressions-v2", parcel["geometry"], 90, download)
     return data["values"], {"url": NMT, "vertical_datum": "PL-KRON86-NH", "depression_threshold_m": .25,
                             "depression_extent": "lokalny wycinek NMT z odpływem na krawędziach", "spatial_resolution_m": step,
                             "coverage_fraction": data["coverage_fraction"], "fetched_at": data["retrieved_at"]}
@@ -325,7 +327,7 @@ WORKERS = {
 SUPPORTED_FIELDS = {
     BDOT: {"nearest_stream_distance_m", "nearest_ditch_distance_m", "nearest_pond_distance_m"},
     CLMS: {"crop_type_clms", "crop_type_confidence_pct"},
-    "GUGiK NMT": {"elevation_mean_m", "slope_mean_deg", "flow_direction_raster_uri", "flow_accumulation_raster_uri",
+    "GUGiK NMT": {"elevation_mean_m", "elevation_range_m", "slope_mean_deg", "flow_direction_raster_uri", "flow_accumulation_raster_uri",
                   "potential_depression_area_m2", "potential_depression_volume_m3", "potential_depression_geometry"},
     ADMIN: {"municipality", "voivodeship", "county", "municipality_teryt"},
     ERA: {*ERA_DAILY.values(), *ERA_HOURLY.values(), "precip_sum_7d_mm", "precip_sum_30d_mm", "consecutive_dry_days", "precip_anomaly_30d_mm",

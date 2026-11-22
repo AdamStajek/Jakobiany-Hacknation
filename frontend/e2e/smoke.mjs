@@ -1,5 +1,5 @@
 // Test dymny całego przepływu w przeglądarce: wyszukanie działki, klik na mapie, Dane → analiza → raport,
-// PDF, widok Prosty/Zaawansowany, link do raportu, nawigacja powłoki. Uruchamia się w dwóch viewportach.
+// PDF, link do raportu, nawigacja powłoki. Uruchamia się w dwóch viewportach.
 //
 // Zmienne: WODO_URL (domyślnie http://127.0.0.1:8080), WODO_BROWSER (chromium|firefox|webkit),
 // WODO_VIEWPORTS (np. "mobile" lub "desktop"; domyślnie oba), WODO_SHOTS (katalog na zrzuty ekranu),
@@ -103,8 +103,10 @@ async function run(name) {
         const title = action.getByText('Utworzenie trawiastych pasów buforowych', {exact: true});
         const category = catalog.getByText('Retencja i infrastruktura', {exact: true});
         await category.waitFor();
-        assert.equal(await actions.count(), 60);
-        assert.equal(await action.getAttribute('value'), '15');
+        const numbers = await catalog.locator('ol').evaluateAll(lists => lists.flatMap(list =>
+          Array.from(list.children, (item, index) => item.hasAttribute('value') ? item.value : list.start + index),
+        ));
+        assert.deepEqual(numbers, Array.from({length: 60}, (_, index) => index + 1));
         assert.equal(await catalog.locator('details[open]').count(), 0);
         assert.equal(await title.isVisible(), false);
         await category.press('Enter');
@@ -183,26 +185,34 @@ async function run(name) {
     await shot('05-raport');
     assert.match(page.url(), /\/dzialka\/.+\/analiza\/[a-f0-9]{32}$/, 'adres raportu');
     await isActive('Raport', 'raport aktywny po analizie');
-    assert(await page.getByText(/Ryzyko niedoboru wody/).isVisible());
+    const sectionHeadings = page.locator('app-report-dashboard').getByRole('heading', {level: 3});
+    assert.deepEqual(await sectionHeadings.allTextContents(), [
+      'Eksperymenty, które mogą doprecyzować diagnozę', 'Analiza', 'Co możesz zrobić?',
+    ]);
+    const waterAnalysis = page.getByRole('region', {name: 'Analiza', exact: true});
+    await waterAnalysis.getByRole('heading', {name: 'Ryzyko niedoboru wody'}).waitFor();
+    await waterAnalysis.getByText('Spływ wody po powierzchni podczas ulewy: Często.').waitFor();
+    await waterAnalysis.getByRole('heading', {name: 'Tło wieloletnie'}).waitFor();
     await noOverflow('raport');
 
-    // 5. Prosty / Zaawansowany.
-    const mode = page.getByRole('group', {name: 'Widok raportu'});
-    await mode.getByRole('button', {name: 'Zaawansowany'}).click();
-    await page.getByRole('heading', {name: 'Skąd pochodzą dane?'}).scrollIntoViewIfNeeded();
-    await page.locator('[echarts] canvas').first().waitFor();
-    assert(await page.locator('[echarts] canvas').count() >= 3, 'wykresy w widoku zaawansowanym');
-    await shot('06-zaawansowany');
-    await noOverflow('zaawansowany');
-    await mode.getByRole('button', {name: 'Prosty'}).click();
-    await page.getByRole('heading', {name: 'Na czym opieramy wynik?'}).waitFor();
+    // 5. Dane wykresu i niepewność wyników.
+    assert.equal(await page.getByRole('group', {name: 'Widok raportu'}).count(), 0);
+    assert.equal(await page.getByText('Pewność: Ograniczona', {exact: true}).count(), 0);
+    await page.getByRole('heading', {name: 'Niepewność wyników'}).scrollIntoViewIfNeeded();
+    await page.locator('[echarts] canvas').waitFor();
+    await page.getByText('Pokaż dane wykresu').waitFor();
     await shot('07-prosty');
 
     // 6. Zalecenia z dowodami.
-    await page.getByRole('heading', {name: 'Co możesz zrobić?'}).scrollIntoViewIfNeeded();
-    await page.locator('article').filter({has: page.getByRole('heading', {name: buffer.title})})
-      .getByRole('button', {name: 'Dlaczego na tej działce?'}).click();
-    await page.getByRole('heading', {name: 'Dowody'}).waitFor();
+    const recommendations = page.getByRole('region', {name: 'Co możesz zrobić?'});
+    await recommendations.getByRole('heading', {name: 'Co możesz zrobić?'}).scrollIntoViewIfNeeded();
+    const recommendation = recommendations.locator('article').filter({has: page.getByRole('heading', {name: buffer.title})});
+    if (await recommendation.count() === 0) await recommendations.getByRole('button', {name: /Pokaż więcej/}).click();
+    await recommendation.getByText(/200\s*–\s*320 zł netto za ha pasa/).waitFor();
+    assert.equal(await recommendation.getByText('Pewność: wstępna', {exact: true}).count(), 0);
+    await recommendation.getByRole('button', {name: 'Dlaczego to pasuje? ' + buffer.title}).click();
+    await page.getByRole('heading', {name: 'Dlaczego na tej działce?'}).waitFor();
+    await page.getByRole('heading', {name: 'Jak to może pomóc?'}).waitFor();
     await shot('08-dowody');
     await page.keyboard.press('Escape');
 
@@ -220,12 +230,16 @@ async function run(name) {
     if (engine === 'chromium') assert.equal(await page.evaluate(() => navigator.clipboard.readText()), reportUrl, 'schowek');
     await page.goto(reportUrl, {waitUntil: 'domcontentloaded'});
     await heading.waitFor({timeout: 30000});
-    await page.getByRole('group', {name: 'Widok raportu'}).getByRole('button', {name: 'Zaawansowany'}).click();
-    await page.getByText('Pokaż dane wykresu').nth(2).waitFor({state: 'attached', timeout: 10000}).catch(() => assert.fail('tabele danych wykresów (min. 3)'));
+    await page.getByText('Pokaż dane wykresu').waitFor();
     await shot('09-link-raportu');
     await page.getByRole('region', {name: 'Mapa i raport'}).getByRole('link', {name: 'Paszport', exact: true}).click();
     await page.getByRole('heading', {name: 'Paszport działki'}).waitFor();
-    await page.getByRole('article', {name: /Paszport:/}).getByText(matches).first().waitFor({timeout: 20000});
+    const passport = page.getByRole('article', {name: /Paszport:/});
+    await passport.getByText(matches).first().waitFor({timeout: 20000});
+    assert.deepEqual(await passport.locator('dt').allTextContents(), [
+      'Powierzchnia działki', 'Rodzaj uprawy', 'Rodzaj gleby', 'Zdolność gleby do zatrzymywania wody',
+      'Ukształtowanie terenu', 'Nachylenie terenu', 'Aktualna wilgotność gleby',
+    ]);
     await shot('10-paszport');
 
     // 9. Link do samej działki, motyw, rysowanie granicy.

@@ -30,19 +30,20 @@ export type Source = {
   observations?: {label: string; value: number; date: string}[];
 };
 export type ResearchSource = {title: string; url: string};
+export type CostEstimate = {lower: number; upper: number; unit: string; basis: string; sources: ResearchSource[]};
 export type RecommendationPoint = {
   coordinates: [number, number]; type: string; date: string; description: string; evidence: string;
 };
 export type Recommendation = {
   group: string; title: string; action: string; why: string; evidence: string; when: string; confidence: string; limits: string;
-  id?: number; cost?: string; cost_details?: string; scope?: 'field' | 'point'; points?: RecommendationPoint[];
+  id?: number; cost?: string; cost_details?: string; cost_estimate?: CostEstimate; scope?: 'field' | 'point'; points?: RecommendationPoint[];
   sources?: ResearchSource[];
   /** Krótki plan działań (3–4 kroki) z katalogu rekomendacji. */
   steps?: string[];
 };
 export type RecommendationAction = {
   id: number; title: string; group: string; description: string; when: string; conditions: string; cost: string; cost_details: string;
-  cost_estimate: {lower: number; upper: number; unit: string; basis: string; sources: ResearchSource[]};
+  cost_estimate: CostEstimate;
   triggers: Partial<Record<'field' | 'point', string[][]>>; sources: ResearchSource[]; why: string; exclusion: string | null;
 };
 export type ObservationOption = {key: string; label: string};
@@ -87,9 +88,10 @@ export type PassportField = {
   field: string; label: string; source?: string; unit?: string | null;
   status: string; value: unknown; detail?: string | null; provenance?: {source_id?: string};
 };
+type PassportFact = {label: string; value: number | string | null; unit?: string | null; hint?: string | null};
 /** Paszport pola z /api/passport; frontend pokazuje z niego tylko krótkie podsumowanie. */
 export type Passport = {
-  parcel_id: string; analysis_as_of: string; fields: PassportField[];
+  parcel_id: string; analysis_as_of: string; fields: PassportField[]; summary: PassportFact[];
   farmer_report?: {situation: string; next_check: string | null; steps: Recommendation[]};
 };
 export type Health = {status: string; analysis_date_min: string; analysis_date_max: string};

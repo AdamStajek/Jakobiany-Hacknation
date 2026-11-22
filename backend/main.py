@@ -36,7 +36,9 @@ from wodo.describe_field import router as describe_router
 from wodo.notify.demo import router as demo_router
 from wodo.notify.router import router as notify_router
 from wodo.passport import collect, farmer_questions
+from wodo.passport_summary import passport_summary
 from wodo.recommendation_catalog import catalog, observation_options
+from wodo.recommendations import action_details
 from wodo.report import pdf
 from wodo.science import CROPS, years_ago
 from wodo.store import SourceError, read, timestamp, write
@@ -317,7 +319,8 @@ def build_passport(parcel_id, geojson, as_of, crop, sowing, stage, irrigation_mm
         if farmer_answers:
             farmer_answers.validate_zones(parcel["geometry"])
         passport = collect(parcel, day, crop, sowing, stage, irrigation_mm)
-        return {**passport, "farmer_report": analyze_field(
+        return {**passport, "summary": passport_summary(passport["fields"], day, crop, farmer_answers, soil_observation),
+                "farmer_report": analyze_field(
             passport, day, farmer_answers=farmer_answers, irrigation=irrigation, crop_key=crop, sowing=sowing, stage=stage,
             soil_observation=soil_observation,
         )["farmer_report"]}
@@ -463,6 +466,9 @@ def get_report(analysis_id):
         raise HTTPException(404, "Raport nie istnieje lub wygasł.")
     if "situation" not in report:
         report["situation"] = report_message(report)
+    for recommendation in report.get("recommendations", ()):
+        if "cost_estimate" not in recommendation:
+            recommendation.update(action_details(recommendation.get("id")))
     report["experiments"] = experiment_checks(report)
     return report
 

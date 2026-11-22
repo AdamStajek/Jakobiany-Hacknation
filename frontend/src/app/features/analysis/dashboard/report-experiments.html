@@ -1,5 +1,5 @@
-@if (report().experiments?.length) {
-  <app-panel heading="Eksperymenty, które mogą doprecyzować diagnozę" icon="pi-list-check">
+<app-panel heading="Eksperymenty, które mogą doprecyzować diagnozę" icon="pi-list-check">
+  @if (report().experiments?.length) {
     <p class="mb-4 text-sm text-muted-color">Porównaj warunki podczas próby z warunkami w dniu analizy ({{report().date}}).
       Późniejszy pomiar opisuje stan pola w dniu próby.</p>
     @if (analysis.experimentError()) {
@@ -67,5 +67,7 @@
         </article>
       }
     </div>
-  </app-panel>
-}
+  } @else {
+    <p class="text-sm text-muted-color">Dla tej analizy nie zaproponowano eksperymentów.</p>
+  }
+</app-panel>

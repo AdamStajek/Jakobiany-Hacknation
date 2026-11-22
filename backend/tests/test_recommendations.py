@@ -58,6 +58,20 @@ def test_catalog_costs_have_numeric_bounds_and_explain_the_estimate():
         assert all(source["url"].startswith("https://") for source in estimate["sources"])
 
 
+def test_saved_report_uses_catalogue_costs_and_plain_explanations(monkeypatch):
+    import main
+
+    saved = {"situation": "Stan pola", "agricultural": False, "recommendations": [
+        {"id": 15, "cost": "niski", "why": "Opis techniczny", "evidence": "Zapisana obserwacja."},
+    ]}
+    monkeypatch.setattr(main, "read", lambda *args: saved)
+    recommendation, = main.get_report("a" * 32)["recommendations"]
+    action = next(item for item in catalog() if item["id"] == 15)
+    assert recommendation["cost_estimate"] == action["cost_estimate"]
+    assert recommendation["why"] == action["description"]
+    assert recommendation["evidence"] == "Zapisana obserwacja."
+
+
 def test_root_measurements_and_forecast_gate_irrigation():
     request = SimpleNamespace(day=DAY, crop="potato", irrigation=True, soil_observation=None,
                               farmer_answers=FarmerAnswers(recommendation_observations=["root_deficit", "legal_water"]))
@@ -71,6 +85,8 @@ def test_root_measurements_and_forecast_gate_irrigation():
         return {rec["id"]: rec for rec in recommendations(metrics, {"forecast": {"rows": rows}}, request, True)}
 
     assert 21 in actions() and 22 not in actions()
+    assert "ma spaść 0.0 mm deszczu" in actions()[21]["evidence"]
+    assert "ETc" not in actions()[21]["evidence"]
     request.soil_observation = "wet"
     assert 21 not in actions() and 57 in actions()
     request.soil_observation = None
@@ -125,6 +141,8 @@ def test_catalog_endpoint_and_passport_use_same_rules(monkeypatch):
         assert response.status_code == 200, response.text
         actions = {item["id"]: item for item in response.json()["farmer_report"]["steps"]}
         assert actions[18]["title"] == docs[17]["title"]
+        assert actions[18]["cost_estimate"] == docs[17]["cost_estimate"]
+        assert actions[18]["why"] == docs[17]["description"]
         assert actions[32]["points"][0]["coordinates"] == [19.0007, 52.0002]
         body["field_request"]["farmer_answers"]["problem_zones"][0]["geometry"]["coordinates"] = [18, 52]
         assert client.post("/api/passport", json=body).status_code == 422

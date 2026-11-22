@@ -1,7 +1,10 @@
 <ng-template #card let-item let-big="big">
   <article class="pw-card flex flex-col gap-3 p-4" [class]="big ? 'lg:p-6' : ''">
     <div class="flex items-center gap-2 text-sm text-muted-color">
-      <span class="min-w-0 truncate">{{item.group}}</span><span class="ml-auto shrink-0">Pewność: {{item.confidence}}</span>
+      <span class="min-w-0 truncate">{{item.group}}</span>
+      @if (item.confidence && item.confidence !== 'wstępna') {
+        <span class="ml-auto shrink-0">Pewność: {{item.confidence}}</span>
+      }
     </div>
     <h4 class="font-semibold leading-snug" [class]="big ? 'text-xl' : 'text-base'">{{item.title}}</h4>
     @if (item.action !== item.title) { <p class="text-sm">{{item.action}}</p> }
@@ -12,7 +15,13 @@
         @if (item.points?.length) { · Punkty na mapie ({{item.points?.length}}) }
       </p>
     }
-    @if (item.cost) { <p class="text-sm"><strong>Koszt.</strong> {{item.cost}}</p> }
+    @if (item.cost_estimate; as estimate) {
+      <p class="text-sm"><strong>Przykładowy koszt.</strong>
+        {{estimate.lower | number:'1.0-2'}}@if (estimate.upper !== estimate.lower) {–{{estimate.upper | number:'1.0-2'}}} zł {{estimate.unit}}.
+      </p>
+    } @else if (item.cost) {
+      <p class="text-sm"><strong>Koszt.</strong> {{item.cost}}</p>
+    }
     <p class="text-sm"><strong>Kiedy?</strong> {{item.when}}</p>
     <button type="button" class="flex min-h-11 w-full items-center justify-between gap-2 rounded-lg border border-surface px-3 py-2 text-left text-sm font-semibold text-primary"
       [attr.aria-expanded]="isOpen(item)" [attr.aria-controls]="'rec-' + key(item)" (click)="toggle(item)">
@@ -69,9 +78,9 @@
   [header]="selected()?.title ?? ''">
   @if (selected(); as rec) {
     <div class="space-y-4 text-sm">
-      <p class="text-muted-color">{{rec.group}} · Pewność: {{rec.confidence}}</p>
-      <div><h4 class="font-semibold">Dlaczego na tej działce</h4><p>{{rec.why}}</p></div>
-      <div><h4 class="font-semibold">Dowody</h4><p>{{rec.evidence}}</p></div>
+      <p class="text-muted-color">{{rec.group}}@if (rec.confidence && rec.confidence !== 'wstępna') { · Pewność: {{rec.confidence}} }</p>
+      <div><h4 class="font-semibold">Dlaczego na tej działce?</h4><p>{{rec.evidence}}</p></div>
+      <div><h4 class="font-semibold">Jak to może pomóc?</h4><p>{{rec.why}}</p></div>
       @if (rec.points?.length) {
         <div>
           <h4 class="font-semibold">Miejsca na polu</h4>
@@ -92,7 +101,19 @@
         </div>
       }
       <div><h4 class="font-semibold">Warunki i ograniczenia</h4><p>{{rec.limits}}</p></div>
-      @if (rec.cost_details) {
+      @if (rec.cost_estimate; as estimate) {
+        <div>
+          <h4 class="font-semibold">Co obejmuje szacunek?</h4>
+          <p>{{estimate.basis}}</p>
+          @if (estimate.sources.length) {
+            <ul class="ml-5 list-disc space-y-1" aria-label="Źródła stawek">
+              @for (source of estimate.sources; track source.url) {
+                <li><a class="text-primary underline" [href]="source.url" target="_blank" rel="noopener">{{source.title}}</a></li>
+              }
+            </ul>
+          }
+        </div>
+      } @else if (rec.cost_details) {
         <div><h4 class="font-semibold">Składniki kosztu</h4><p>{{rec.cost_details}}</p></div>
       }
       @if (rec.sources?.length) {
