@@ -32,6 +32,7 @@ from wodo.farmer_report import report_message
 from wodo.field_analysis import analyze_field
 from wodo.fields.router import router as fields_router
 from wodo.geo import PARCEL_ID, by_point, imported, lookup
+from wodo.notify.router import progress_router as notify_progress_router
 from wodo.notify.router import router as notify_router
 from wodo.passport import collect, farmer_questions
 from wodo.recommendation_catalog import catalog, observation_options
@@ -42,7 +43,7 @@ from wodo.store import SourceError, read, timestamp, write
 app = FastAPI(title="WodoStrażnik", version="1.0.0")
 analysis_slots = BoundedSemaphore(2)
 buckets = OrderedDict()
-for router in (auth_router, fields_router, notify_router):
+for router in (auth_router, fields_router, notify_router, notify_progress_router):
     app.include_router(router)
 
 

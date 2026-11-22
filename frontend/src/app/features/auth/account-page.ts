@@ -3,8 +3,9 @@ import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
 import { SkeletonModule } from 'primeng/skeleton';
-import { ApiService } from '../../core/api/api.service';
+import { ApiService, WsError } from '../../core/api/api.service';
 import { authErrorMessage, errorMessage } from '../../core/api/errors';
+import type { AnalysisProgress, NotificationSettings } from '../../core/api/types';
 import { AuthStore } from '../../core/state/auth.store';
 import { Panel } from '../../shared/ui/panel';
 import { PasswordForm } from './password-form';
@@ -59,13 +60,30 @@ type PrefsState = 'loading' | 'ready' | 'error';
             }
             @default {
               <label class="flex cursor-pointer items-center gap-3 text-sm">
-                <input type="checkbox" role="switch" class="h-5 w-5 accent-primary" [checked]="emailEnabled()" [disabled]="savingPrefs()"
-                  (change)="setEmail(checked($event))" />
-                <span class="flex-1"><strong class="block font-medium">Powiadomienia e-mail</strong>
+                <input #attentionEmail type="checkbox" role="switch" class="h-5 w-5 accent-primary" [checked]="prefs().email_enabled"
+                  [disabled]="savingPrefs()" (change)="savePreference('email_enabled', attentionEmail)" />
+                <span class="flex-1"><strong class="block font-medium">Pole wymaga uwagi</strong>
                   <span class="text-muted-color">Wiadomość, gdy na Twoim polu trzeba coś sprawdzić.</span></span>
-                @if (savingPrefs()) { <i class="pi pi-spin pi-spinner" aria-hidden="true"></i> }
               </label>
+              <label class="mt-3 flex cursor-pointer items-center gap-3 text-sm">
+                <input #recommendationEmail type="checkbox" role="switch" class="h-5 w-5 accent-primary"
+                  [checked]="prefs().recommendation_email_enabled" [disabled]="savingPrefs()"
+                  (change)="savePreference('recommendation_email_enabled', recommendationEmail)" />
+                <span class="flex-1"><strong class="block font-medium">E-maile o nowych rekomendacjach</strong>
+                  <span class="text-muted-color">Wiadomość, gdy po aktualizacji danych pojawi się nowa porada dla zapisanej działki.</span></span>
+              </label>
+              @if (savingPrefs()) { <p class="mt-2 text-sm text-muted-color" role="status">Zapisywanie ustawień…</p> }
               @if (prefsError()) { <p-message class="mt-2 block" severity="error" icon="pi pi-exclamation-circle" role="alert">{{prefsError()}}</p-message> }
+              <div class="mt-4 flex flex-col items-start gap-2">
+                <p-button label="Wyślij wiadomość testową" icon="pi pi-envelope" severity="secondary" [outlined]="true"
+                  [loading]="sendingTest()" [disabled]="sendingTest() || !user.email_verified" (onClick)="sendTestEmail()" />
+                @if (!user.email_verified) { <p class="text-sm text-muted-color">Aby wysłać test, potwierdź adres e-mail w profilu.</p> }
+                @if (testProgress(); as progress) {
+                  <progress class="w-full accent-primary" [max]="progress.total" [value]="progress.done" aria-label="Postęp wysyłki testowej"></progress>
+                }
+                <p class="text-sm" role="status">{{testProgress()?.label ?? testInfo()}}</p>
+                @if (testError()) { <p-message severity="error" icon="pi pi-exclamation-circle" role="alert">{{testError()}}</p-message> }
+              </div>
             }
           }
         </app-panel>
@@ -107,8 +125,12 @@ export class AccountPage {
   protected readonly loggingOut = signal(false);
   protected readonly prefsState = signal<PrefsState>('loading');
   protected readonly prefsError = signal('');
-  protected readonly emailEnabled = signal(false);
+  protected readonly prefs = signal<NotificationSettings>({email_enabled: false, recommendation_email_enabled: false});
   protected readonly savingPrefs = signal(false);
+  protected readonly sendingTest = signal(false);
+  protected readonly testProgress = signal<AnalysisProgress | null>(null);
+  protected readonly testInfo = signal('');
+  protected readonly testError = signal('');
   protected readonly confirming = signal(false);
   protected readonly confirmText = signal('');
   protected readonly deleting = signal(false);
@@ -124,12 +146,11 @@ export class AccountPage {
   }
 
   protected read(event: Event): string { return (event.target as HTMLInputElement).value; }
-  protected checked(event: Event): boolean { return (event.target as HTMLInputElement).checked; }
 
   protected async loadPrefs() {
     this.prefsState.set('loading');
     try {
-      this.emailEnabled.set((await this.api.notificationPrefs()).email_enabled);
+      this.prefs.set(await this.api.notificationPrefs());
       this.prefsError.set('');
       this.prefsState.set('ready');
     } catch (error) {
@@ -138,16 +159,33 @@ export class AccountPage {
     }
   }
 
-  protected async setEmail(enabled: boolean) {
+  protected async savePreference(setting: keyof NotificationSettings, input: HTMLInputElement) {
     this.savingPrefs.set(true);
     this.prefsError.set('');
     try {
-      this.emailEnabled.set((await this.api.setNotificationPrefs({email_enabled: enabled})).email_enabled);
+      this.prefs.set(await this.api.setNotificationPrefs({[setting]: input.checked}));
     } catch (error) {
-      this.emailEnabled.set(!enabled);
+      input.checked = this.prefs()[setting];
       this.prefsError.set(errorMessage(error, 'Nie udało się zapisać ustawienia. Spróbuj ponownie.'));
     } finally {
       this.savingPrefs.set(false);
+    }
+  }
+
+  protected async sendTestEmail() {
+    this.sendingTest.set(true);
+    this.testInfo.set('Rozpoczynam wysyłkę wiadomości testowej…');
+    this.testError.set('');
+    try {
+      await this.api.sendTestEmail((progress) => this.testProgress.set(progress));
+      this.testInfo.set('Wysłaliśmy wiadomość testową. Sprawdź skrzynkę.');
+    } catch (error) {
+      if (error instanceof WsError && error.status === 401) this.auth.expire();
+      this.testInfo.set('');
+      this.testError.set(errorMessage(error, 'Nie udało się wysłać wiadomości testowej. Spróbuj ponownie.'));
+    } finally {
+      this.testProgress.set(null);
+      this.sendingTest.set(false);
     }
   }
 

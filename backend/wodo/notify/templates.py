@@ -35,3 +35,40 @@ def attention(username, items):
         + f"\n\nOtwórz aplikację: {base_url()}/pola\n"
         "To sygnały pomocnicze z modelu, nie zalecenie zabiegu." + FOOTER,
     )
+
+
+def recommendation_lines(items):
+    return "\n\n".join(
+        f"- {item['action']}\n  Dlaczego? {item['why']}\n"
+        f"  Co wykazała analiza? {item['evidence']}\n  Kiedy? {item['when']}\n"
+        f"  Warunki: {item['limits']}"
+        for item in items
+    )
+
+
+def recommendations(username, field_id, field_name, parcel_id, items):
+    return (
+        "Nowe rekomendacje dla Twojej działki",
+        f"Cześć {username},\n\nPole: {field_name}\nDziałka: {parcel_id}\n\n"
+        "Po odświeżeniu danych pojawiły się nowe wstępne rekomendacje:\n\n"
+        + recommendation_lines(items)
+        + f"\n\nOtwórz pole: {base_url()}/pola?pole={field_id}"
+        + FOOTER,
+    )
+
+
+def test_recommendation(username):
+    example = {
+        "action": "Sprawdź wilgotność gleby na głębokości korzeni przed podlewaniem.",
+        "why": "Pomiar pomaga zdecydować, czy uprawa potrzebuje dodatkowej wody.",
+        "evidence": "Przykład: model wskazuje możliwy niedobór wody.",
+        "when": "Przed planowanym podlewaniem.",
+        "limits": "Przykład ma charakter demonstracyjny.",
+    }
+    return (
+        "[TEST] Nowa rekomendacja dla działki",
+        f"Cześć {username},\n\nTo testowa wiadomość zamówiona w ustawieniach konta. "
+        "Poniższa porada dotyczy przykładowej działki.\n\n"
+        + recommendation_lines([example])
+        + f"\n\nUstawienia powiadomień: {base_url()}/konto",
+    )

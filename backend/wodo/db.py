@@ -49,6 +49,24 @@ CREATE TABLE IF NOT EXISTS notification_log (
     sent_at REAL NOT NULL,
     PRIMARY KEY (user_id, field_id)
 );
+CREATE TABLE IF NOT EXISTS recommendation_email_preferences (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    consent_id TEXT NOT NULL UNIQUE
+);
+CREATE TABLE IF NOT EXISTS recommendation_email_tests (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    attempted_at REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS recommendation_email_state (
+    consent_id TEXT NOT NULL REFERENCES recommendation_email_preferences(consent_id) ON DELETE CASCADE,
+    field_id TEXT NOT NULL REFERENCES fields(id) ON DELETE CASCADE,
+    parcel_id TEXT NOT NULL,
+    context TEXT NOT NULL,
+    active_ids TEXT NOT NULL,
+    pending_ids TEXT NOT NULL,
+    sources TEXT NOT NULL,
+    PRIMARY KEY (consent_id, field_id, parcel_id)
+);
 """
 READY = set()
 LOCK = Lock()

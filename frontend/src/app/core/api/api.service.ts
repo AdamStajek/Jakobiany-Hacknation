@@ -2,8 +2,8 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
-  AnalysisEvent, AnalysisProgress, AnalysisRequest, Crop, FarmerQuestion, Health, LoginRequest, NotificationPrefs, Parcel, Passport, PasswordChange, RegisterRequest, RecommendationCatalog, Report,
-  LastReportInput, ServerField, ServerFieldInput, User,
+  AnalysisEvent, AnalysisProgress, AnalysisRequest, Crop, FarmerQuestion, Health, LoginRequest, NotificationPrefs, NotificationSettings, Parcel, Passport, PasswordChange, RegisterRequest, RecommendationCatalog, Report,
+  LastReportInput, ServerField, ServerFieldInput, TestEmailEvent, User,
 } from './types';
 
 /** Nagłówek wymagany przez serwer przy żądaniach zmieniających stan (ochrona przed CSRF). */
@@ -48,8 +48,40 @@ export class ApiService {
     return firstValueFrom(this.http.post<unknown>('/api/auth/reset', {token, password}, STATE_CHANGING));
   }
   notificationPrefs() { return firstValueFrom(this.http.get<NotificationPrefs>('/api/me/notifications', READ)); }
-  setNotificationPrefs(body: {email_enabled: boolean}) {
+  setNotificationPrefs(body: Partial<NotificationSettings>) {
     return firstValueFrom(this.http.patch<NotificationPrefs>('/api/me/notifications', body, STATE_CHANGING));
+  }
+
+  sendTestEmail(onProgress: (progress: AnalysisProgress) => void) {
+    const sendOverHttp = () => firstValueFrom(
+      this.http.post<void>('/api/me/notifications/test-email', {}, STATE_CHANGING),
+    );
+    if (typeof WebSocket === 'undefined') return sendOverHttp();
+
+    return new Promise<void>((resolve, reject) => {
+      const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
+      const socket = new WebSocket(`${scheme}://${location.host}/api/ws/recommendation-email-test`);
+      let opened = false;
+      let completed = false;
+      socket.onopen = () => { opened = true; };
+      socket.onmessage = (message) => {
+        const event = JSON.parse(message.data as string) as TestEmailEvent;
+        if (event.type === 'progress') {
+          onProgress(event);
+          return;
+        }
+        completed = true;
+        if (event.type === 'result') resolve();
+        else reject(new WsError(event.detail, event.status));
+        socket.close();
+      };
+      socket.onclose = () => {
+        if (completed) return;
+        // Po otwarciu WS wiadomość mogła już zostać wysłana.
+        if (opened) reject(new WsError('Połączenie przerwane. Sprawdź, czy wiadomość dotarła.', 0));
+        else void sendOverHttp().then(resolve, reject);
+      };
+    });
   }
 
   // Pola na serwerze (wymagają sesji).

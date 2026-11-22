@@ -1,6 +1,7 @@
 import os
 
 from fastapi import Depends, HTTPException, Request, Response
+from starlette.requests import HTTPConnection
 
 from wodo.auth import security
 from wodo.db import connect
@@ -19,7 +20,7 @@ def guard(request: Request, response: Response):
     response.headers["Cache-Control"] = "no-store"
 
 
-def current_user(request: Request):
+def current_user(request: HTTPConnection):
     token = request.cookies.get(security.COOKIE)
     if not token:
         raise HTTPException(401, "Zaloguj się, aby kontynuować.")

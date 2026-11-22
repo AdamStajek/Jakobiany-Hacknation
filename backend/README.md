@@ -40,3 +40,19 @@ Wystarczy dowolny dostawca SMTP z darmowym limitem, np. Brevo (300 wiadomości d
 ### Powiadomienie „pole wymaga uwagi”
 
 Z cron-a (np. raz na dobę): `uv run python -m wodo.notify`. Wysyła jedną wiadomość na użytkownika (z potwierdzonym e-mailem i włączonym powiadomieniem) o polach, których ostatni raport (`PUT /api/fields/{id}/last-report`) spełnia: ryzyko „Podwyższone” lub „Sygnał niedoboru”, `dry_spell_days >= 7` albo `crop_balance_mm < 0`. Ten sam zestaw powodów dla pola nie jest wysyłany ponownie, dopóki pole nie wróci do normy lub nie zmienią się powody.
+
+### E-maile o nowych rekomendacjach
+
+To samo polecenie odświeża analizy zapisanych działek użytkowników z potwierdzonym adresem i włączonym ustawieniem „E-maile o nowych rekomendacjach” w `/konto`. Ustawienie jest domyślnie wyłączone. Zadanie korzysta z zapisanej geometrii i uprawy. Porady wymagające dodatkowych deklaracji z formularza analizy pojawią się tylko wtedy, gdy silnik ma wymagane dane.
+
+Pierwszy przebieg po włączeniu zgody zapisuje punkt odniesienia. Później wiadomość dla działki zawiera wyłącznie porady, których ID pojawiło się w porównaniu z poprzednią analizą. Zmiana kolejności, uzasadnienia lub samo wygaśnięcie porady nie wyzwalają wysyłki. Jeżeli brakuje źródła danych uwzględnionego poprzednio, zadanie czeka na kolejny odczyt. Po błędzie SMTP ponawia próbę, jeżeli porada nadal jest aktualna.
+
+Dodaj polecenie do crona na hoście wdrożenia. W Docker Compose uruchamiaj je z katalogu projektu, żeby skorzystać z tej samej bazy, cache i konfiguracji SMTP co API.
+
+```sh
+docker compose exec -T wodo /app/.venv/bin/python -m wodo.notify
+```
+
+Lokalnie, bez SMTP i z `WODO_ENV=dev`, wiadomości trafią do opisanego wyżej pliku `outbox.jsonl`. Zadanie korzysta z blokady plikowej na Linuksie, aby kolejne przebiegi się nie nakładały.
+
+Przycisk „Wyślij wiadomość testową” w ustawieniach konta wysyła przykładową rekomendację na potwierdzony adres. Działa również przy wyłączonych powiadomieniach cyklicznych. Obowiązuje limit jednej próby na minutę na konto.

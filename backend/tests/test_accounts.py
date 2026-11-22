@@ -2,12 +2,13 @@ import re
 import sqlite3
 
 import pytest
+from fastapi import WebSocketDisconnect
 from fastapi.testclient import TestClient
 
 import main
 from wodo.auth import security
 from wodo.db import db_path
-from wodo.notify import mailer, rules
+from wodo.notify import mailer, recommendation_emails, rules
 
 XHR = {"X-Requested-With": "test"}
 PASSWORD = "dlugie-haslo-123"
@@ -229,6 +230,152 @@ def test_attention_thresholds():
     assert [c for c, _ in rules.reasons({**ok, "risk": "Sygnał niedoboru"})] == ["risk"]
     assert [c for c, _ in rules.reasons({**ok, "dry_spell_days": 7})] == ["dry"]
     assert [c for c, _ in rules.reasons({**ok, "crop_balance_mm": -0.1})] == ["balance"]
+
+
+def test_recommendation_email_test_sends_to_verified_account_and_keeps_preferences(client, monkeypatch):
+    url = "/api/me/notifications/test-email"
+    assert client.post(url, json={}).status_code == 401
+    register(client)
+    assert client.post(url, json={}).status_code == 403
+    client.post("/api/auth/verify", json={"token": token_from_outbox("potwierd")})
+    previous = client.get("/api/me/notifications").json()
+    assert previous["recommendation_email_enabled"] is False
+    assert client.post(url, json={}).status_code == 204
+    sent = mailer.outbox()[-1]
+    assert sent["to"] == "ola@example.com"
+    assert sent["subject"].startswith("[TEST]")
+    assert "przykładowej działki" in sent["body"]
+    assert client.get("/api/me/notifications").json() == previous
+
+    limited = client.post(url, json={})
+    assert limited.status_code == 429
+    assert limited.headers["Retry-After"] == "60"
+    assert mailer.outbox()[-1] == sent
+    now = security.now()
+    monkeypatch.setattr(security, "now", lambda: now + 60)
+    monkeypatch.setattr(mailer, "send", lambda *_args: False)
+    assert client.post(url, json={}).status_code == 503
+
+
+def test_recommendation_email_test_websocket_origin_progress_and_shared_limit(client):
+    url = "/api/ws/recommendation-email-test"
+    origin = {"origin": "http://testserver"}
+    with client.websocket_connect(url, headers=origin) as ws:
+        assert ws.receive_json()["status"] == 401
+    register(client)
+    client.post("/api/auth/verify", json={"token": token_from_outbox("potwierd")})
+    before = len(mailer.outbox())
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect(url, headers={"origin": "http://other.testserver"}):
+            pass
+    assert len(mailer.outbox()) == before
+    with client.websocket_connect(url, headers=origin) as ws:
+        progress = ws.receive_json()
+        assert (progress["type"], progress["done"], progress["total"]) == ("progress", 1, 2)
+        assert ws.receive_json() == {"type": "result"}
+    assert len(mailer.outbox()) == before + 1
+    assert client.post("/api/me/notifications/test-email", json={}).status_code == 429
+
+
+def recommendation(rec_id):
+    return {
+        "id": rec_id,
+        "action": f"Porada {rec_id}",
+        "why": "Korzyść dla pola",
+        "evidence": "Dane z analizy",
+        "when": "W najbliższych dniach",
+        "limits": "Sprawdź warunki na polu",
+    }
+
+
+def create_recommendation_field(client):
+    return client.post("/api/fields", json={
+        "name": "Łąka", "crop": "wheat", "parcels": [{"id": "działka A", "geometry": SQUARE}],
+    }).json()
+
+
+def test_recommendation_email_requires_opt_in_and_sends_only_new_advice(client):
+    register(client)
+    field = create_recommendation_field(client)
+    settings = client.get("/api/me/notifications").json()
+    assert settings["email_enabled"] is True
+    assert settings["recommendation_email_enabled"] is False
+
+    report = {"sources": [{"key": "weather"}, {"key": "forecast"}], "recommendations": [recommendation(22)]}
+    calls = []
+
+    def analyze(parcel, crop):
+        calls.append((parcel["id"], crop))
+        return report
+
+    refresh = recommendation_emails.send_recommendation_emails
+    assert refresh(analyze) == 0
+    assert client.patch("/api/me/notifications", json={"recommendation_email_enabled": True}).json()[
+        "recommendation_email_enabled"
+    ] is True
+    assert refresh(analyze) == 0
+    assert calls == []
+    client.post("/api/auth/verify", json={"token": token_from_outbox("potwierd")})
+    before = len(mailer.outbox())
+    assert refresh(analyze) == 0  # pierwsza obserwacja zapisuje punkt odniesienia
+    assert calls == [("działka A", "wheat")]
+    report["recommendations"] = [{**recommendation(22), "evidence": "Zmieniona prognoza"}]
+    assert refresh(analyze) == 0
+    report["recommendations"].insert(0, recommendation(59))
+    assert refresh(analyze) == 1
+    [sent] = mailer.outbox()[before:]
+    assert sent["to"] == "ola@example.com"
+    assert "Łąka" in sent["body"] and "działka A" in sent["body"]
+    assert f"/pola?pole={field['id']}" in sent["body"]
+    assert "Porada 59" in sent["body"] and "Porada 22" not in sent["body"]
+    report["recommendations"].reverse()
+    assert refresh(analyze) == 0
+
+    report["sources"].pop()
+    report["recommendations"].pop()
+    report["recommendations"].append(recommendation(54))
+    assert refresh(analyze) == 0
+    report["sources"].append({"key": "forecast"})
+    report["recommendations"][-1] = recommendation(59)
+    assert refresh(analyze) == 0  # powrót niedostępnego źródła
+    report["recommendations"].pop()
+    assert refresh(analyze) == 0  # samo wygaśnięcie porady
+    report["recommendations"].append(recommendation(59))
+    assert refresh(analyze) == 1  # porada faktycznie wróciła
+
+
+def test_recommendation_email_retries_and_drops_pending_on_opt_out(client):
+    register(client)
+    client.post("/api/auth/verify", json={"token": token_from_outbox("potwierd")})
+    create_recommendation_field(client)
+    client.patch("/api/me/notifications", json={"recommendation_email_enabled": True})
+    report = {"sources": [{"key": "forecast"}], "recommendations": []}
+    attempts = []
+
+    def analyze(parcel, crop):
+        return report
+
+    def fail(*args):
+        attempts.append(args)
+        return False
+
+    refresh = recommendation_emails.send_recommendation_emails
+    assert refresh(analyze, fail) == 0
+    assert not attempts
+    report["recommendations"] = [recommendation(22)]
+    assert refresh(analyze, fail) == 0
+    assert len(attempts) == 1
+    assert refresh(analyze) == 1
+    assert refresh(analyze) == 0
+
+    report["recommendations"].append(recommendation(59))
+    assert refresh(analyze, fail) == 0
+    assert len(attempts) == 2
+    prefs = client.patch("/api/me/notifications", json={"recommendation_email_enabled": False}).json()
+    assert prefs["email_enabled"] is True
+    assert refresh(analyze) == 0
+    client.patch("/api/me/notifications", json={"recommendation_email_enabled": True})
+    assert refresh(analyze) == 0
 
 
 def test_attention_email_dedup(client):

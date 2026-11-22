@@ -103,7 +103,15 @@ export type User = {id: string; email: string; username: string; email_verified:
 export type RegisterRequest = {email: string; username: string; password: string};
 export type LoginRequest = {identifier: string; password: string};
 export type PasswordChange = {current: string; new: string};
-export type NotificationPrefs = {email_enabled: boolean; email?: string; email_verified?: boolean};
+export type NotificationSettings = {
+  email_enabled: boolean;
+  recommendation_email_enabled: boolean;
+};
+export type NotificationPrefs = NotificationSettings & {email?: string; email_verified?: boolean};
+export type TestEmailEvent =
+  | ({type: 'progress'} & AnalysisProgress)
+  | {type: 'result'}
+  | {type: 'error'; status: number; detail: string};
 
 /** Skrót ostatniego raportu pola zapisany na serwerze (same sygnały z analizy). */
 export type ServerLastReport = {saved_at: string; risk: string; dry_spell_days: number | null; crop_balance_mm: number | null};
