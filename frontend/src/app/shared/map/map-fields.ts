@@ -9,13 +9,13 @@ export type FieldState = 'normal' | 'selected' | 'dim' | 'muted';
 /** Odległość (px) od granicy pola, w której kliknięcie wybiera pole. */
 export const FIELD_HIT_PX = 12;
 
-/** Osobny obiekt GeoJSON na pole, z `properties` id, name, color i state (do stylowania warstw). `muted`: wyciszona warstwa (tło dla wybranej działki). */
+/** Osobny obiekt GeoJSON na pole, z `properties` id, name, color i state (do stylowania warstw). `muted`: wyciszona warstwa (tło dla wybranej działki); wybrane pole w wyciszonej warstwie zostaje wyróżnione. */
 export function fieldsFeatureCollection(fields: FieldShape[], selectedId: string | null, muted = false): GeoJSON.FeatureCollection {
   return {
     type: 'FeatureCollection',
     features: fields.map((field) => ({
       type: 'Feature' as const,
-      properties: {id: field.id, name: field.name, color: field.color, state: muted ? 'muted' : stateOf(field.id, selectedId)},
+      properties: {id: field.id, name: field.name, color: field.color, state: muted && field.id !== selectedId ? 'muted' : stateOf(field.id, selectedId)},
       geometry: field.geometry as GeoJSON.Geometry,
     })),
   };

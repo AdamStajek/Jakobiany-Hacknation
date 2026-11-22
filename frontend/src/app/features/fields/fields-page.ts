@@ -58,6 +58,8 @@ export class FieldsPage {
   protected readonly view = signal<View>('list');
   /** Prawa strona na desktopie: widok „Pola” (tylko telefon) pokazuje tam mapę. */
   protected readonly pane = computed<Pane>(() => (this.view() === 'passports' ? 'passports' : 'map'));
+  /** Mapa i dane działek na desktopie są schowane, dopóki użytkownik ich nie otworzy (lista pól jest ważniejsza). */
+  protected readonly mapOpen = signal(false);
   protected readonly ready = signal(false);
   protected readonly adding = signal(false);
   protected readonly prefillCurrent = signal(false);
@@ -88,10 +90,10 @@ export class FieldsPage {
     void this.auth.init();
     // Dane pierwszego pola ładują się po cichu, zanim użytkownik otworzy „Dane działek”.
     effect(() => { const first = this.fields.fields()[0]; if (first) untracked(() => this.passports.prefetch(first)); });
-    effect(() => { if (this.widok() === 'paszporty') untracked(() => this.view.set('passports')); });
+    effect(() => { if (this.widok() === 'paszporty') untracked(() => { this.mapOpen.set(true); this.view.set('passports'); }); });
     effect(() => {
       const id = this.pole();
-      if (id && this.fields.fields().some((f) => f.id === id)) untracked(() => this.selectedId.set(id));
+      if (id && this.fields.fields().some((f) => f.id === id)) untracked(() => { this.selectedId.set(id); this.mapOpen.set(true); });
     });
   }
 
@@ -127,11 +129,13 @@ export class FieldsPage {
 
   protected locate(id: string) {
     this.selectedId.set(id);
+    this.mapOpen.set(true);
     this.view.set('map');
   }
 
   protected showPassport(id: string) {
     this.selectedId.set(id);
+    this.mapOpen.set(true);
     this.view.set('passports');
   }
 

@@ -3,14 +3,19 @@
     <app-segmented label="Widok pulpitu" [options]="views" [(value)]="view" />
   </div>
 
-  <div class="grid min-h-0 flex-1 lg:grid-cols-[28rem_minmax(0,1fr)]">
+  <div class="grid min-h-0 flex-1" [class]="mapOpen() ? 'lg:grid-cols-[34rem_minmax(0,1fr)]' : 'lg:grid-cols-1'">
     <section aria-label="Lista pól" class="pw-scroll min-h-0 border-surface bg-surface-0 p-4 lg:block lg:border-r dark:bg-surface-900"
       [class.hidden]="view() !== 'list'">
-      <div class="flex flex-col gap-4">
+      <div class="mx-auto flex flex-col gap-4" [class.max-w-3xl]="!mapOpen()">
         <header class="flex flex-wrap items-center gap-2">
           <h1 class="pw-h1 mr-auto">Moje pola</h1>
           <a routerLink="/powiadomienia" class="inline-flex min-h-10 items-center gap-2 rounded-full border border-surface px-4 text-sm font-medium hover:bg-surface-100 dark:hover:bg-surface-800">
             <i class="pi pi-bell" aria-hidden="true"></i>Powiadomienia</a>
+          @if (fields.fields().length) {
+            <button type="button" (click)="mapOpen.set(!mapOpen())" [attr.aria-pressed]="mapOpen()"
+              class="hidden min-h-10 items-center gap-2 rounded-full border border-surface px-4 text-sm font-medium hover:bg-surface-100 lg:inline-flex dark:hover:bg-surface-800">
+              <i class="pi pi-map" aria-hidden="true"></i>{{mapOpen() ? 'Ukryj mapę' : 'Pokaż mapę'}}</button>
+          }
           @if (!adding()) { <p-button label="Dodaj pole" icon="pi pi-plus" (onClick)="startAdd(false)" /> }
         </header>
 
@@ -38,13 +43,13 @@
               [query]="loginQuery()" (dismissed)="inviteDismissed.set(true)" />
           }
         } @else {
-          <app-fields-list [fields]="fields.fields()" [attention]="fields.attention()" [stats]="stats()" [cropLabel]="cropLabel"
+          <app-fields-list [fields]="fields.fields()" [stats]="stats()" [cropLabel]="cropLabel"
             (download)="print()" (analyze)="analyze($event)" (located)="locate($event)" (passport)="showPassport($event)" (removed)="remove($event)" (renamed)="rename($event)" />
         }
       </div>
     </section>
 
-    <section aria-label="Mapa i dane działek pól" class="flex min-h-0 min-w-0 flex-col lg:flex" [class.hidden]="view() === 'list'">
+    <section aria-label="Mapa i dane działek pól" class="min-h-0 min-w-0 flex-col" [class]="(view() === 'list' ? 'hidden ' : 'flex ') + (mapOpen() ? 'lg:flex' : 'lg:hidden')">
       <div class="hidden items-center border-b border-surface bg-surface-0 px-4 py-2 lg:flex dark:bg-surface-900">
         <div class="w-64"><app-segmented label="Mapa lub dane działek" [options]="paneOptions" [value]="pane()" (valueChange)="view.set($event)" /></div>
       </div>

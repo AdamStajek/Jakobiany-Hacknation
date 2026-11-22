@@ -51,6 +51,23 @@ export function isStale(status: FieldStatus, now = Date.now()): boolean {
   return Number.isNaN(saved) || now - saved > STALE_AFTER_DAYS * DAY_MS;
 }
 
+/** Ton statusu pola do kolorowania (wysokie ryzyko, niepewne, niskie, brak raportu); bez nowej oceny, tylko mapowanie sygnału raportu. */
+export type RiskTone = 'high' | 'unsure' | 'low' | 'none';
+
+export function riskTone(status: FieldStatus | null): RiskTone {
+  if (!status) return 'none';
+  if (ELEVATED_RISK.has(status.risk)) return 'high';
+  return status.risk === 'Niepewne' ? 'unsure' : 'low';
+}
+
+const TONE_HEX: Record<RiskTone, string> = {high: '#dc2626', unsure: '#f59e0b', low: '#16a34a', none: '#6b7280'};
+
+/** Kolor #rrggbb statusu pola na mapie. */
+export const toneColor = (status: FieldStatus | null): string => TONE_HEX[riskTone(status)];
+
+/** Kolejność pól na liście: najpierw wymagające uwagi, potem niepewne, bez raportu, reszta. */
+export const TONE_ORDER: Record<RiskTone, number> = {high: 0, unsure: 1, none: 2, low: 3};
+
 /** Powody, dla których pole trafia na listę „wymaga uwagi” (puste = nie trafia). */
 export function attentionReasons(status: FieldStatus | null): string[] {
   if (!status) return [];

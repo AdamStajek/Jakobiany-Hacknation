@@ -1,17 +1,25 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, computed, input, output, signal } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
-import { FIELD_NAME_MAX, Field, STALE_AFTER_DAYS, attentionReasons, isStale } from '../../core/state/fields.store';
-import { colorStyle } from './field-colors';
+import { FIELD_NAME_MAX, Field, RiskTone, STALE_AFTER_DAYS, attentionReasons, isStale, riskTone } from '../../core/state/fields.store';
+import { FieldThumb } from './field-thumb';
+
+type ToneStyle = {border: string; text: string; pill: string; icon: string};
+const TONES: Record<RiskTone, ToneStyle> = {
+  high: {border: 'border-l-red-600', text: 'text-red-600', pill: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200', icon: 'pi-exclamation-triangle'},
+  unsure: {border: 'border-l-amber-500', text: 'text-amber-500', pill: 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200', icon: 'pi-question-circle'},
+  low: {border: 'border-l-green-600', text: 'text-green-600', pill: 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200', icon: 'pi-check-circle'},
+  none: {border: 'border-l-gray-400', text: 'text-gray-500', pill: 'bg-surface-100 dark:bg-surface-800', icon: 'pi-minus-circle'},
+};
 
 /** Karta pola: nazwa, uprawa, status z ostatniego zapisanego raportu i akcje. */
 @Component({
   selector: 'app-field-card',
-  imports: [DatePipe, DecimalPipe, ButtonModule],
+  imports: [DatePipe, DecimalPipe, ButtonModule, FieldThumb],
   template: `
-    <article class="pw-card flex flex-col gap-3 p-4" [attr.aria-labelledby]="'field-' + field().id">
+    <article class="pw-card flex flex-col gap-3 border-l-4 p-4 {{toneStyle().border}}" [attr.aria-labelledby]="'field-' + field().id">
       <header class="flex items-start gap-3">
-        <span class="mt-1 h-3 w-3 shrink-0 rounded-full {{dot()}}" aria-hidden="true"></span>
+        <app-field-thumb class="shrink-0 {{toneStyle().text}}" [parcels]="field().parcels" />
         <div class="min-w-0 flex-1">
           @if (editing()) {
             <form class="flex items-center gap-2" (submit)="$event.preventDefault(); save()">
@@ -49,8 +57,8 @@ import { colorStyle } from './field-colors';
 
       @if (field().status; as status) {
         <div class="flex flex-wrap items-center gap-2 text-sm">
-          <span class="inline-flex items-center gap-1 rounded-full bg-surface-100 px-3 py-1 font-medium dark:bg-surface-800">
-            <i class="pi pi-chart-line" aria-hidden="true"></i>{{status.risk}}
+          <span class="inline-flex items-center gap-1 rounded-full px-3 py-1 font-medium {{toneStyle().pill}}">
+            <i class="pi {{toneStyle().icon}}" aria-hidden="true"></i>{{status.risk}}
           </span>
           <span class="text-xs text-muted-color">raport z {{status.date | date:'d MMM yyyy'}}</span>
           @if (stale()) {
@@ -67,7 +75,7 @@ import { colorStyle } from './field-colors';
           </ul>
         }
       } @else {
-        <p class="text-sm text-muted-color">Brak raportu. Uruchom analizę, aby zobaczyć status pola.</p>
+        <p class="inline-flex items-center gap-2 text-sm text-muted-color"><i class="pi pi-info-circle" aria-hidden="true"></i>Brak raportu. Uruchom analizę, aby zobaczyć status pola.</p>
       }
 
       <div class="flex flex-wrap gap-2">
@@ -75,8 +83,8 @@ import { colorStyle } from './field-colors';
           <p-button [label]="field().parcels.length > 1 ? 'Analizuj ' + parcel.id : 'Analizuj'" icon="pi pi-play" size="small"
             (onClick)="analyze.emit(parcel.id)" />
         }
-<p-button label="Dane działki" icon="pi pi-id-card" size="small" severity="secondary" [outlined]="true" (onClick)="passport.emit(field().id)" />
-        <p-button label="Na mapie" icon="pi pi-map" size="small" severity="secondary" [outlined]="true" (onClick)="located.emit(field().id)" />
+<p-button label="Dane działki" icon="pi pi-id-card" size="small" severity="secondary" [text]="true" (onClick)="passport.emit(field().id)" />
+        <p-button label="Na mapie" icon="pi pi-map" size="small" severity="secondary" [text]="true" (onClick)="located.emit(field().id)" />
       </div>
     </article>
   `,
@@ -125,7 +133,8 @@ export class FieldCard {
   }
 
   protected readonly staleDays = STALE_AFTER_DAYS;
-  protected readonly dot = computed(() => colorStyle(this.field().color).dot);
+  /** Styl wg statusu raportu (nie wg koloru wybranego przez użytkownika, ten jest tylko na mapie pól). */
+  protected readonly toneStyle = computed(() => TONES[riskTone(this.field().status)]);
   /** Powierzchnia znana tylko, gdy każda część ma `area_ha` (pola z serwera jej nie zwracają). */
   protected readonly area = computed(() => {
     const parcels = this.field().parcels;

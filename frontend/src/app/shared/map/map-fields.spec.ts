@@ -20,8 +20,13 @@ describe('fieldsFeatureCollection', () => {
   });
 
   it('wyciszona warstwa ma stan „muted” niezależnie od wyboru', () => {
-    const states = fieldsFeatureCollection(FIELDS, 'b', true).features.map((f) => f.properties?.['state']);
+    const states = fieldsFeatureCollection(FIELDS, null, true).features.map((f) => f.properties?.['state']);
     expect(states).toEqual(['muted', 'muted']);
+  });
+
+  it('wybrane pole w wyciszonej warstwie jest „selected”, reszta „muted”', () => {
+    const states = fieldsFeatureCollection(FIELDS, 'b', true).features.map((f) => f.properties?.['state']);
+    expect(states).toEqual(['muted', 'selected']);
   });
 
   it('bez pól daje pustą kolekcję', () => {

@@ -1,10 +1,11 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, inject, input } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
+import { Router } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
-import { FieldsStore } from '../../core/state/fields.store';
+import { FieldsStore, riskTone } from '../../core/state/fields.store';
 import { ParcelStore } from '../../core/state/parcel.store';
 import { AddFieldButton } from '../../shared/ui/add-field-button';
 
@@ -46,6 +47,20 @@ import { AddFieldButton } from '../../shared/ui/add-field-button';
         </div>
       }
 
+      @if (variant() === 'full' && fields.fields().length) {
+        <nav aria-label="Moje pola" class="flex flex-col gap-1">
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-muted-color">Moje pola</h3>
+          <ul class="flex flex-wrap gap-2">
+            @for (field of fields.fields(); track field.id) {
+              <li><button type="button" (click)="open(field.parcels[0]?.id)" [attr.aria-current]="field.id === currentField()?.id ? 'true' : null"
+                class="inline-flex min-h-9 items-center gap-2 rounded-full border border-surface px-3 text-sm hover:bg-surface-100 dark:hover:bg-surface-800"
+                [class.border-primary]="field.id === currentField()?.id">
+                <span class="h-2.5 w-2.5 rounded-full" [class]="dot[tone(field.status)]" aria-hidden="true"></span>{{field.name}}</button></li>
+            }
+          </ul>
+        </nav>
+      }
+
       @if (variant() === 'full') {
         @if (store.parcel(); as parcel) {
           <div class="flex items-start gap-3 rounded-xl border border-primary-200 bg-primary-50 p-3 dark:border-primary-500 dark:bg-primary-900" role="status">
@@ -54,6 +69,9 @@ import { AddFieldButton } from '../../shared/ui/add-field-button';
               <div class="break-all font-semibold">{{parcel.id}}</div>
               <div class="text-muted-color">{{parcel.area_ha | number:'1.0-4'}} ha
                 @if (parcel.commune) { · gmina {{parcel.commune}} } @if (parcel.region) { · obręb {{parcel.region}} }</div>
+              @if (currentField(); as field) {
+                <div class="mt-1 font-medium text-green-700 dark:text-green-400">Ta działka należy do pola „{{field.name}}”.</div>
+              }
               <div class="mt-2">
                 <app-add-field-button [added]="fields.parcelIds().has(parcel.id)" [busy]="fields.adding()" (add)="fields.quickAdd(parcel)" />
               </div>
@@ -73,8 +91,20 @@ export class ParcelPicker {
   readonly variant = input<'full' | 'search'>('full');
   protected readonly store = inject(ParcelStore);
   protected readonly fields = inject(FieldsStore);
+  private readonly router = inject(Router);
+  /** Pole, do którego należy wybrana działka. */
+  protected readonly currentField = computed(() => {
+    const id = this.store.parcel()?.id;
+    return id ? this.fields.fields().find((f) => f.parcels.some((p) => p.id === id)) ?? null : null;
+  });
+  protected readonly tone = riskTone;
+  protected readonly dot = {high: 'bg-red-600', unsure: 'bg-amber-500', low: 'bg-green-600', none: 'bg-gray-500'};
   protected readonly query = new FormControl('', {nonNullable: true});
   protected readonly inputId = () => (this.variant() === 'full' ? 'parcel-id' : 'parcel-id-map');
+
+  protected open(parcelId: string | undefined) {
+    if (parcelId) void this.router.navigate(['/dzialka', parcelId]);
+  }
 
   protected search() { void this.store.search(this.query.value); }
 }

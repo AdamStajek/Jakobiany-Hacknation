@@ -7,7 +7,7 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { AnalysisStore } from '../../core/state/analysis.store';
 import { ConsentStore } from '../../core/state/consent.store';
 import { MapPrefsStore } from '../../core/state/map-prefs.store';
-import { toServerColor } from '../../core/state/fields.model';
+import { toneColor } from '../../core/state/fields.model';
 import { FieldsStore, fieldsGeometry } from '../../core/state/fields.store';
 import { ParcelStore } from '../../core/state/parcel.store';
 import { ZonesStore } from '../../core/state/zones.store';
@@ -70,7 +70,7 @@ type Pane = 'map' | 'report';
           }
           <div class="relative min-h-0 flex-1 print:hidden" [class.hidden]="pane() !== 'map'">
             <app-wodo-map [(basemap)]="prefs.basemap" [locateUser]="true" [geometry]="parcels.parcel()?.geometry ?? null" [waterPoint]="analysis.waterPoint()" [surface]="analysis.surfacePoints()"
-              [fields]="visibleShapes()" [fieldsMuted]="true" [fieldsToggleVisible]="shapes().length > 0" [fieldsShown]="showFields()"
+              [fields]="visibleShapes()" [fieldsMuted]="true" [selectedFieldId]="currentField()?.id ?? null" [fieldsToggleVisible]="shapes().length > 0" [fieldsShown]="showFields()"
               [markers]="zones.markers()" [numberedMarkers]="true" [markMode]="zones.marking()" [markAvailable]="!!parcels.parcel()" [markNotice]="zones.notice()"
               [hintSeen]="hintSeen() || !!parcels.parcel()" (hintDismissed)="dismissHint()"
               (pointClicked)="onPoint($event)" (polygonDrawn)="parcels.importGeometry($event)" (fieldClicked)="openField($event)" (fieldsToggle)="toggleFields()"
@@ -97,6 +97,7 @@ type Pane = 'map' | 'report';
                   <div class="min-w-0 flex-1 text-sm">
                     <div class="truncate font-semibold">{{parcel.id}}</div>
                     <div class="text-xs text-muted-color">{{parcel.area_ha | number:'1.0-4'}} ha@if (parcel.commune) { · gmina {{parcel.commune}} }</div>
+                    @if (currentField(); as field) { <div class="truncate text-xs font-medium text-green-700 dark:text-green-400">Pole: {{field.name}}</div> }
                   </div>
                   <p-button label="Dalej" icon="pi pi-arrow-right" iconPos="right" (onClick)="view.set('form')" />
                 </div>
@@ -152,14 +153,19 @@ export class AnalysisPage {
   readonly id = input<string>();
   readonly analysisId = input<string>();
 
-  /** Moje pola jako wyciszona warstwa mapy (ta sama geometria co w „Moich polach”). */
+  /** Moje pola na mapie, kolorowane statusem z ostatniego raportu (ta sama geometria co w „Moich polach”). */
   protected readonly shapes = computed<FieldShape[]>(() => this.fields.fields().flatMap((field) => {
     const geometry = fieldsGeometry([field]);
-    return geometry ? [{id: field.id, name: field.name, color: toServerColor(field.color), geometry}] : [];
+    return geometry ? [{id: field.id, name: field.name, color: toneColor(field.status), geometry}] : [];
   }));
   /** Wybór użytkownika (zapisany tylko za zgodą); bez wyboru warstwa jest włączona, gdy są pola. */
   private readonly showFieldsChoice = signal<boolean | null>(this.readShowFields());
   protected readonly showFields = computed(() => this.showFieldsChoice() ?? true);
+  /** Pole zawierające wybraną działkę (wyróżnione na mapie). */
+  protected readonly currentField = computed(() => {
+    const id = this.parcels.parcel()?.id;
+    return id ? this.fields.fields().find((f) => f.parcels.some((p) => p.id === id)) ?? null : null;
+  });
   protected readonly visibleShapes = computed(() => (this.showFields() ? this.shapes() : []));
   protected readonly hintSeen = signal(this.consent.read(HINT_KEY) === '1');
 

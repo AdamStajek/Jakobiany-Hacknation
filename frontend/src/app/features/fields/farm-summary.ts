@@ -10,26 +10,33 @@ import type { FarmStats } from './farm-stats';
   host: {class: 'block print:hidden'},
   template: `
     <section class="pw-card flex flex-col gap-3 p-4" aria-labelledby="farm-summary-title">
-      <header class="flex items-center gap-2">
-        <h2 id="farm-summary-title" class="mr-auto text-base font-semibold">Moje gospodarstwo</h2>
-        <button type="button" class="grid h-12 w-12 place-items-center rounded-full hover:bg-surface-100 lg:hidden dark:hover:bg-surface-800"
-          [attr.aria-expanded]="open()" aria-controls="farm-summary-body" [attr.aria-label]="open() ? 'Zwiń podsumowanie' : 'Rozwiń podsumowanie'"
+      <header class="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <h2 id="farm-summary-title" class="text-base font-semibold">Moje gospodarstwo</h2>
+        @if (stats().fields) {
+          <p class="mr-auto text-sm text-muted-color">
+            {{stats().fields}} {{stats().fields === 1 ? 'pole' : 'pól'}} · {{stats().parcels}} {{stats().parcels === 1 ? 'działka' : 'działek'}}@if (stats().totalAreaHa !== null) { · {{stats().totalAreaHa | number:'1.0-2'}} ha}
+          </p>
+          @if (stats().attention.length) {
+            <span class="inline-flex items-center gap-1 rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800 dark:bg-red-950 dark:text-red-200">
+              <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>{{stats().attention.length}} wymaga uwagi</span>
+          } @else if (stats().lastReportDate) {
+            <span class="inline-flex items-center gap-1 text-xs text-muted-color"><i class="pi pi-check-circle" aria-hidden="true"></i>Nic nie wymaga uwagi</span>
+          }
+        }
+        <button type="button" class="grid h-10 w-10 place-items-center rounded-full hover:bg-surface-100 dark:hover:bg-surface-800"
+          [attr.aria-expanded]="open()" aria-controls="farm-summary-body" [attr.aria-label]="open() ? 'Zwiń szczegóły gospodarstwa' : 'Rozwiń szczegóły gospodarstwa'"
           (click)="open.set(!open())">
           <i class="pi" [class]="open() ? 'pi-chevron-up' : 'pi-chevron-down'" aria-hidden="true"></i>
         </button>
       </header>
 
-      <div id="farm-summary-body" class="flex-col gap-3 text-sm lg:flex" [class]="open() ? 'flex' : 'hidden'">
+      <div id="farm-summary-body" class="flex-col gap-3 text-sm" [class]="open() ? 'flex' : 'hidden'">
         @if (!stats().fields) {
           <p class="text-muted-color">Dodaj pierwsze pole, a tu zobaczysz, ile masz pól, jakie uprawy i co wymaga uwagi.</p>
         } @else {
-          <p>
-            <strong>{{stats().fields}}</strong> {{stats().fields === 1 ? 'pole' : 'pól'}},
-            <strong>{{stats().parcels}}</strong> {{stats().parcels === 1 ? 'działka' : 'działek'}}@if (stats().totalAreaHa !== null) {,
-              razem <strong>{{stats().totalAreaHa | number:'1.0-2'}} ha</strong>} @else {
-              <span class="text-muted-color">. Powierzchnia nie jest znana dla wszystkich działek.</span>}
-          </p>
-
+          @if (stats().totalAreaHa === null) {
+            <p class="text-muted-color">Powierzchnia nie jest znana dla wszystkich działek.</p>
+          }
           <div>
             <h3 class="font-semibold">Uprawy</h3>
             <ul class="mt-1 flex flex-col gap-1">
@@ -37,21 +44,6 @@ import type { FarmStats } from './farm-stats';
                 <li>{{crop.label}}: {{crop.fields}} {{crop.fields === 1 ? 'pole' : 'pól'}}@if (crop.areaHa !== null) { · {{crop.areaHa | number:'1.0-2'}} ha}</li>
               }
             </ul>
-          </div>
-
-          <div>
-            <h3 class="font-semibold">Co wymaga uwagi</h3>
-            @if (stats().attention.length) {
-              <p class="text-amber-700 dark:text-amber-400">
-                <i class="pi pi-exclamation-triangle" aria-hidden="true"></i> {{stats().attention.length}} z {{stats().fields}} pól wymaga uwagi:</p>
-              <ul class="mt-1 flex flex-col gap-1">
-                @for (item of stats().attention; track item.id) {
-                  <li><span class="font-medium">{{item.name}}</span> <span class="text-muted-color">— {{item.reasons.join(', ')}}</span></li>
-                }
-              </ul>
-            } @else {
-              <p class="text-muted-color">Nic nie wymaga uwagi według ostatnich raportów.</p>
-            }
           </div>
 
           <div>
@@ -69,15 +61,17 @@ import type { FarmStats } from './farm-stats';
               <p class="text-muted-color">Żadne pole nie ma jeszcze raportu. Uruchom analizę przy wybranym polu.</p>
             }
           </div>
-
-          <p-button label="Pobierz raport o moich polach" icon="pi pi-download" styleClass="min-h-12 w-full sm:w-auto" (onClick)="download.emit()" />
         }
       </div>
+      @if (stats().fields) {
+        <p-button label="Pobierz raport o moich polach" icon="pi pi-download" severity="secondary" [outlined]="true" size="small"
+          styleClass="min-h-10 w-full sm:w-auto" (onClick)="download.emit()" />
+      }
     </section>
   `,
 })
 export class FarmSummary {
   readonly stats = input.required<FarmStats>();
   readonly download = output<void>();
-  protected readonly open = signal(true);
+  protected readonly open = signal(false);
 }

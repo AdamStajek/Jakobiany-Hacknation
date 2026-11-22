@@ -5,7 +5,7 @@ const EMPTY = {type: 'FeatureCollection' as const, features: []};
 /** Powyżej tego przybliżenia pinezki znikają, bo widać już granice. */
 export const PIN_MAX_ZOOM = 14.5;
 /** Od tego przybliżenia pole ma etykietę z nazwą. */
-const FIELD_LABEL_MIN_ZOOM = 12;
+const FIELD_LABEL_MIN_ZOOM = 11;
 
 /** Dodaje źródła i warstwy mapy (kolejność = kolejność rysowania). */
 export function addMapLayers(map: MapLibreMap) {
@@ -14,14 +14,14 @@ export function addMapLayers(map: MapLibreMap) {
   map.addLayer({id: 'parcel-fill', type: 'fill', source: 'parcel', paint: {'fill-color': '#EE8106', 'fill-opacity': 0.16}});
   map.addLayer({id: 'parcel-line', type: 'line', source: 'parcel', paint: {'line-color': '#EE8106', 'line-width': 3}});
   map.addLayer({id: 'fields-fill', type: 'fill', source: 'fields',
-    paint: {'fill-color': ['get', 'color'], 'fill-opacity': ['match', ['get', 'state'], 'selected', 0.32, 'dim', 0.06, 'muted', 0.05, 0.22]}});
+    paint: {'fill-color': ['get', 'color'], 'fill-opacity': ['match', ['get', 'state'], 'selected', 0.32, 'dim', 0.06, 'muted', 0.18, 0.22]}});
   map.addLayer({id: 'fields-line', type: 'line', source: 'fields',
-    paint: {'line-color': ['get', 'color'], 'line-width': ['match', ['get', 'state'], 'selected', 5, 'dim', 1.5, 'muted', 1.25, 2.5],
-      'line-opacity': ['match', ['get', 'state'], 'dim', 0.5, 'muted', 0.75, 1]}});
+    paint: {'line-color': ['get', 'color'], 'line-width': ['match', ['get', 'state'], 'selected', 5, 'dim', 1.5, 'muted', 2.5, 2.5],
+      'line-opacity': ['match', ['get', 'state'], 'dim', 0.5, 'muted', 0.9, 1]}});
   map.addLayer({id: 'fields-label', type: 'symbol', source: 'fields', minzoom: FIELD_LABEL_MIN_ZOOM,
     layout: {'text-field': ['get', 'name'], 'text-font': ['sans-serif'], 'text-size': 13, 'text-optional': true},
     paint: {'text-color': '#1f2937', 'text-halo-color': '#fff', 'text-halo-width': 1.5,
-      'text-opacity': ['match', ['get', 'state'], 'dim', 0.55, 'muted', 0.75, 1]}});
+      'text-opacity': ['match', ['get', 'state'], 'dim', 0.55, 'muted', 0.9, 1]}});
   map.addLayer({id: 'surface-symbols', type: 'symbol', source: 'surface',
     layout: {'text-field': ['match', ['get', 'kind'], 'flow', '↑', '≈'], 'text-size': 26, 'text-font': ['sans-serif'],
       'text-rotate': ['coalesce', ['get', 'bearing'], 0], 'text-rotation-alignment': 'map', 'text-allow-overlap': true},
