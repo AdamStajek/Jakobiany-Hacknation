@@ -4,7 +4,7 @@ import { errorMessage } from '../api/errors';
 import type { Passport } from '../api/types';
 import { AnalysisStore } from './analysis.store';
 
-export type PassportEntry = {loading: boolean; error: string; data: Passport | null};
+type PassportEntry = {loading: boolean; error: string; data: Passport | null};
 const EMPTY: PassportEntry = {loading: false, error: '', data: null};
 
 /** Paszporty działek pobierane z API i trzymane w pamięci (klucz: działka + uprawa), żeby nie ładować ich wielokrotnie. */
@@ -14,11 +14,11 @@ export class PassportStore {
   private readonly analysis = inject(AnalysisStore);
   private readonly entries = signal<Record<string, PassportEntry>>({});
 
-  entry(parcelId: string, crop: string): PassportEntry {
+  entry(parcelId: string, crop: string | null): PassportEntry {
     return this.entries()[key(parcelId, crop)] ?? EMPTY;
   }
 
-  async load(parcelId: string, crop: string, force = false) {
+  async load(parcelId: string, crop: string | null, force = false) {
     const id = key(parcelId, crop);
     const current = this.entries()[id];
     if (current?.loading || (current?.data && !force)) return;
@@ -38,4 +38,4 @@ export class PassportStore {
   }
 }
 
-const key = (parcelId: string, crop: string) => `${parcelId}|${crop}`;
+const key = (parcelId: string, crop: string | null) => `${parcelId}|${crop ?? ''}`;

@@ -8,8 +8,15 @@
         "group": "Agrotechnika i ochrona gleby",
         "title": "Wprowadzenie zróżnicowanego płodozmianu",
         "action": "Wprowadzenie zróżnicowanego płodozmianu",
-        "why": "Doświadczenia wieloletnie wskazują, że zróżnicowanie zmianowania może stabilizować plon w trudnych sezonach.",
-        "evidence": "Scenariusz paszportu: deficyt modelowy w 100% sezonów.",
+        "why": "Płodozmian to uprawianie na tym samym polu różnych roślin w kolejnych latach. Taka zmiana może poprawić stan gleby i pomóc uzyskać bardziej przewidywalne zbiory w suchych latach.",
+        "cost_estimate": {
+          "lower": 0,
+          "upper": 0,
+          "unit": "dodatkowych wydatków",
+          "basis": "Przy samodzielnym ułożeniu planu. Koszty nasion i prowadzenia poszczególnych upraw mogą się zmienić.",
+          "sources": []
+        },
+        "evidence": "Obliczenia w paszporcie pola wskazują, że wody brakowało w 100% sprawdzonych sezonów.",
         "when": "Kolejne sezony",
         "confidence": "wstępna",
         "limits": "Monokultura, degradacja struktury gleby lub powtarzający się deficyt wody",
@@ -26,6 +33,12 @@
             "title": "Doroszewski i in. (2012), podstawy monitoringu suszy rolniczej w Polsce",
             "url": "https://www.itp.edu.pl/old/wydawnictwo/woda/zeszyt_38_2012/artykuly/Doroszewski%20i%20in.pdf"
           }
+        ],
+        "steps": [
+          "Zacznij od oceny, czy warunki się zgadzają: Monokultura, degradacja struktury gleby lub powtarzający się deficyt wody.",
+          "Zaplanuj termin: Kolejne sezony.",
+          "Przygotuj się na koszt (niski): Planowanie zmianowania; koszty gospodarcze zależne od gatunków.",
+          "Zastosuj działanie „Wprowadzenie zróżnicowanego płodozmianu” na całym polu."
         ]
       }
     ]
@@ -228,8 +241,15 @@
       "group": "Agrotechnika i ochrona gleby",
       "title": "Wprowadzenie zróżnicowanego płodozmianu",
       "action": "Wprowadzenie zróżnicowanego płodozmianu",
-      "why": "Doświadczenia wieloletnie wskazują, że zróżnicowanie zmianowania może stabilizować plon w trudnych sezonach.",
-      "evidence": "Scenariusz paszportu: deficyt modelowy w 100% sezonów.",
+      "why": "Płodozmian to uprawianie na tym samym polu różnych roślin w kolejnych latach. Taka zmiana może poprawić stan gleby i pomóc uzyskać bardziej przewidywalne zbiory w suchych latach.",
+      "cost_estimate": {
+        "lower": 0,
+        "upper": 0,
+        "unit": "dodatkowych wydatków",
+        "basis": "Przy samodzielnym ułożeniu planu. Koszty nasion i prowadzenia poszczególnych upraw mogą się zmienić.",
+        "sources": []
+      },
+      "evidence": "Obliczenia w paszporcie pola wskazują, że wody brakowało w 100% sprawdzonych sezonów.",
       "when": "Kolejne sezony",
       "confidence": "wstępna",
       "limits": "Monokultura, degradacja struktury gleby lub powtarzający się deficyt wody",
@@ -246,6 +266,12 @@
           "title": "Doroszewski i in. (2012), podstawy monitoringu suszy rolniczej w Polsce",
           "url": "https://www.itp.edu.pl/old/wydawnictwo/woda/zeszyt_38_2012/artykuly/Doroszewski%20i%20in.pdf"
         }
+      ],
+      "steps": [
+        "Zacznij od oceny, czy warunki się zgadzają: Monokultura, degradacja struktury gleby lub powtarzający się deficyt wody.",
+        "Zaplanuj termin: Kolejne sezony.",
+        "Przygotuj się na koszt (niski): Planowanie zmianowania; koszty gospodarcze zależne od gatunków.",
+        "Zastosuj działanie „Wprowadzenie zróżnicowanego płodozmianu” na całym polu."
       ]
     }
   ],

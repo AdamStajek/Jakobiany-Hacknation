@@ -1,11 +1,8 @@
 import { Component, computed, effect, inject, input, untracked } from '@angular/core';
 import { signal } from '@angular/core';
-import { AnalysisStore } from '../../core/state/analysis.store';
 import type { Field } from '../../core/state/fields.store';
 import { PassportStore } from '../../core/state/passport.store';
 import { PassportSummary } from '../../shared/ui/passport-summary';
-
-const DEFAULT_CROP = 'wheat';
 
 /** Paszport wybranego pola (dla pola z kilkoma działkami: z wyborem działki). */
 @Component({
@@ -28,7 +25,6 @@ const DEFAULT_CROP = 'wheat';
 })
 export class FieldPassport {
   private readonly store = inject(PassportStore);
-  private readonly analysis = inject(AnalysisStore);
 
   readonly field = input.required<Field>();
   protected readonly index = signal(0);
@@ -36,20 +32,15 @@ export class FieldPassport {
   private readonly target = computed(() => {
     const field = this.field();
     const parcel = field.parcels[Math.min(this.index(), field.parcels.length - 1)];
-    return parcel ? {parcelId: parcel.id, crop: field.crop ?? DEFAULT_CROP} : null;
+    return parcel ? {parcelId: parcel.id, crop: field.crop === 'unknown' ? null : field.crop ?? null} : null;
   });
   protected readonly entry = computed(() => {
     const target = this.target();
     return target ? this.store.entry(target.parcelId, target.crop) : {loading: false, error: '', data: null};
   });
-  protected readonly subtitle = computed(() => {
-    const field = this.field();
-    const crop = this.analysis.crops().find((c) => c.id === field.crop)?.label;
-    return [crop, field.parcels.length > 1 ? `działka ${this.target()?.parcelId ?? ''}` : ''].filter(Boolean).join(' · ');
-  });
+  protected readonly subtitle = computed(() => this.field().parcels.length > 1 ? `działka ${this.target()?.parcelId ?? ''}` : '');
 
   constructor() {
-    void this.analysis.init();
     effect(() => {
       this.field();
       untracked(() => this.index.set(0));

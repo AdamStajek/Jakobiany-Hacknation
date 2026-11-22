@@ -19,7 +19,6 @@ import { PassportSummary } from '../../shared/ui/passport-summary';
     <div class="mx-auto flex max-w-3xl flex-col gap-4 p-4">
       <header>
         <h1 class="text-2xl font-extrabold tracking-tight">Paszport działki</h1>
-        <p class="text-sm text-muted-color">Krótka informacja: powierzchnia, woda i sytuacja na dziś.</p>
       </header>
       <app-passport-summary [data]="entry().data" [loading]="entry().loading" [error]="entry().error"
         [title]="id() ?? ''" [subtitle]="subtitle()" (retry)="reload()" />
@@ -40,9 +39,15 @@ export class ParcelPassportPage {
   private readonly router = inject(Router);
 
   readonly id = input<string>();
+  private readonly crop = computed(() => {
+    const report = this.analysis.report();
+    if (!report || report.parcel.id !== this.id() || report.date !== this.analysis.range().max) return null;
+    const crop = this.analysis.reportForm()?.crop;
+    return crop && crop !== 'unknown' ? crop : null;
+  });
   protected readonly entry = computed(() => {
     const id = this.id();
-    return id ? this.store.entry(id, 'wheat') : {loading: false, error: '', data: null};
+    return id ? this.store.entry(id, this.crop()) : {loading: false, error: '', data: null};
   });
   protected readonly subtitle = computed(() => {
     const parcel = this.parcels.parcel();
@@ -53,10 +58,11 @@ export class ParcelPassportPage {
     void this.analysis.init();
     effect(() => {
       const id = this.id();
+      const crop = this.crop();
       if (!id) return;
       untracked(() => {
         void this.parcels.open(id);
-        void this.store.load(id, 'wheat');
+        void this.store.load(id, crop);
       });
     });
     effect(() => {
@@ -68,6 +74,6 @@ export class ParcelPassportPage {
 
   protected reload() {
     const id = this.id();
-    if (id) void this.store.load(id, 'wheat', true);
+    if (id) void this.store.load(id, this.crop(), true);
   }
 }

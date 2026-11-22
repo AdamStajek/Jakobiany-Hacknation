@@ -21,7 +21,12 @@ export class RecommendationMethods {
       group.push(action);
       groups.set(action.group, group);
     }
-    return Array.from(groups);
+    let nextNumber = 1;
+    return Array.from(groups, ([title, actions]) => {
+      const start = nextNumber;
+      nextNumber += actions.length;
+      return {title, actions, start};
+    });
   });
 
   constructor() {

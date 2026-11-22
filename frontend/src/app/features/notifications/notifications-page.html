@@ -1,0 +1,126 @@
+<div class="mx-auto flex max-w-2xl flex-col gap-4 p-4 pb-8">
+  <h1 class="text-xl font-bold">Powiadomienia</h1>
+
+  <app-panel heading="Powiadamiaj mnie o istotnych zmianach" icon="pi-bell">
+    @switch (prefsState()) {
+      @case ('loading') { <div role="status" aria-label="Wczytywanie ustawień"><p-skeleton height="3rem" borderRadius="10px" /></div> }
+      @case ('error') {
+        <p-message severity="error" icon="pi pi-exclamation-circle" role="alert">
+          <span>{{prefsError()}}</span>
+          <p-button label="Spróbuj ponownie" size="small" severity="secondary" [text]="true" (onClick)="loadAccountPrefs()" />
+        </p-message>
+      }
+      @default {
+        <form class="flex flex-col gap-4" (submit)="$event.preventDefault(); save()" novalidate>
+          <label class="flex min-h-12 cursor-pointer items-center gap-3 text-sm">
+            <input type="checkbox" role="switch" class="h-6 w-6 accent-primary" [checked]="enabled()"
+              (change)="enabled.set(checked($event))" />
+            <span class="flex-1"><strong class="block font-medium">Powiadamiaj mnie o istotnych zmianach</strong>
+              <span class="text-muted-color">Np. gdy zapowiadają się intensywne opady albo zbliżają się zbiory.</span></span>
+          </label>
+
+          @if (enabled()) {
+            <fieldset class="flex flex-col gap-2">
+              <legend class="mb-1 text-sm font-medium">Gdzie mamy Cię powiadamiać?</legend>
+              @for (option of channels; track option.value) {
+                <label class="flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border border-surface px-3 text-sm">
+                  <input type="radio" name="channel" class="h-5 w-5 accent-primary" [value]="option.value"
+                    [checked]="channel() === option.value" (change)="setChannel(option.value)" />
+                  {{option.label}}
+                </label>
+              }
+            </fieldset>
+
+            @if (channel() === 'email') {
+              @if (loggedIn()) {
+                <p class="text-sm">Wyślemy wiadomość na adres z Twojego konta: <strong class="break-all">{{auth.user()?.email}}</strong>.</p>
+              } @else {
+                <div class="flex flex-col gap-1">
+                  <label for="notify-email" class="text-sm font-medium">Adres e-mail</label>
+                  <input id="notify-email" type="email" inputmode="email" autocomplete="email" class="p-inputtext p-component h-12 w-full text-base"
+                    [value]="emailInput()" [attr.aria-invalid]="showEmailError()" [attr.aria-describedby]="showEmailError() ? 'notify-email-error' : null"
+                    (input)="emailInput.set(read($event))" (blur)="touched.set(true)" />
+                  @if (showEmailError()) { <p id="notify-email-error" class="text-sm text-red-700 dark:text-red-400">{{emailError()}}</p> }
+                </div>
+              }
+            }
+          }
+
+          @if (!loggedIn()) {
+            <p class="flex items-start gap-2 text-sm text-muted-color"><i class="pi pi-info-circle mt-0.5" aria-hidden="true"></i>
+              <span>Bez konta zapamiętamy to tylko na tym telefonie.</span></p>
+          }
+
+          <div><p-button type="submit" label="Zapisz" icon="pi pi-check" styleClass="min-h-12" [loading]="saving()" [disabled]="saving()" /></div>
+
+          @if (needsConsent()) {
+            <div class="flex flex-col items-start gap-2 text-sm" role="alert">
+              <p>Nie zapisaliśmy, bo bez Twojej zgody nic nie zostaje na tym telefonie.</p>
+              <p-button label="Zgadzam się, zapisz na tym telefonie" severity="secondary" [outlined]="true" styleClass="min-h-12" (onClick)="allowAndSave()" />
+            </div>
+          }
+          @if (prefsError()) { <p-message severity="error" icon="pi pi-exclamation-circle" role="alert">{{prefsError()}}</p-message> }
+          <p class="text-sm font-medium text-primary" aria-live="polite" role="status">{{saveInfo()}}</p>
+        </form>
+      }
+    }
+  </app-panel>
+
+  <app-panel heading="Przykładowe powiadomienia" icon="pi-envelope">
+    <p class="text-sm text-muted-color">Zobacz, jak wyglądałaby wiadomość. To tylko podgląd — nic nie jest wysyłane.</p>
+
+    @if (fieldsStore.fields().length) {
+      <div class="mt-3 flex flex-col gap-1">
+        <label for="demo-field" class="text-sm font-medium">Dopasuj do pola</label>
+        <select id="demo-field" class="p-select p-component h-12 w-full rounded-lg border border-surface bg-surface-0 px-3 text-base"
+          (change)="selectedField.set(read($event))">
+          <option value="" [selected]="!selectedField()">Bez wskazania pola</option>
+          @for (field of fieldsStore.fields(); track field.id) { <option [value]="field.id" [selected]="field.id === selectedField()">{{field.name}}</option> }
+        </select>
+      </div>
+    }
+    @if (matched().length) {
+      <p class="mt-2 text-sm text-muted-color">Uwzględnimy opis Twojego pola: {{matched().join(', ')}}.</p>
+    }
+
+    <div class="mt-3 flex flex-wrap gap-2">
+      <p-button label="Pokaż: intensywne opady" icon="pi pi-cloud" severity="secondary" [outlined]="previewKind() !== 'rain'"
+        styleClass="min-h-12" [disabled]="previewState() === 'loading'" (onClick)="show('rain')" />
+      <p-button label="Pokaż: zbiory kukurydzy" icon="pi pi-sun" severity="secondary" [outlined]="previewKind() !== 'residue'"
+        styleClass="min-h-12" [disabled]="previewState() === 'loading'" (onClick)="show('residue')" />
+    </div>
+
+    <div class="mt-4" aria-live="polite">
+      @switch (previewState()) {
+        @case ('loading') {
+          <div role="status" aria-label="Wczytywanie przykładu" class="space-y-2">
+            <p-skeleton height="1.5rem" width="70%" /><p-skeleton height="5rem" borderRadius="10px" /><p-skeleton height="5rem" borderRadius="10px" />
+          </div>
+        }
+        @case ('error') {
+          <p-message severity="error" icon="pi pi-exclamation-circle" role="alert">
+            <span>{{previewError()}}</span>
+            @if (previewKind(); as kind) { <p-button label="Spróbuj ponownie" size="small" severity="secondary" [text]="true" (onClick)="show(kind)" /> }
+          </p-message>
+        }
+        @default {
+          @if (preview(); as mail) {
+            <article class="flex flex-col gap-3 rounded-xl border border-surface p-4" [attr.aria-label]="mail.subject">
+              <p class="inline-flex w-fit items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-900 dark:bg-amber-900/40 dark:text-amber-100">
+                <i class="pi pi-info-circle" aria-hidden="true"></i>Przykład demonstracyjny — to nie jest prognoza</p>
+              <h2 class="text-base font-bold">{{mail.subject}}</h2>
+              <section><h3 class="text-sm font-semibold">Co się dzieje?</h3><p class="text-sm">{{mail.sections.happening}}</p></section>
+              <section>
+                <h3 class="text-sm font-semibold">Co warto zrobić?</h3>
+                <ol class="ml-5 list-decimal space-y-1 text-sm">@for (action of mail.sections.actions; track $index) { <li>{{action}}</li> }</ol>
+              </section>
+              <section><h3 class="text-sm font-semibold">Dlaczego?</h3><p class="text-sm">{{mail.sections.why}}</p></section>
+            </article>
+          } @else {
+            <p class="text-sm text-muted-color">Wybierz jeden z przykładów powyżej, aby zobaczyć wiadomość.</p>
+          }
+        }
+      }
+    </div>
+  </app-panel>
+</div>

@@ -1,12 +1,16 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, computed, effect, ElementRef, inject, input, signal, untracked, viewChild } from '@angular/core';
+import { Component, computed, DestroyRef, effect, ElementRef, inject, input, signal, untracked, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
 import { SkeletonModule } from 'primeng/skeleton';
 import { AnalysisStore } from '../../core/state/analysis.store';
-import { FieldsStore } from '../../core/state/fields.store';
+import { ConsentStore } from '../../core/state/consent.store';
+import { toServerColor } from '../../core/state/fields.model';
+import { FieldsStore, fieldsGeometry } from '../../core/state/fields.store';
 import { ParcelStore } from '../../core/state/parcel.store';
+import { ZonesStore } from '../../core/state/zones.store';
+import type { FieldShape } from '../../shared/map/map-fields';
 import { AddFieldButton } from '../../shared/ui/add-field-button';
 import { WodoMap } from '../../shared/map/wodo-map';
 import { EmptyState } from '../../shared/ui/empty-state';
@@ -15,6 +19,9 @@ import { Segmented, SegmentOption } from '../../shared/ui/segmented';
 import { AnalysisForm } from './analysis-form';
 import { ParcelPicker } from './parcel-picker';
 import { ReportDashboard } from './dashboard/report-dashboard';
+
+const HINT_KEY = 'pw.map-hint.analysis.v1';
+const SHOW_FIELDS_KEY = 'pw.analysis.show-fields.v1';
 
 type View = 'map' | 'form' | 'report';
 type Pane = 'map' | 'report';
@@ -54,9 +61,14 @@ type Pane = 'map' | 'report';
 
           <div class="relative min-h-0 flex-1 print:hidden" [class.hidden]="pane() !== 'map'">
             <app-wodo-map [locateUser]="true" [geometry]="parcels.parcel()?.geometry ?? null" [waterPoint]="analysis.waterPoint()"
-              (pointClicked)="parcels.searchPoint($event.lat, $event.lon)" (polygonDrawn)="parcels.importGeometry($event)" />
-            <div class="absolute left-3 right-16 top-3 z-10 lg:hidden"><app-parcel-picker variant="search" /></div>
+              [fields]="visibleShapes()" [fieldsMuted]="true" [fieldsToggleVisible]="shapes().length > 0" [fieldsShown]="showFields()"
+              [markers]="zones.markers()" [numberedMarkers]="true" [markMode]="zones.marking()" [markAvailable]="!!parcels.parcel()" [markNotice]="zones.notice()"
+              [hintSeen]="hintSeen() || !!parcels.parcel()" (hintDismissed)="dismissHint()"
+              (pointClicked)="onPoint($event)" (polygonDrawn)="parcels.importGeometry($event)" (fieldClicked)="openField($event)" (fieldsToggle)="toggleFields()"
+              (markToggle)="toggleMarking()" (markUndo)="zones.undo()" (markClear)="zones.clear()" (markDone)="finishMarking()" />
+            <div class="absolute inset-x-3 top-3 z-10 lg:hidden"><app-parcel-picker variant="search" /></div>
             @if (parcels.parcel(); as parcel) {
+              @if (!zones.marking()) {
               <div class="pw-card absolute inset-x-3 bottom-3 z-10 flex flex-col gap-2 p-3 shadow-lg lg:hidden" role="status">
                 <div class="flex items-center gap-3">
                   <div class="min-w-0 flex-1 text-sm">
@@ -67,6 +79,7 @@ type Pane = 'map' | 'report';
                 </div>
                 <app-add-field-button [added]="fields.parcelIds().has(parcel.id)" [busy]="fields.adding()" (add)="fields.quickAdd(parcel)" />
               </div>
+              }
             }
             @if (analysis.analyzing()) {
               <app-progress-overlay [message]="analysis.progress()" [percent]="analysis.percent()" (cancelled)="analysis.cancel()" />
@@ -106,12 +119,25 @@ export class AnalysisPage {
   protected readonly parcels = inject(ParcelStore);
   protected readonly analysis = inject(AnalysisStore);
   protected readonly fields = inject(FieldsStore);
+  protected readonly zones = inject(ZonesStore);
+  private readonly consent = inject(ConsentStore);
   private readonly router = inject(Router);
   private readonly reportPane = viewChild<ElementRef<HTMLElement>>('reportPane');
 
   /** Parametry trasy (withComponentInputBinding). */
   readonly id = input<string>();
   readonly analysisId = input<string>();
+
+  /** Moje pola jako wyciszona warstwa mapy (ta sama geometria co w „Moich polach”). */
+  protected readonly shapes = computed<FieldShape[]>(() => this.fields.fields().flatMap((field) => {
+    const geometry = fieldsGeometry([field]);
+    return geometry ? [{id: field.id, name: field.name, color: toServerColor(field.color), geometry}] : [];
+  }));
+  /** Wybór użytkownika (zapisany tylko za zgodą); bez wyboru warstwa jest włączona, gdy są pola. */
+  private readonly showFieldsChoice = signal<boolean | null>(this.readShowFields());
+  protected readonly showFields = computed(() => this.showFieldsChoice() ?? true);
+  protected readonly visibleShapes = computed(() => (this.showFields() ? this.shapes() : []));
+  protected readonly hintSeen = signal(this.consent.read(HINT_KEY) === '1');
 
   protected readonly view = signal<View>('map');
   /** Prawa strona na desktopie: widok „Dane” (tylko telefon) pokazuje tam mapę. */
@@ -128,6 +154,9 @@ export class AnalysisPage {
   ]);
 
   constructor() {
+    inject(DestroyRef).onDestroy(() => this.zones.stopMarking());
+    // Tryb zaznaczania miejsc zawsze pokazuje mapę (także z widoku „Dane” lub raportu).
+    effect(() => { if (this.zones.marking()) untracked(() => this.view.set('map')); });
     // Link -> stan: wejście na /dzialka/:id lub /dzialka/:id/analiza/:analysisId odtwarza działkę i raport.
     effect(() => {
       const [id, analysisId] = [this.id(), this.analysisId()];
@@ -170,5 +199,43 @@ export class AnalysisPage {
     effect(() => {
       if (this.analysis.error() && !this.analysis.report()) untracked(() => this.view.set('form'));
     });
+  }
+
+  private readShowFields(): boolean | null {
+    const value = this.consent.read(SHOW_FIELDS_KEY);
+    return value === '1' ? true : value === '0' ? false : null;
+  }
+
+  protected toggleFields() {
+    const next = !this.showFields();
+    this.showFieldsChoice.set(next);
+    this.consent.write(SHOW_FIELDS_KEY, next ? '1' : '0');
+  }
+
+  protected dismissHint() {
+    this.hintSeen.set(true);
+    this.consent.write(HINT_KEY, '1');
+  }
+
+  /** Klik w moje pole = wybór jego (pierwszej) działki, jak „Analizuj” w Moich polach. */
+  protected openField(fieldId: string) {
+    const parcelId = this.fields.fields().find((f) => f.id === fieldId)?.parcels[0]?.id;
+    if (parcelId) void this.router.navigate(['/dzialka', parcelId]);
+  }
+
+  /** Klik w mapę: w trybie zaznaczania dodaje miejsce problemowe, inaczej wskazuje działkę. */
+  protected onPoint({lat, lon}: {lat: number; lon: number}) {
+    if (this.zones.marking()) this.zones.add([lon, lat], this.parcels.parcel()?.geometry ?? null);
+    else this.parcels.searchPoint(lat, lon);
+  }
+
+  protected toggleMarking() {
+    if (this.zones.marking()) this.zones.stopMarking();
+    else this.zones.startMarking();
+  }
+
+  protected finishMarking() {
+    this.zones.stopMarking();
+    this.view.set('form');
   }
 }

@@ -1,37 +1,86 @@
+<ng-template #card let-item let-big="big">
+  <article class="pw-card flex flex-col gap-3 p-4" [class]="big ? 'lg:p-6' : ''">
+    <div class="flex items-center gap-2 text-sm text-muted-color">
+      <span class="min-w-0 truncate">{{item.group}}</span>
+      @if (item.confidence && item.confidence !== 'wstępna') {
+        <span class="ml-auto shrink-0">Pewność: {{item.confidence}}</span>
+      }
+    </div>
+    <h4 class="font-semibold leading-snug" [class]="big ? 'text-xl' : 'text-base'">{{item.title}}</h4>
+    @if (item.action !== item.title) { <p class="text-sm">{{item.action}}</p> }
+    @if (item.scope) {
+      <p class="text-sm">
+        <i [class]="item.scope === 'field' ? 'pi pi-map' : 'pi pi-map-marker'" aria-hidden="true"></i>
+        {{item.scope === 'field' ? 'Całe pole' : 'Zaznaczone miejsca'}}
+        @if (item.points?.length) { · Punkty na mapie ({{item.points?.length}}) }
+      </p>
+    }
+    @if (item.cost_estimate; as estimate) {
+      <p class="text-sm"><strong>Przykładowy koszt.</strong>
+        {{estimate.lower | number:'1.0-2'}}@if (estimate.upper !== estimate.lower) {–{{estimate.upper | number:'1.0-2'}}} zł {{estimate.unit}}.
+      </p>
+    } @else if (item.cost) {
+      <p class="text-sm"><strong>Koszt.</strong> {{item.cost}}</p>
+    }
+    <p class="text-sm"><strong>Kiedy?</strong> {{item.when}}</p>
+    <button type="button" class="flex min-h-11 w-full items-center justify-between gap-2 rounded-lg border border-surface px-3 py-2 text-left text-sm font-semibold text-primary"
+      [attr.aria-expanded]="isOpen(item)" [attr.aria-controls]="'rec-' + key(item)" (click)="toggle(item)">
+      {{isOpen(item) ? 'Ukryj uzasadnienie i plan' : 'Pokaż uzasadnienie i plan działań'}}
+      <i [class]="isOpen(item) ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" aria-hidden="true"></i>
+    </button>
+    @if (isOpen(item)) {
+      <div [id]="'rec-' + key(item)" class="space-y-3 text-sm">
+        <div>
+          <h5 class="font-semibold">Dlaczego to pasuje do Twojego pola</h5>
+          <p>{{item.why}}</p>
+          <p class="text-muted-color">{{item.evidence}}</p>
+        </div>
+        @if (item.steps?.length) {
+          <div>
+            <h5 class="font-semibold">Krótki plan działań</h5>
+            <ol class="ml-5 list-decimal space-y-1">
+              @for (step of item.steps; track $index) { <li>{{step}}</li> }
+            </ol>
+          </div>
+        }
+      </div>
+    }
+    <p-button class="mt-auto" label="Dlaczego to pasuje?" icon="pi pi-info-circle" [text]="true" styleClass="min-h-11"
+      [ariaLabel]="'Dlaczego to pasuje? ' + item.title" (onClick)="selected.set(item)" />
+  </article>
+</ng-template>
+
 <section aria-labelledby="zalecenia" class="space-y-3">
   <h3 id="zalecenia" class="text-lg font-semibold">Co możesz zrobić?</h3>
-  <div class="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
-    @for (item of items(); track item.id ?? item.title) {
-      <article class="pw-card flex flex-col gap-2 p-4">
-        <div class="flex items-center gap-2 text-xs text-muted-color">
-          <span class="min-w-0 truncate">{{item.group}}</span><span class="ml-auto shrink-0">Pewność: {{item.confidence}}</span>
-        </div>
-        <h4 class="text-base font-semibold leading-snug">{{item.title}}</h4>
-        @if (item.action !== item.title) { <p class="text-sm">{{item.action}}</p> }
-        @if (item.scope) {
-          <p class="text-sm">
-            <i [class]="item.scope === 'field' ? 'pi pi-map' : 'pi pi-map-marker'" aria-hidden="true"></i>
-            {{item.scope === 'field' ? 'Całe pole' : 'Zaznaczone miejsca'}}
-            @if (item.points?.length) { · Punkty na mapie ({{item.points?.length}}) }
-          </p>
-        }
-        @if (item.cost) { <p class="text-sm"><strong>Koszt.</strong> {{item.cost}}</p> }
-        <p class="text-sm"><strong>Kiedy?</strong> {{item.when}}</p>
-        <p-button class="mt-auto" label="Dlaczego na tej działce?" icon="pi pi-info-circle" [text]="true" size="small" (onClick)="selected.set(item)" />
-      </article>
+  <div class="grid gap-3 lg:grid-cols-2">
+    @for (item of top(); track key(item)) {
+      <ng-container [ngTemplateOutlet]="card" [ngTemplateOutletContext]="{$implicit: item, big: true}" />
     } @empty {
-      <p class="text-muted-color">Brak wystarczających podstaw do zaleceń dla wybranej działki i daty.</p>
+      <p class="text-muted-color lg:col-span-2">Brak wystarczających podstaw do zaleceń dla wybranej działki i daty.</p>
     }
   </div>
+  @if (more().length) {
+    <button type="button" class="min-h-11 rounded-lg border border-surface px-4 py-2 text-sm font-semibold print:hidden"
+      [attr.aria-expanded]="showAll()" aria-controls="zalecenia-wiecej" (click)="showAll.set(!showAll())">
+      {{showAll() ? 'Pokaż mniej' : 'Pokaż więcej (' + more().length + ')'}}
+    </button>
+    @if (showAll()) {
+      <div id="zalecenia-wiecej" class="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+        @for (item of more(); track key(item)) {
+          <ng-container [ngTemplateOutlet]="card" [ngTemplateOutletContext]="{$implicit: item, big: false}" />
+        }
+      </div>
+    }
+  }
 </section>
 
 <p-drawer [visible]="!!selected()" (visibleChange)="!$event && selected.set(null)" position="right" styleClass="!w-full md:!w-[28rem]"
   [header]="selected()?.title ?? ''">
   @if (selected(); as rec) {
     <div class="space-y-4 text-sm">
-      <p class="text-muted-color">{{rec.group}} · Pewność: {{rec.confidence}}</p>
-      <div><h4 class="font-semibold">Dlaczego na tej działce</h4><p>{{rec.why}}</p></div>
-      <div><h4 class="font-semibold">Dowody</h4><p>{{rec.evidence}}</p></div>
+      <p class="text-muted-color">{{rec.group}}@if (rec.confidence && rec.confidence !== 'wstępna') { · Pewność: {{rec.confidence}} }</p>
+      <div><h4 class="font-semibold">Dlaczego na tej działce?</h4><p>{{rec.evidence}}</p></div>
+      <div><h4 class="font-semibold">Jak to może pomóc?</h4><p>{{rec.why}}</p></div>
       @if (rec.points?.length) {
         <div>
           <h4 class="font-semibold">Miejsca na polu</h4>
@@ -52,7 +101,19 @@
         </div>
       }
       <div><h4 class="font-semibold">Warunki i ograniczenia</h4><p>{{rec.limits}}</p></div>
-      @if (rec.cost_details) {
+      @if (rec.cost_estimate; as estimate) {
+        <div>
+          <h4 class="font-semibold">Co obejmuje szacunek?</h4>
+          <p>{{estimate.basis}}</p>
+          @if (estimate.sources.length) {
+            <ul class="ml-5 list-disc space-y-1" aria-label="Źródła stawek">
+              @for (source of estimate.sources; track source.url) {
+                <li><a class="text-primary underline" [href]="source.url" target="_blank" rel="noopener">{{source.title}}</a></li>
+              }
+            </ul>
+          }
+        </div>
+      } @else if (rec.cost_details) {
         <div><h4 class="font-semibold">Składniki kosztu</h4><p>{{rec.cost_details}}</p></div>
       }
       @if (rec.sources?.length) {

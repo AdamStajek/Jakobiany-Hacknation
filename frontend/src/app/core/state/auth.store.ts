@@ -5,7 +5,7 @@ import { errorMessage } from '../api/errors';
 import type { LoginRequest, RegisterRequest, User } from '../api/types';
 
 /** loading = sesja jeszcze nie sprawdzona; guest = brak sesji (401); user = zalogowany. */
-export type AuthStatus = 'loading' | 'guest' | 'user';
+type AuthStatus = 'loading' | 'guest' | 'user';
 
 /** Sesja użytkownika z GET /api/me. Gość to pełnoprawny stan: rdzeń aplikacji działa bez konta. */
 @Injectable({providedIn: 'root'})

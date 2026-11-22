@@ -1,6 +1,6 @@
 import { Component, input } from '@angular/core';
 import { RouterLink, Routes } from '@angular/router';
-import { ExperimentGuide, experimentGuides } from './experiment-guides';
+import { ExperimentGuide, experimentGuides } from '../../shared/experiments/experiment-guides';
 
 @Component({
   selector: 'app-experiments-page',

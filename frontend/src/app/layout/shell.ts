@@ -9,13 +9,14 @@ import { AccountMenu } from './account-menu';
 import { ConsentBanner } from './consent-banner';
 import { ReportPrompt } from './report-prompt';
 
-type Section = 'analiza' | 'pola' | 'metody';
+type Section = 'start' | 'analiza' | 'pola' | 'metody';
 type NavItem = {id: Section; path: string; label: string; short: string; icon: string};
 
 const NAV: NavItem[] = [
-  {id: 'analiza', path: '/', label: 'Analiza działki', short: 'Analiza', icon: 'pi-map'},
+  {id: 'start', path: '/', label: 'Start', short: 'Start', icon: 'pi-home'},
+  {id: 'analiza', path: '/sprawdz', label: 'Sprawdź pole', short: 'Sprawdź', icon: 'pi-map'},
   {id: 'pola', path: '/pola', label: 'Moje pola', short: 'Pola', icon: 'pi-th-large'},
-  {id: 'metody', path: '/metody', label: 'Jak to działa', short: 'Jak to działa', icon: 'pi-book'},
+  {id: 'metody', path: '/metody', label: 'Jak to działa', short: 'Jak działa', icon: 'pi-book'},
 ];
 
 /** Powłoka aplikacji: pasek boczny na desktopie, górny pasek i dolna nawigacja na telefonie. */
@@ -65,10 +66,10 @@ const NAV: NavItem[] = [
     <app-consent-banner />
     <app-report-prompt [active]="section() === 'analiza'" [url]="url()" />
 
-    <nav aria-label="Nawigacja główna" class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 border-t border-surface bg-surface-0/95 pb-[env(safe-area-inset-bottom)] backdrop-blur print:hidden lg:hidden dark:bg-surface-900/95">
+    <nav aria-label="Nawigacja główna" class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-surface bg-surface-0/95 pb-[env(safe-area-inset-bottom)] backdrop-blur print:hidden lg:hidden dark:bg-surface-900/95">
       @for (item of nav; track item.path) {
-        <a [routerLink]="item.path" [attr.aria-current]="section() === item.id ? 'page' : null"
-           class="flex h-16 flex-col items-center justify-center gap-1 text-xs"
+        <a [routerLink]="item.path" [attr.aria-current]="section() === item.id ? 'page' : null" [attr.aria-label]="item.label"
+           class="flex h-16 min-w-0 flex-col items-center justify-center gap-1 px-0.5 text-sm"
            [class]="section() === item.id ? 'font-semibold text-primary' : 'text-muted-color'">
           <i class="pi {{item.icon}} text-xl" aria-hidden="true"></i>{{item.short}}
         </a>
@@ -93,6 +94,7 @@ export class Shell {
   protected readonly section = computed<Section>(() => {
     const url = this.url().split(/[?#]/)[0];
     if (url.startsWith('/metody')) return 'metody';
+    if (url === '/' || url === '') return 'start';
     return url.startsWith('/pola') || url.startsWith('/paszporty') || url.endsWith('/paszport') ? 'pola' : 'analiza';
   });
 }

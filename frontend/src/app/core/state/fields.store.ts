@@ -10,8 +10,8 @@ import { FIELD_COLORS, Field, NewField, Resolution, STORAGE_KEY, attentionReason
 
 export * from './fields.model';
 
-export type FieldsSource = 'server' | 'local';
-export type MigrationResult = {moved: number; failed: number};
+type FieldsSource = 'server' | 'local';
+type MigrationResult = {moved: number; failed: number};
 
 /**
  * Pola użytkownika. Zalogowany: źródłem jest serwer. Gość: pamięć tej karty, a za zgodą także localStorage.

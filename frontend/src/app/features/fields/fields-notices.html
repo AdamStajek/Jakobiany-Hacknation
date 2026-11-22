@@ -1,0 +1,42 @@
+@if (loggedIn()) {
+  <p class="text-xs text-muted-color">Pola są zapisane na Twoim koncie.</p>
+} @else if (storageAllowed()) {
+  <p class="text-xs text-muted-color">Pola są zapisane tylko w tej przeglądarce. Nie wymagają konta.
+    <button type="button" class="text-primary underline" (click)="reopenConsent.emit()">Zmień zgodę</button></p>
+} @else {
+  <p class="text-xs text-muted-color">Bez zgody na zapis pola są tylko w pamięci tej karty i znikną po odświeżeniu.
+    <button type="button" class="text-primary underline" (click)="reopenConsent.emit()">Pozwól zapisywać w przeglądarce</button></p>
+}
+
+@if (offerMigration()) {
+  <section class="pw-card flex flex-col gap-3 p-3 text-sm" aria-label="Przenieś pola na konto">
+    <p class="flex items-start gap-2">
+      <i class="pi pi-cloud-upload mt-0.5 text-primary" aria-hidden="true"></i>
+      <span>W tej przeglądarce masz {{localCount()}} zapisanych pól. Przenieś je na konto, aby były dostępne wszędzie.</span>
+    </p>
+    <div class="flex flex-wrap gap-2">
+      <p-button label="Przenieś pola na konto" icon="pi pi-cloud-upload" size="small" [loading]="migrating()" [disabled]="migrating()" (onClick)="migrate.emit()" />
+      <p-button label="Nie teraz" size="small" severity="secondary" [text]="true" [disabled]="migrating()" (onClick)="migrationDismissed.emit()" />
+    </div>
+  </section>
+}
+
+@if (error()) {
+  <p-message severity="warn" role="alert">
+    <span>{{error()}}</span>
+    @if (loggedIn()) { <p-button label="Odśwież" size="small" severity="secondary" [text]="true" (onClick)="reload.emit()" /> }
+  </p-message>
+}
+@if (analysisError()) {
+  <p-message severity="error" icon="pi pi-exclamation-circle" role="alert">
+    <span>{{analysisError()}}</span>
+    <p-button label="Spróbuj ponownie" size="small" severity="secondary" [text]="true" (onClick)="retry.emit()" />
+  </p-message>
+}
+
+@if (saveParcelId(); as parcelId) {
+  <div class="pw-card flex flex-wrap items-center gap-3 p-3 text-sm">
+    <span class="min-w-0 flex-1">Bieżąca działka: <strong class="break-words">{{parcelId}}</strong></span>
+    <p-button label="Dodaj do pól" icon="pi pi-plus" size="small" [loading]="saving()" (onClick)="saveCurrent.emit()" />
+  </div>
+}

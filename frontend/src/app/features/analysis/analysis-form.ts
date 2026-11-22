@@ -1,29 +1,37 @@
-import { Component, effect, inject, signal, untracked, viewChild } from '@angular/core';
+import { Component, computed, effect, signal, inject, untracked, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
-import { DialogModule } from 'primeng/dialog';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { AnalysisStore } from '../../core/state/analysis.store';
 import { RecommendationCatalogStore } from '../../core/state/recommendation-catalog.store';
 import { ParcelStore } from '../../core/state/parcel.store';
+import { FieldDescriptionStore } from '../../core/state/field-description.store';
+import { descriptionRows, mergeAnswers } from '../../core/state/field-description';
+import { ConfirmedDescription } from '../../core/api/types';
+import { FieldDescriptionInput } from './field-description';
 import { FieldDeclarations } from '../../shared/ui/field-declarations';
 
 const STAGES = ['Początek wzrostu', 'Rozwój', 'Pełnia wzrostu', 'Dojrzewanie', 'Poza sezonem'];
 
 @Component({
   selector: 'app-analysis-form',
-  imports: [ReactiveFormsModule, ButtonModule, CheckboxModule, DialogModule, MessageModule, SelectModule, FieldDeclarations],
+  imports: [ReactiveFormsModule, ButtonModule, CheckboxModule, MessageModule, SelectModule, FieldDeclarations, FieldDescriptionInput],
   templateUrl: './analysis-form.html',
 })
 export class AnalysisForm {
-  protected readonly detailsOpen = signal(false);
   protected readonly store = inject(AnalysisStore);
   protected readonly catalog = inject(RecommendationCatalogStore);
   protected readonly parcels = inject(ParcelStore);
-  private readonly declarations = viewChild.required(FieldDeclarations);
+  protected readonly description = inject(FieldDescriptionStore);
+  protected readonly editingDescription = signal(false);
+  protected readonly summaryRows = computed(() => {
+    const confirmed = this.description.confirmed();
+    return confirmed ? descriptionRows(confirmed, this.description.labels()) : [];
+  });
+  private readonly declarations = viewChild(FieldDeclarations);
   private readonly fb = inject(FormBuilder).nonNullable;
 
   protected readonly stages = [{label: 'Z kalendarza', value: null as number | null},
@@ -45,15 +53,8 @@ export class AnalysisForm {
 
   constructor() {
     void this.store.init();
-    effect(() => { if (this.detailsOpen()) untracked(() => void this.catalog.load()); });
-    let previous = this.parcels.parcel();
-    this.detailsOpen.set(!!previous && !this.store.report());
-    effect(() => {
-      const parcel = this.parcels.parcel();
-      const changed = parcel !== previous;
-      previous = parcel;
-      if (changed) untracked(() => this.detailsOpen.set(!!parcel && !this.store.report()));
-    });
+    // Katalog jest potrzebny tylko do opcjonalnych sekcji, więc ładujemy go dopiero po wyborze działki.
+    effect(() => { if (this.parcels.parcel()) untracked(() => void this.catalog.load()); });
     effect(() => {
       const max = this.store.range().max;
       if (max && !this.form.controls.date.value) this.form.controls.date.setValue(max);
@@ -65,15 +66,16 @@ export class AnalysisForm {
     });
   }
 
-  protected closeDetails() {
-    if (this.declarations().collect() !== null) this.detailsOpen.set(false);
+  protected onDescribed(confirmed: ConfirmedDescription) {
+    this.description.confirmed.set(confirmed);
+    this.editingDescription.set(false);
   }
 
   protected submit() {
     if (this.form.invalid) return;
-    const farmerAnswers = this.declarations().collect();
-    if (farmerAnswers === null) { this.detailsOpen.set(true); return; }
-    this.detailsOpen.set(false);
+    const manual = this.declarations()?.collect() ?? {};
+    const described = this.description.confirmed();
+    const farmerAnswers = described ? mergeAnswers(manual, described.farmer_answers, described.observation_keys) : manual;
     const v = this.form.getRawValue();
     void this.store.analyze({
       crop: v.crop, date: v.date, stage: v.stage, sowing: v.sowing || null, irrigation: v.irrigation,

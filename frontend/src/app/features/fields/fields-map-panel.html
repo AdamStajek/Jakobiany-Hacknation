@@ -1,0 +1,18 @@
+<app-wodo-map [drawEnabled]="false" [fitGeometry]="geometry()" [fields]="shapes()" [selectedFieldId]="selected()?.id ?? null" [pins]="pins()"
+  hintText="Dotknij granicy pola, żeby je wybrać. Pinezki pokazują pola po oddaleniu mapy."
+  [hintSeen]="hintSeen() || !!selected() || !fields().length" (hintDismissed)="hintDismissed.emit()"
+  (fieldClicked)="picked.emit($event)" (pinClicked)="picked.emit($event)" />
+@if (selected(); as field) {
+  <div class="pw-card absolute inset-x-3 bottom-3 z-10 flex flex-col gap-2 p-3 shadow-lg lg:right-auto lg:max-w-md" role="status">
+    <span class="min-w-0 truncate text-sm">Na mapie: <strong>{{field.name}}</strong></span>
+    <div class="flex flex-wrap gap-2">
+      <p-button label="Analizuj" icon="pi pi-chart-line" size="small" [disabled]="!field.parcels.length" (onClick)="analyze.emit(field.parcels[0].id)" />
+      <p-button label="Karta pola" icon="pi pi-id-card" size="small" severity="secondary" [outlined]="true" (onClick)="passport.emit(field.id)" />
+      <a routerLink="/powiadomienia" class="inline-flex min-h-8 items-center gap-2 rounded-md border border-surface px-3 text-sm font-medium hover:bg-surface-100 dark:hover:bg-surface-800">
+        <i class="pi pi-bell" aria-hidden="true"></i>Powiadomienia</a>
+      <p-button label="Pokaż wszystkie pola" size="small" severity="secondary" [text]="true" (onClick)="picked.emit(null)" />
+    </div>
+  </div>
+} @else if (!fields().length) {
+  <p class="pw-card absolute inset-x-3 bottom-3 z-10 p-3 text-center text-sm text-muted-color lg:right-auto lg:max-w-sm">Tu pojawią się granice Twoich pól.</p>
+}

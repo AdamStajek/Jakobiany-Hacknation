@@ -89,7 +89,7 @@ Wprowadzić **jeden słownik tekstów** (`core/` lub `shared/`: plik ze stałymi
 | Analiza działki | Sprawdź pole |
 | Moje pola | Moje pola (bez zmian) |
 | Jak to działa / Metody | Jak to działa |
-| Eksperymenty | Proste próby na polu |
+| Eksperymenty | Eksperymenty (nazwa zostaje, decyzja właściciela) |
 | Paszport | Karta pola |
 | Ryzyko niedoboru wody | Czy polu grozi susza? |
 | Niskie w modelu | Woda jest w porządku |

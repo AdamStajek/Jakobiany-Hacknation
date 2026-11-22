@@ -12,6 +12,8 @@ from wodo.recommendation_catalog import (
     WET_FIELD_EXCLUSIONS,
     references,
 )
+from wodo.recommendation_costs import cost_estimate
+from wodo.recommendation_descriptions import DESCRIPTIONS
 
 # Weather thresholds are screening conventions. FAO-56 supplies ETc and RAW,
 # while operator limits and observations determine whether a treatment is suitable.
@@ -21,20 +23,26 @@ PRIORITY = (57, 58, 59, 44, 22, 52, 55, 53)
 GROUPS = (11, 1, 27, 30, 21)
 
 
+def action_details(action_id):
+    if action_id not in ACTIONS:
+        return {}
+    return {"why": DESCRIPTIONS[action_id], "cost_estimate": cost_estimate(action_id)}
+
+
 def forecast_facts(rows, day, metrics, active_crop):
     if not rows or day > date.max - timedelta(days=3):
         return {}
     facts = {}
     window = [(day + timedelta(days=offset)).isoformat() for offset in range(1, 4)]
-    for key, field, threshold, unit in (
-        ("evaporation", "et0", 4, "mm ET₀"),
-        ("wind", "wind", 5, "m/s na 10 m"),
-        ("heat", "temperature", 30, "°C"),
-        ("heavy_rain", "hourly_rain_max", 10, "mm/h"),
+    for key, field, threshold, label, unit in (
+        ("evaporation", "et0", 4, "duże parowanie", "mm na dobę"),
+        ("wind", "wind", 5, "wiatr", "m/s na wysokości 10 m"),
+        ("heat", "temperature", 30, "upał", "°C"),
+        ("heavy_rain", "hourly_rain_max", 10, "ulewę", "mm w godzinę"),
     ):
         samples = [(rows.get(d, {}).get(field), d) for d in window]
         if (best := max(((v, d) for v, d in samples if v is not None), default=None)) and best[0] >= threshold:
-            facts[key] = f"Prognoza Open-Meteo na {best[1]}: {best[0]:g} {unit}."
+            facts[key] = f"Prognoza Open-Meteo na {best[1]} wskazuje {label} ({best[0]:g} {unit})."
     if not active_crop:
         return facts
     cases = [rows.get(d, {}) for d in window]
@@ -45,13 +53,14 @@ def forecast_facts(rows, day, metrics, active_crop):
     total_etc = sum(demand)
     period = f"{window[0]} – {window[-1]}"
     if total_rain + 0.1 < total_etc:
-        facts["dry_forecast"] = f"Prognoza {period}: opad {total_rain:.1f} mm, ETc {total_etc:.1f} mm."
+        facts["dry_forecast"] = f"W dniach {period} ma spaść {total_rain:.1f} mm deszczu, a uprawa potrzebuje około {total_etc:.1f} mm wody."
     if all(row.get("probability") is not None for row in cases):
         effective = [row["rain"] * RAIN_INFILTRATION_SHARE if row["probability"] >= RAIN_PROBABILITY else 0
                      for row in cases]
         total_effective = sum(effective)
         if total_effective > 0 and total_effective >= total_etc:
-            evidence = f"Prognoza {period}: opad uwzględniony w bilansie {total_effective:.1f} mm, ETc {total_etc:.1f} mm."
+            evidence = (f"W dniach {period} z przewidywanego deszczu przyjęliśmy do obliczeń {total_effective:.1f} mm wody. "
+                        f"To wystarcza na potrzeby uprawy, które wynoszą około {total_etc:.1f} mm.")
             if root := metrics["root"]:
                 depletion = root["initially_dry"]["depletion_mm"]
                 for use, rain in zip(demand, effective, strict=True):
@@ -59,7 +68,8 @@ def forecast_facts(rows, day, metrics, active_crop):
                     if depletion > root["raw_mm"]:
                         return facts
                     depletion = max(0, depletion - rain)
-                evidence += f" W suchszym wariancie ubytek mieści się w progu RAW {root['raw_mm']:g} mm."
+                evidence += (" Nawet w suchszym wariancie roślinom wystarczy łatwo dostępnej wody do deszczu "
+                             f"(ubytek nie przekroczy {root['raw_mm']:g} mm).")
             facts["rain_covers"] = evidence
     return facts
 
@@ -69,69 +79,85 @@ def field_facts(metrics, inputs, request, answers):
     day, recent, root = request.day, metrics["recent"], metrics["root"]
     active = request.crop != "unknown" and metrics["stage_id"] != 4
     if active:
-        facts["active_crop"] = f"{metrics['crop']['label']} · {metrics['stage']}."
+        facts["active_crop"] = f"Na polu rośnie {metrics['crop']['label'].lower()} ({metrics['stage'].lower()})."
     if recent and recent["crop_balance_mm"] < 0 and 0 <= (day - date.fromisoformat(recent["end"])).days <= 10:
-        facts["recent_deficit"] = f"Bilans opad − ETc do {recent['end']}: {recent['crop_balance_mm']:+g} mm."
+        facts["recent_deficit"] = (f"W ciągu 30 dni do {recent['end']} spadło o {-recent['crop_balance_mm']:g} mm "
+                                   "mniej deszczu, niż według obliczeń potrzebowała uprawa.")
     history = metrics["history"]
     if answers.drought_frequency in ("Prawie co roku", "co kilka lat"):
-        facts["recurrent"] = f"Częstość niedoboru według rolnika: {answers.drought_frequency.lower()}."
+        facts["recurrent"] = f"Według zgłoszenia na polu brakuje wody {answers.drought_frequency.lower()}."
     elif (count := len(history["seasons"])) >= 3 and history["negative_seasons"] * 2 >= count:
-        facts["recurrent"] = f"Ujemny bilans opad − ET₀ w {history['negative_seasons']} z {count} sezonów."
+        facts["recurrent"] = (f"W {history['negative_seasons']} z {count} sezonów deszczu spadło mniej, "
+                              "niż wynosiło zapotrzebowanie na wodę obliczone na podstawie pogody dla rośliny wzorcowej.")
     if root:
         low, high, raw = root["initially_wet"]["depletion_mm"], root["initially_dry"]["depletion_mm"], root["raw_mm"]
-        evidence = f"Modelowany ubytek {low:g}–{high:g} mm przy progu RAW {raw:g} mm."
+        evidence = (f"Według obliczeń ubyło od {low:g} do {high:g} mm wody na głębokości korzeni. "
+                    f"Przy ubytku powyżej {raw:g} mm rośliny mogą odczuć brak wody.")
         if high > raw:
             facts["root_risk"] = evidence
             if low <= raw:
-                facts["water_uncertain"] = evidence
+                facts["water_uncertain"] = evidence + " Ocena zależy od tego, jak mokra była ziemia na początku."
     else:
-        facts["water_uncertain"] = "Brak kompletnego bilansu w strefie korzeniowej."
+        facts["water_uncertain"] = "Brakuje danych, żeby obliczyć zapas wody przy korzeniach."
     if request.irrigation and not any(source.casefold() == "brak dostępu" for source in answers.irrigation_water_source):
         facts["available_irrigation"] = "Rolnik zadeklarował możliwość nawadniania."
     if request.soil_observation == "wet":
-        facts["wet"] = "Ocena rolnika: gleba mokra."
+        facts["wet"] = "Rolnik zgłosił, że ziemia jest mokra."
     elif request.soil_observation == "dry":
-        facts["field_dry"] = "Ocena rolnika: gleba sucha."
+        facts["field_dry"] = "Rolnik zgłosił, że ziemia jest sucha."
     if answers.drainage_status in ("Tak, całe pole", "częściowo"):
-        facts["drainage"] = f"Zadeklarowany drenaż lub melioracja: {answers.drainage_status.lower()}."
-    for key, value, label in (
-        ("runoff", answers.surface_runoff_frequency, "Spływ powierzchniowy"),
-        ("ponding", answers.ponding_frequency, "Długie zastoiska"),
+        area = "całe pole" if answers.drainage_status == "Tak, całe pole" else "część pola"
+        facts["drainage"] = f"Rolnik zgłosił, że urządzenia odprowadzające wodę obejmują {area}."
+    for key, value, observation in (
+        ("runoff", answers.surface_runoff_frequency, "spływa po powierzchni pola"),
+        ("ponding", answers.ponding_frequency, "długo stoi na polu"),
     ):
         if value and value.casefold() in ("często", "czasami"):
-            facts[key] = f"{label} według rolnika: {value.lower()}."
+            facts[key] = f"Według relacji rolnika woda {value.lower()} {observation}."
     if (slope := inputs.get("terrain", {}).get("slope_pct")) is not None and slope >= 3:
-        facts["slope"] = f"Mediana nachylenia z modelu wysokości: {slope:g}%."
+        facts["slope"] = f"Według mapy terenu typowe nachylenie pola wynosi {slope:g}%."
     if active and "recent_deficit" in facts and not inputs.get("retention_available"):
-        facts["soil_missing"] = "Brak kompletu danych o retencji na głębokość korzeni uprawy."
+        facts["soil_missing"] = "Brakuje danych o tym, ile wody gleba zatrzymuje na głębokości korzeni."
     if (comparison := metrics.get("satellite_comparison")) and (scene := inputs.get("satellite", {}).get("scene")):
         if (comparison["n"] >= 3 and 0 <= (day - date.fromisoformat(scene["date"])).days <= 14
                 and min(comparison["ndmi_delta"], comparison["ndvi_delta"]) <= -0.10):
-            facts["sat_anomaly"] = (f"Scena {scene['date']}: odchylenie NDVI {comparison['ndvi_delta']:+.2f}, "
-                                    f"NDMI {comparison['ndmi_delta']:+.2f} względem {comparison['n']} scen.")
+            facts["sat_anomaly"] = (f"Zdjęcie z {scene['date']} porównaliśmy z {comparison['n']} podobnymi zdjęciami. "
+                                    f"Różnica wskaźnika zieleni roślin wyniosła {comparison['ndvi_delta']:+.2f}, "
+                                    f"a wskaźnika wody w roślinach {comparison['ndmi_delta']:+.2f}.")
     return facts | forecast_facts(inputs.get("forecast", {}).get("rows", {}), day, metrics, active)
+
+
+def action_steps(row, scope, points):
+    """Krótki plan działań złożony wyłącznie z pól katalogu rekomendacji i dowodów z pola."""
+    where = f"zaznaczonych miejscach ({len(points)})" if scope == "point" else "całym polu"
+    return [
+        f"Zacznij od oceny, czy warunki się zgadzają: {row['warunki_rekomendacji'].rstrip('.')}.",
+        f"Zaplanuj termin: {row['termin_realizacji'].rstrip('.')}.",
+        f"Przygotuj się na koszt ({row['koszt']}): {row['skladniki_kosztu'].rstrip('.')}.",
+        f"Zastosuj działanie „{row['dzialanie']}” na {where}.",
+    ]
 
 
 def matching_actions(facts, answers, day):
     """Keep field observations at field scale and attach local evidence to its declared points."""
-    field = facts | {key: f"Potwierdzenie rolnika: {OBSERVATIONS[key]}." for key in answers.recommendation_observations}
+    field = facts | {key: f"Informacja od rolnika. {OBSERVATIONS[key]}." for key in answers.recommendation_observations}
     locations = [(None, field)]
     regional = {key: facts[key] for key in facts.keys() & REGIONAL_SIGNALS}
     if "legal_water" in field:
         regional["legal_water"] = field["legal_water"]
     for zone in answers.problem_zones:
-        local = regional | {key: f"Potwierdzenie rolnika w tym punkcie: {OBSERVATIONS[key]}."
+        local = regional | {key: f"Obserwacja w zaznaczonym miejscu. {OBSERVATIONS[key]}."
                             for key in zone.recommendation_observations}
         age = (day - zone.date).days
         if zone.type == "Zastoiska":
-            local["point_ponding"] = f"Zastoiska zaznaczone przez rolnika ({zone.date.isoformat()})."
+            local["point_ponding"] = f"Rolnik zaznaczył miejsce, gdzie stała woda ({zone.date.isoformat()})."
             if 0 <= age <= 2:
                 local["point_recent_ponding"] = local["point_ponding"]
         elif zone.type == "Przesuszenie" and 0 <= age <= 6:
-            local["point_recent_dry"] = f"Przesuszenie zaznaczone przez rolnika ({zone.date.isoformat()})."
+            local["point_recent_dry"] = f"Rolnik zaznaczył miejsce, gdzie ziemia wyschła ({zone.date.isoformat()})."
         locations.append((zone, local))
 
-    for key, (_, _, _, why) in RULES.items():
+    for key in RULES:
         row = ACTIONS[key]
         matched = []
         for zone, evidence in locations:
@@ -149,10 +175,11 @@ def matching_actions(facts, answers, day):
                    "description": zone.description, "evidence": evidence} for zone, evidence in matched if zone is not None]
         field_evidence = next((evidence for zone, evidence in matched if zone is None), None)
         yield {"id": key, "group": row["kategoria"], "title": row["dzialanie"], "action": row["dzialanie"],
-               "why": why, "evidence": field_evidence or " ".join(dict.fromkeys(point["evidence"] for point in points)),
+               **action_details(key), "evidence": field_evidence or " ".join(dict.fromkeys(point["evidence"] for point in points)),
                "when": row["termin_realizacji"], "confidence": "wstępna", "limits": row["warunki_rekomendacji"],
                "cost": row["koszt"], "cost_details": row["skladniki_kosztu"],
-               "scope": "field" if field_evidence else "point", "points": points, "sources": references(key)}
+               "scope": "field" if field_evidence else "point", "points": points, "sources": references(key),
+               "steps": action_steps(row, "field" if field_evidence else "point", points)}
 
 
 def recommendations(metrics, inputs, request, agricultural):

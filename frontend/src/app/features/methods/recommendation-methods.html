@@ -9,12 +9,12 @@
   } @else if (!groups().length) {
     <p class="text-sm text-muted-color">Katalog działań jest pusty.</p>
   }
-  @for (group of groups(); track group[0]) {
+  @for (group of groups(); track group.title) {
     <details class="rounded-lg border border-surface px-3">
-      <summary class="min-h-11 cursor-pointer py-3 font-semibold">{{group[0]}}</summary>
-      <ol class="ml-7 list-decimal pb-3 text-sm">
-        @for (action of group[1]; track action.id) {
-          <li [value]="action.id" class="border-b border-surface last:border-b-0">
+      <summary class="min-h-11 cursor-pointer py-3 font-semibold">{{group.title}}</summary>
+      <ol [start]="group.start" class="ml-7 list-decimal pb-3 text-sm">
+        @for (action of group.actions; track action.id) {
+          <li class="border-b border-surface last:border-b-0">
             <details>
               <summary class="min-h-11 cursor-pointer py-3 font-medium">{{action.title}}</summary>
               <div class="space-y-2 pb-3">

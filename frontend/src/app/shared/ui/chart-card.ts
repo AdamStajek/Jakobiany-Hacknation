@@ -4,7 +4,7 @@ import { Component, input } from '@angular/core';
   selector: 'app-chart-card',
   template: `
     <section class="pw-card flex h-full flex-col p-4">
-      <h3 class="text-sm font-semibold">{{title()}}</h3>
+      <h4 class="text-sm font-semibold">{{title()}}</h4>
       @if (subtitle()) { <p class="mb-2 text-xs leading-snug text-muted-color">{{subtitle()}}</p> }
       <div class="min-h-0 flex-1"><ng-content /></div>
     </section>
