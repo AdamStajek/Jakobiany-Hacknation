@@ -3,7 +3,6 @@ import { Component, computed, inject, input, output, signal } from '@angular/cor
 import { Report } from '../../../core/api/types';
 import { ConsentStore } from '../../../core/state/consent.store';
 import { formatDate, formatDateTime } from '../../../shared/format';
-import { ConfidenceChip } from '../../../shared/ui/confidence-chip';
 import { KpiCard } from '../../../shared/ui/kpi-card';
 import { Segmented, SegmentOption } from '../../../shared/ui/segmented';
 import { SatelliteChart, SeasonChart, SoilChart, WaterBalanceChart } from './charts';
@@ -15,7 +14,7 @@ type ReportMode = 'simple' | 'advanced';
 
 @Component({
   selector: 'app-report-analysis',
-  imports: [DecimalPipe, ConfidenceChip, KpiCard, Segmented, ReportEnvironment, ReportQuestion, RootWaterScale,
+  imports: [DecimalPipe, KpiCard, Segmented, ReportEnvironment, ReportQuestion, RootWaterScale,
     WaterBalanceChart, SoilChart, SatelliteChart, SeasonChart],
   host: {class: 'block'},
   templateUrl: './report-analysis.html',

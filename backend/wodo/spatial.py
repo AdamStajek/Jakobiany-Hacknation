@@ -123,7 +123,7 @@ def stac(collections, bbox, limit, period=None, endpoint=STAC):
     return payload(endpoint, params, timeout=5)["features"]
 
 
-def indices(bands, footprint):
+def indices(bands, footprint, affine=None):
     red, nir, green, swir, scl = bands
     reflectance = np.stack([red, nir, green, swir])
     clear = (footprint & np.isin(scl, [4, 5]) & np.isfinite(reflectance).all(axis=0) &
@@ -136,8 +136,17 @@ def indices(bands, footprint):
     def nd(a, b):
         return round(float(np.median((a[clear] - b[clear]) / (a[clear] + b[clear]))), 3)
 
-    return {"ndvi": nd(nir, red), "ndmi": nd(nir, swir), "ndwi": nd(green, nir),
-            "clear_share": round(share, 3), "pixels": number}
+    result = {"ndvi": nd(nir, red), "ndmi": nd(nir, swir), "ndwi": nd(green, nir),
+              "clear_share": round(share, 3), "pixels": number}
+    if affine is not None:
+        rows, cols = np.nonzero(clear)
+        for key, band in (("ndvi", red), ("ndmi", swir)):
+            values = (nir[clear] - band[clear]) / (nir[clear] + band[clear])
+            index = int(np.argmin(np.abs(values - np.percentile(values, 10))))
+            if round(float(values[index]), 3) < result[key]:
+                xy = affine @ (cols[index] + .5, rows[index] + .5)
+                result[f"{key}_low_point"] = list(TO_GPS(*xy))
+    return result
 
 
 def passport_stats(bands, footprint):
@@ -185,7 +194,7 @@ def scene_metrics(scene, local, for_passport=False):
 
     with ThreadPoolExecutor(max_workers=4) as pool:
         bands = list(pool.map(load, SENTINEL_BANDS[:-1]))
-    output = indices([*bands, scl], footprint)
+    output = indices([*bands, scl], footprint, affine)
     if output:
         props = scene["properties"]
         if for_passport:
@@ -249,7 +258,7 @@ def satellite(geometry, day, baseline=False, *, earth_search_only=False):
             raise SourceError("Część scen była nieużyteczna lub przekroczyła limit odczytu rastrów.")
         return {"scene": None, "searched": len(candidates), "read_failures": rejected, "endpoint": endpoint}
 
-    cache_name = "passport-sentinel" if earth_search_only else ("sentinel-baseline" if baseline else "sentinel")
+    cache_name = "passport-sentinel" if earth_search_only else ("sentinel-baseline" if baseline else "sentinel-scouting")
     return cached(cache_name, [geometry, day.isoformat()],
                   .25 if day >= date.today() - timedelta(days=5) else 45, download)
 

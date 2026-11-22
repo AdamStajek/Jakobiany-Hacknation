@@ -96,7 +96,9 @@ export class AnalysisStore {
       if (value) results[slug] = value;
       else delete results[slug];
       const updated = await this.api.saveExperiments(report.analysis_id, results);
-      if (this.report() === report) this.report.set({...updated, metrics: report.metrics});
+      if (this.report() !== report) return;
+      this.report.set({...updated, metrics: report.metrics});
+      return updated;
     } catch (error) {
       if (this.report() === report) this.experimentError.set(errorMessage(error, 'Nie udało się zapisać wyniku próby.'));
     } finally {

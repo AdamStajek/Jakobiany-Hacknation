@@ -1,7 +1,7 @@
 <section aria-labelledby="wynik" class="space-y-4">
   <header class="relative flex items-center justify-between gap-2">
     <div class="min-w-0">
-      <h2 id="wynik" tabindex="-1" class="text-lg font-bold tracking-tight lg:text-2xl">Stan wody na Twojej działce</h2>
+      <h2 id="wynik" tabindex="-1" class="text-lg font-bold tracking-tight lg:text-2xl">Analiza działki</h2>
       <p class="text-sm text-muted-color">Działka {{report().parcel.id}} · <time [attr.datetime]="report().date">{{day()}}</time></p>
     </div>
     <details class="shrink-0 text-sm print:hidden">
@@ -10,7 +10,6 @@
       </summary>
       <div class="pw-card absolute right-0 z-20 mt-1 flex w-max max-w-[85vw] flex-wrap gap-2 p-2 shadow-lg">
         <a pButton [href]="'/api/analysis/' + report().analysis_id + '/report'" download>PDF</a>
-        <a pButton [href]="'/api/analysis/' + report().analysis_id + '/report?format=json'" download severity="secondary">JSON</a>
         <p-button icon="pi pi-print" ariaLabel="Drukuj" severity="secondary" (onClick)="print()" />
         <p-button icon="pi pi-link" ariaLabel="Kopiuj link" severity="secondary" (onClick)="copyLink()" />
         <a pButton [routerLink]="['/dzialka', report().parcel.id, 'paszport']" severity="secondary">Dane działki</a>

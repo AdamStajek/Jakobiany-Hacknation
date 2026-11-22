@@ -1,0 +1,11 @@
+parcel_id,gmina,date,iung_pct,balance_mm,alarm,verdict,source
+321201_2.0001.564,Bielice,2025-06-20,4.96,-145.15,True,nierozstrzygający,"https://susza.iung.pulawy.pl/wykazy/2025,3212012/"
+301103_2.0035.293,Kościan,2025-07-10,0.0,-144.8,True,rozbieżny,"https://susza.iung.pulawy.pl/wykazy/2025,3011032/"
+141911_2.0007.64,Słubice,2025-06-20,0.0,-116.3,False,zgodny,"https://susza.iung.pulawy.pl/wykazy/2025,1419112/"
+240609_2.0020.754,Wręczyca Wielka,2025-05-31,0.0,-85.62,False,zgodny,"https://susza.iung.pulawy.pl/wykazy/2025,2406092/"
+062010_2.0014.73,Skierbieszów,2025-07-10,0.0,-60.99,False,zgodny,"https://susza.iung.pulawy.pl/wykazy/2025,0620102/"
+080408_2.0001.884,Siedlisko,2025-06-10,0.0,-60.97,False,zgodny,"https://susza.iung.pulawy.pl/wykazy/2025,0804082/"
+321201_2.0005.20,Bielice,2025-06-10,0.0,-123.91,True,rozbieżny,"https://susza.iung.pulawy.pl/wykazy/2025,3212012/"
+020606_2.0008.9/5,Jeżów Sudecki,2025-06-20,0.0,-33.69,False,zgodny,"https://susza.iung.pulawy.pl/wykazy/2025,0206062/"
+141505_2.0003.32271/6,Kadzidło,2025-06-30,0.0,-94.95,False,zgodny,"https://susza.iung.pulawy.pl/wykazy/2025,1415052/"
+260607_2.0029.803,Tarłów,2025-06-10,0.0,-34.48,False,zgodny,"https://susza.iung.pulawy.pl/wykazy/2025,2606072/"

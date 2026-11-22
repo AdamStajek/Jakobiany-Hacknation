@@ -11,6 +11,16 @@ CASES = {
 DAYS = ["2024-05-20", "2024-06-20", "2024-06-30"]
 
 
+def compare(pct, risk):
+    if pct == 0 and risk == "Niepewne":
+        return "zgodny"
+    if 0 < pct < 95:
+        return "pośredni wynik IUNG"
+    if risk not in {"Podwyższone", "Niskie w modelu"}:
+        return "brak jednoznacznej diagnozy"
+    return "zgodny" if (risk == "Podwyższone") == (pct >= 95) else "rozbieżny"
+
+
 def main():
     for parcel, coverage in CASES.items():
         for day, pct in zip(DAYS, coverage, strict=True):
@@ -18,12 +28,7 @@ def main():
                              {"parcel_id": parcel, "date": day, "crop": "wheat"})
             assert result["parcel"]["id"] == parcel and result["date"] == day
             risk = result["metrics"]["risk"]
-            if 0 < pct < 95 or risk not in {"Podwyższone", "Niskie w modelu"}:
-                verdict = "nierozstrzygający"
-            elif (pct >= 95) == (risk == "Podwyższone"):
-                verdict = "zgodny"
-            else:
-                verdict = "rozbieżny"
+            verdict = compare(pct, risk)
             print(parcel, day, pct, risk, verdict, result["confidence"], result.get("agricultural"), flush=True)
 
 

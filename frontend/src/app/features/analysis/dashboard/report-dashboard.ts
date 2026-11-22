@@ -17,7 +17,7 @@ export class ReportDashboard {
   readonly report = input.required<Report>();
   protected readonly day = computed(() => formatDate(this.report().date));
   protected readonly steps = ['Analiza', 'Eksperymenty', 'Co możesz zrobić'];
-  protected readonly step = linkedSignal({source: () => this.report().metrics, computation: () => 1});
+  protected readonly step = linkedSignal({source: computed(() => this.report().metrics), computation: () => 1});
   private readonly stepButtons = viewChildren<ElementRef<HTMLButtonElement>>('stepButton');
 
   protected openExperiments() {

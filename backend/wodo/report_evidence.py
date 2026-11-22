@@ -43,6 +43,11 @@ def report_evidence(report):
         balance_note = "Za mało wspólnych dni z opadem i parowaniem, aby porównać ich sumy."
 
     title, reason = diagnosis(report, balance_note)
+    if report["agricultural"] and (period := metrics.get("period_drought")):
+        signal = "wskazuje na zagrożenie" if period["alarm"] else "nie wskazuje na zagrożenie"
+        balance_note += (f' Od {period["start"]} do {period["end"]} bilans opadu i parowania referencyjnego '
+                         f'wyniósł {number(period["balance_mm"])} mm. Dla pszenicy ozimej nasz wskaźnik {signal} '
+                         f'suszą w okolicy pola (próg {number(period["threshold_mm"])} mm).')
     scene = sources.get("satellite", {}).get("scene")
     comparison = metrics.get("satellite_comparison")
     if not scene:

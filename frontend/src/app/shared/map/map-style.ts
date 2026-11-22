@@ -19,7 +19,6 @@ export function mapStyle(lite: boolean): StyleSpecification {
   const parcelsMinZoom = lite ? LITE_PARCELS_MIN_ZOOM : PARCELS_MIN_ZOOM;
   return {
     version: 8,
-    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
     sources: {
       osm: {type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256, maxzoom: 19,
         attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'},

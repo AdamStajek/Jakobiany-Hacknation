@@ -19,7 +19,7 @@ export function addMapLayers(map: MapLibreMap) {
     paint: {'line-color': ['get', 'color'], 'line-width': ['match', ['get', 'state'], 'selected', 5, 'dim', 1.5, 'muted', 1.25, 2.5],
       'line-opacity': ['match', ['get', 'state'], 'dim', 0.5, 'muted', 0.75, 1]}});
   map.addLayer({id: 'fields-label', type: 'symbol', source: 'fields', minzoom: FIELD_LABEL_MIN_ZOOM,
-    layout: {'text-field': ['get', 'name'], 'text-font': ['Open Sans Regular'], 'text-size': 13, 'text-optional': true},
+    layout: {'text-field': ['get', 'name'], 'text-font': ['sans-serif'], 'text-size': 13, 'text-optional': true},
     paint: {'text-color': '#1f2937', 'text-halo-color': '#fff', 'text-halo-width': 1.5,
       'text-opacity': ['match', ['get', 'state'], 'dim', 0.55, 'muted', 0.75, 1]}});
   map.addLayer({id: 'water-point', type: 'circle', source: 'water',
@@ -27,18 +27,18 @@ export function addMapLayers(map: MapLibreMap) {
   map.addLayer({id: 'marker-points', type: 'circle', source: 'markers',
     paint: {'circle-radius': ['case', ['has', 'n'], 12, 6], 'circle-color': '#944518', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2}});
   map.addLayer({id: 'marker-numbers', type: 'symbol', source: 'markers', filter: ['has', 'n'],
-    layout: {'text-field': ['to-string', ['get', 'n']], 'text-font': ['Open Sans Regular'], 'text-size': 13, 'text-allow-overlap': true},
+    layout: {'text-field': ['to-string', ['get', 'n']], 'text-font': ['sans-serif'], 'text-size': 13, 'text-allow-overlap': true},
     paint: {'text-color': '#fff'}});
   map.addLayer({id: 'pin-clusters', type: 'circle', source: 'pins', filter: ['has', 'point_count'], maxzoom: PIN_MAX_ZOOM,
     paint: {'circle-color': '#944518', 'circle-stroke-color': '#fff', 'circle-stroke-width': 3,
       'circle-radius': ['step', ['get', 'point_count'], 16, 5, 20, 15, 25]}});
   map.addLayer({id: 'pin-cluster-count', type: 'symbol', source: 'pins', filter: ['has', 'point_count'], maxzoom: PIN_MAX_ZOOM,
-    layout: {'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Open Sans Regular'], 'text-size': 13, 'text-allow-overlap': true},
+    layout: {'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['sans-serif'], 'text-size': 13, 'text-allow-overlap': true},
     paint: {'text-color': '#fff'}});
   map.addLayer({id: 'pin-points', type: 'circle', source: 'pins', filter: ['!', ['has', 'point_count']], maxzoom: PIN_MAX_ZOOM,
     paint: {'circle-color': ['get', 'color'], 'circle-radius': 9, 'circle-stroke-color': '#fff', 'circle-stroke-width': 3}});
   map.addLayer({id: 'pin-labels', type: 'symbol', source: 'pins', filter: ['!', ['has', 'point_count']], minzoom: 9, maxzoom: PIN_MAX_ZOOM,
-    layout: {'text-field': ['get', 'name'], 'text-font': ['Open Sans Regular'], 'text-size': 12, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-optional': true},
+    layout: {'text-field': ['get', 'name'], 'text-font': ['sans-serif'], 'text-size': 12, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-optional': true},
     paint: {'text-color': '#1f2937', 'text-halo-color': '#fff', 'text-halo-width': 1.5}});
   // Niebieska kropka „tu jesteś” jak w Google Maps: półprzezroczysta poświata + kropka z białą obwódką.
   map.addLayer({id: 'me-halo', type: 'circle', source: 'me', paint: {'circle-radius': 16, 'circle-color': '#4285f4', 'circle-opacity': 0.25}});

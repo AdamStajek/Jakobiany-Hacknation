@@ -37,3 +37,33 @@ def test_evidence_withholds_diagnosis_and_separates_history():
     assert "Za mało danych" in report_evidence(report_with_weather(0, days=0))["headline"]
     report["agricultural"] = False
     assert "potwierdzić" in report_evidence(report)["headline"]
+
+
+def test_report_download_is_pdf_with_saved_field_results(monkeypatch):
+    from shutil import which
+    from subprocess import run
+
+    from fastapi.testclient import TestClient
+
+    import main
+    from wodo.experiments import experiment_checks, experiment_diagnosis
+
+    report = report_with_weather(0)
+    report.update(parcel={"id": "Test", "area_ha": 1, "geometry": {"type": "Polygon", "coordinates": [
+        [[21, 52], [21.001, 52], [21.001, 52.001], [21, 52]]]}}, recommendations=[])
+    results = {"wilgotnosc-gleby": "moist"}
+    report.update(experiments=experiment_checks(report), experiment_results=results,
+                  experiment_conclusions=experiment_diagnosis(report, results))
+    monkeypatch.setattr(main, "get_report", lambda _: report)
+    client = TestClient(main.app)
+    url = "/api/analysis/test/report"
+    assert client.get(url, params={"format": "json"}).status_code == 422
+    response = client.get(url)
+    assert response.headers["content-type"] == "application/pdf"
+    assert response.content.startswith(b"%PDF-")
+    if which("pdftotext"):
+        text = run(["pdftotext", "-", "-"], input=response.content, capture_output=True, check=True).stdout.decode()
+        assert text.index("1. Analiza") < text.index("2. Eksperymenty") < text.index("3. Co możesz zrobić?")
+        assert "Skąd pochodzą dane i czego brakuje?" not in text
+        assert "Wilgotno na głębokości korzeni" in text
+        assert "Wniosek z próby" in text

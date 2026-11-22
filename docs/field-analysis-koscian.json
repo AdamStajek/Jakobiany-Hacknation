@@ -23,6 +23,7 @@
         "cost": "niski",
         "cost_details": "Planowanie zmianowania; koszty gospodarcze zależne od gatunków",
         "scope": "field",
+        "location": "Całe pole",
         "points": [],
         "sources": [
           {
@@ -256,6 +257,7 @@
       "cost": "niski",
       "cost_details": "Planowanie zmianowania; koszty gospodarcze zależne od gatunków",
       "scope": "field",
+      "location": "Całe pole",
       "points": [],
       "sources": [
         {

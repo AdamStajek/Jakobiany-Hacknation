@@ -1,5 +1,16 @@
 <section aria-labelledby="eksperymenty-raportu" class="space-y-3">
   <h3 id="eksperymenty-raportu" class="text-lg font-semibold">Eksperymenty</h3>
+  <div #notice tabindex="-1" role="status" aria-atomic="true">
+    @if (feedback(); as saved) {
+      @if (saved.id === report().analysis_id) {
+        <div class="space-y-1 rounded-xl border border-surface p-3">
+          <h4 class="font-semibold">Wpływ zapisanego wyniku na analizę</h4>
+          <p>{{saved.message}}</p>
+          @for (change of saved.changes; track change) { <p>{{change}}</p> }
+        </div>
+      }
+    }
+  </div>
   @if (report().experiments?.length) {
     @if (analysis.experimentError()) {
       <p role="alert" class="mb-3 text-sm">{{analysis.experimentError()}}</p>
@@ -26,9 +37,9 @@
             </label>
             <p-button label="Zapisz wynik" [disabled]="analysis.savingExperiment()"
               [ariaLabel]="'Zapisz wynik — ' + check.title"
-              (onClick)="analysis.saveExperiment(report(), check.slug, result.value)" />
+              (onClick)="save(check.slug, check.title, result.value, notice)" />
           </div>
-          <div aria-live="polite">
+          <div>
             @if (report().experiment_conclusions?.[check.slug]; as conclusion) {
               <p><strong>Wniosek z próby.</strong> {{conclusion}}</p>
             }

@@ -36,7 +36,7 @@ export type RecommendationPoint = {
 };
 export type Recommendation = {
   group: string; title: string; action: string; why: string; evidence: string; when: string; confidence: string; limits: string;
-  id?: number; cost?: string; cost_details?: string; cost_estimate?: CostEstimate; scope?: 'field' | 'point'; points?: RecommendationPoint[];
+  id?: number; cost?: string; cost_details?: string; cost_estimate?: CostEstimate; scope?: 'field' | 'point' | 'site'; location?: string; points?: RecommendationPoint[];
   sources?: ResearchSource[];
   /** Krótki plan działań (3–4 kroki) z katalogu rekomendacji. */
   steps?: string[];

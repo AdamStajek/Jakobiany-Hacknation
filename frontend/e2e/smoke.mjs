@@ -59,8 +59,8 @@ async function run(name) {
     .getByRole('button', {name: 'Szukaj działki'});
   const selectedCard = id => page.getByRole('status').getByText(id, {exact: true}).first();
   const form = page.getByRole('form', {name: 'Uprawa i data'});
-  const analyze = form.getByRole('button', {name: 'Sprawdź wodę na polu'});
-  const heading = page.getByRole('heading', {name: 'Stan wody na Twojej działce'});
+  const analyze = form.getByRole('button', {name: 'Analizuj działkę'});
+  const heading = page.getByRole('heading', {name: 'Analiza działki'});
   const chooseCrop = async label => {
     await page.locator('#crop').click();
     await page.getByRole('option', {name: label, exact: true}).click();
@@ -160,11 +160,16 @@ async function run(name) {
     // 4. Formularz i analiza.
     await chooseCrop('Ziemniak');
     await page.locator('#day').fill('2024-07-05');
+    await form.getByRole('button', {name: /^Zaawansowane/}).click();
     await form.getByRole('button', {name: /Gleba i woda/}).click();
     await form.getByLabel('Co rosło na tym polu w poprzednim sezonie głównym?').fill('Rzepak');
     await form.getByText('Wybierz warunki dla pola', {exact: true}).click();
     await page.getByLabel('Szukaj warunku dla pola').fill('dach');
     await page.getByRole('option', {name: /Jest dostępny dach/}).click();
+    await form.getByRole('heading', {name: 'Dodatkowe informacje o polu'}).click();
+    await form.locator('p-multiselect[inputid="field-confirmations"]').click();
+    await page.getByLabel('Szukaj warunku dla pola').fill('zdecydować');
+    await page.getByRole('option', {name: /Trzeba niedługo zdecydować/}).click();
     await form.getByRole('combobox', {name: 'Warunki zaobserwowane na całym polu'}).press('Escape');
     await form.getByLabel(/Czy podczas ulewy woda widocznie spływa/).selectOption('Często');
     await analyze.click();
@@ -176,7 +181,7 @@ async function run(name) {
     const report = await (await context.request.get(url + '/api/analysis/' + page.url().split('/').at(-1))).json();
     assert.equal(report.farmer_answers?.previous_crop, 'Rzepak');
     const buffer = report.recommendations.find(action => action.id === 15);
-    assert.equal(buffer?.scope, 'field');
+    assert.equal(buffer?.scope, 'site');
     assert(report.recommendations.some(action => action.id === 18));
     assert(buffer.sources.length > 0);
     await page.getByRole('button', {name: 'Ukryj propozycję'}).click();
@@ -190,8 +195,7 @@ async function run(name) {
     const waterAnalysis = page.getByRole('region', {name: 'Analiza', exact: true});
     const verdict = waterAnalysis.getByRole('heading', {name: report.evidence.headline, exact: true});
     await verdict.waitFor();
-    const confidence = waterAnalysis.getByText('Pewność: ' + report.confidence, {exact: true});
-    await confidence.waitFor({state: report.confidence === 'Ograniczona' ? 'hidden' : 'visible'});
+    assert.equal(await waterAnalysis.getByText(/^Pewność:/).count(), 0);
     await waterAnalysis.getByRole('button', {name: /Czy woda może spływać/}).press('Enter');
     await waterAnalysis.getByText('Spływ wody po powierzchni podczas ulewy: Często.').waitFor();
     await noOverflow('raport');
@@ -219,18 +223,37 @@ async function run(name) {
     assert.equal(await steps.getByRole('button', {name: '2. Eksperymenty'}).getAttribute('aria-current'), 'step');
     await page.getByRole('link', {name: 'Instrukcja — ' + report.experiments[0].title + ' (nowa karta)'}).waitFor();
 
+    const trial = report.experiments[0];
+    await page.getByRole('combobox', {name: 'Wynik — ' + trial.title}).selectOption(trial.options[0].value);
+    await page.getByRole('button', {name: 'Zapisz wynik — ' + trial.title}).click();
+    const saved = page.locator('#krok-2 [role=status]');
+    await saved.getByText(trial.options[0].conclusion, {exact: false}).waitFor();
+    assert.equal(await steps.getByRole('button', {name: '2. Eksperymenty'}).getAttribute('aria-current'), 'step');
+
+    const dismissPrompt = page.getByRole('button', {name: 'Ukryj propozycję'});
+    if (await dismissPrompt.isVisible()) await dismissPrompt.click();
+
     // 6. Zalecenia z dowodami.
     await steps.getByRole('button', {name: '3. Co możesz zrobić'}).click();
     const recommendations = page.getByRole('region', {name: 'Co możesz zrobić?'});
     await recommendations.getByRole('heading', {name: 'Co możesz zrobić?'}).scrollIntoViewIfNeeded();
     const recommendation = recommendations.locator('article').filter({has: page.getByRole('heading', {name: buffer.title})});
     if (await recommendation.count() === 0) await recommendations.getByRole('button', {name: /Pokaż więcej/}).click();
+    await recommendation.getByText(buffer.location, {exact: true}).waitFor();
     await recommendation.getByText(/200\s*–\s*320 zł netto za ha pasa/).waitFor();
-    assert.equal(await recommendation.getByText('Pewność: wstępna', {exact: true}).count(), 0);
+    assert.equal(await recommendation.getByText(/^Pewność:/).count(), 0);
     await recommendation.getByRole('button', {name: 'Dlaczego to pasuje? ' + buffer.title}).click();
     await page.getByRole('heading', {name: 'Dlaczego na tej działce?'}).waitFor();
     await page.getByRole('heading', {name: 'Jak to może pomóc?'}).waitFor();
     await shot('08-dowody');
+    await page.keyboard.press('Escape');
+
+    const measurement = report.recommendations.find(action => action.id === 52);
+    const mapButton = recommendations.getByRole('button', {name: 'Pokaż na mapie: ' + measurement.title});
+    if (await mapButton.count() === 0) await recommendations.getByRole('button', {name: /Pokaż więcej/}).click();
+    await mapButton.press('Enter');
+    await page.getByRole('application', {name: 'Mapa miejsc objętych zaleceniem'}).waitFor();
+    await page.getByRole('list', {name: 'Punkty na mapie'}).getByText('Proponowane miejsce pomiaru', {exact: false}).waitFor();
     await page.keyboard.press('Escape');
 
     // 7. PDF.

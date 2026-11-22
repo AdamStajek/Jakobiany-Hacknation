@@ -133,6 +133,32 @@ def bucket(start, taw, p, rows, *, daily_unmet=None):
             "eta_mm": round(actual, 1), "unmet_mm": round(unmet, 1)}
 
 
+def complete_climate_balance(rows, start, end):
+    """P minus reference ET, in mm; require every day of the period."""
+    balance = 0.0
+    for day in dates(start, end):
+        row = rows.get(day.isoformat())
+        if row is None or None in row[:2]:
+            return None
+        balance += row[0] - row[1]
+    return balance
+
+
+def wheat_period_signal(rows, selected):
+    # Only the six reporting periods represented in the IUNG calibration.
+    ends = [date(selected.year, m, d) for m, d in ((5, 20), (5, 31), (6, 10), (6, 20), (6, 30), (7, 10))]
+    if not ends[0] <= selected <= ends[-1]:
+        return None
+    end = max(day for day in ends if day <= selected)
+    start = end - timedelta(days=60)
+    balance = complete_climate_balance(rows, start, end)
+    if balance is None:
+        return None
+    threshold = -120
+    return {"start": str(start), "end": str(end), "balance_mm": round(balance, 2),
+            "threshold_mm": threshold, "alarm": balance <= threshold}
+
+
 def summarize(rows, start, end, crop=None, sowing=None, stage=None):
     days = list(dates(start, end))
     samples = [rows.get(day.isoformat()) for day in days]
@@ -232,4 +258,5 @@ def assess(rows, soil, crop_key, selected, sowing=None, stage=None, irrigation_m
         risk = "Sygnał niedoboru" if recent["crop_balance_mm"] < 0 else "Brak sygnału z opadu i ET"
     return {"crop": asdict(crop), "stage": "Nieokreślona" if crop_key == UNKNOWN_CROP else STAGES[stage_id], "stage_id": stage_id, "kc": round(kc, 3),
             "recent": recent, "history": history, "root": root, "risk": risk,
+            "period_drought": wheat_period_signal(rows, selected) if crop_key == "wheat" else None,
             "weather_last_day": max(usable, default=None), "weather_first_day": min(usable, default=None)}

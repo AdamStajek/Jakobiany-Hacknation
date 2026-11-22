@@ -39,7 +39,7 @@ from wodo.notify.router import router as notify_router
 from wodo.passport import collect, farmer_questions
 from wodo.passport_summary import passport_summary
 from wodo.recommendation_catalog import catalog, observation_options
-from wodo.recommendations import action_details
+from wodo.recommendations import action_details, locate_action
 from wodo.report import pdf
 from wodo.report_evidence import report_evidence
 from wodo.science import CROPS, years_ago
@@ -603,6 +603,8 @@ def get_report(analysis_id):
     if "evidence" not in report:
         report["evidence"] = report_evidence(report)
     for recommendation in report.get("recommendations", ()):
+        if "location" not in recommendation:
+            locate_action(recommendation, report.get("parcel", {}).get("sample_point"), report.get("date"))
         if "cost_estimate" not in recommendation:
             recommendation.update(action_details(recommendation.get("id")))
     report["experiments"] = experiment_checks(report)
@@ -637,22 +639,14 @@ def provenance(analysis_id: str):
 
 
 @app.get("/api/analysis/{analysis_id}/report")
-def analysis_document(
-    analysis_id: str, format: str = Query(default="pdf", pattern="^(pdf|json)$")
-):
+def analysis_document(analysis_id: str, format: Literal["pdf"] = "pdf"):
     report = get_report(analysis_id)
-    data = (
-        pdf(report)
-        if format == "pdf"
-        else json.dumps(report, ensure_ascii=False, indent=2).encode()
-    )
     return Response(
-        data,
-        media_type="application/pdf" if format == "pdf" else "application/json",
-        headers={
-            "Content-Disposition": f'attachment; filename="wodostraznik-{report["date"]}.{format}"'
-        },
+        pdf(report),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="wodostraznik-{report["date"]}.pdf"'},
     )
+
 
 
 site = os.environ.get("WODO_SITE_DIR")

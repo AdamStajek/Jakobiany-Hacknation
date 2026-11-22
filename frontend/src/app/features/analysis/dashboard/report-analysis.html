@@ -11,12 +11,7 @@
   </div>
 
   <article class="pw-card space-y-4 border-t-4 border-t-primary p-4 lg:p-5" aria-labelledby="diagnoza">
-    <div class="flex flex-wrap items-center justify-between gap-2">
-      <span class="pw-eyebrow">{{m.crop.label}} · {{day()}}</span>
-      @if (r.confidence !== 'Ograniczona') {
-        <app-confidence-chip [level]="r.confidence" />
-      }
-    </div>
+    <p class="pw-eyebrow">{{m.crop.label}} · {{day()}}</p>
     <div>
       <h4 id="diagnoza" class="text-2xl leading-tight font-bold tracking-tight lg:text-3xl">{{e.headline}}</h4>
       @if (m.risk !== 'Poza okresem aktywnej uprawy') {
