@@ -20,7 +20,7 @@ def experiment_checks(report):
                                     for value, label, conclusion in options]))
 
     stress = root and root["initially_dry"]["depletion_mm"] > root["raw_mm"]
-    if deficit or stress or root is None or wet:
+    if deficit or stress or root is None or wet or "wilgotnosc-gleby" in results:
         add("wilgotnosc-gleby", "Wilgotność gleby w dłoni",
             "Sprawdź, ile wilgoci jest tam, gdzie rosną korzenie. Dane modelowe i ogólny opis pola nie pokazują wilgotności poszczególnych warstw.",
             "Sucho przy korzeniach wzmacnia podejrzenie niedoboru. Wilgotny profil je osłabia, a mokry kieruje uwagę na zaleganie wody.",
@@ -45,7 +45,7 @@ def experiment_checks(report):
                 ("poor", "Zbite bryły i korzenie głównie w szczelinach lub skręcające w bok", "Zbita warstwa może ograniczać ukorzenienie i przepływ wody. Sprawdź jej głębokość i zasięg w kolejnych punktach."),
                 ("open", "Korzenie przechodzą przez bryły, bez wyraźnie zbitej warstwy", "W zbadanej warstwie ubicie jest mniej prawdopodobną przyczyną. Porównaj wilgotność i odpływ w innych miejscach."),
             ])
-    if deficit or recent is None:
+    if deficit or recent is None or "deszczomierz" in results:
         add("deszczomierz", "Pomiar deszczu deszczomierzem",
             "Sprawdź, czy opad przy polu odpowiada danym pogodowym dla okolicy.",
             "Porównaj sumy z tego samego okresu. Niższy opad lokalny wzmacnia podejrzenie, że pole dostało mniej wody, a wyższy może tłumaczyć wilgotniejszą glebę.",

@@ -4,9 +4,10 @@ type ConsentChoice = 'granted' | 'denied';
 type WriteResult = 'saved' | 'skipped' | 'failed';
 
 export const CONSENT_KEY = 'pw.consent.v1';
+export const EXPERIMENT_RESULTS_KEY = 'pw.experiment-results.v1';
 /** Wszystko, co aplikacja zapisuje w przeglądarce za zgodą użytkownika (kasowane przy cofnięciu zgody). */
 const MANAGED_KEYS = ['pw.fields.v1', 'wodo-theme', 'report-mode', 'pw.map-hint.fields.v1', 'pw.notify.v1',
-  'pw.map-hint.analysis.v1', 'pw.analysis.show-fields.v1', 'pw.map-basemap.v1'];
+  'pw.map-hint.analysis.v1', 'pw.analysis.show-fields.v1', 'pw.map-basemap.v1', EXPERIMENT_RESULTS_KEY];
 
 /**
  * Zgoda na zapis danych w tej przeglądarce (localStorage). Bez zgody nic poza samą decyzją nie jest zapisywane:

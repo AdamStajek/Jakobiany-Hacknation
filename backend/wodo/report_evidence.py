@@ -43,6 +43,13 @@ def report_evidence(report):
         balance_note = "Za mało wspólnych dni z opadem i parowaniem, aby porównać ich sumy."
 
     title, reason = diagnosis(report, balance_note)
+    moisture = report.get("experiment_results", {}).get("wilgotnosc-gleby")
+    if report["agricultural"] and moisture:
+        title = {
+            "dry": "Próba terenowa wskazuje na suchość przy korzeniach",
+            "moist": "Próba terenowa wykazała wilgoć przy korzeniach",
+            "wet": "Próba terenowa wykazała mokrą glebę przy korzeniach",
+        }.get(moisture, title)
     if report["agricultural"] and (period := metrics.get("period_drought")):
         signal = "wskazuje na zagrożenie" if period["alarm"] else "nie wskazuje na zagrożenie"
         balance_note += (f' Od {period["start"]} do {period["end"]} bilans opadu i parowania referencyjnego '

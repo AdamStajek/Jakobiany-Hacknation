@@ -85,6 +85,7 @@ class AnalysisRequest(BaseModel):
     confirm_land: bool = False
     soil_observation: Literal["dry", "moist", "wet"] | None = None
     farmer_answers: FarmerAnswers = Field(default_factory=FarmerAnswers)
+    experiment_results: dict[str, str] = Field(default_factory=dict, max_length=5)
 
     @field_validator("crop")
     @classmethod
@@ -92,6 +93,13 @@ class AnalysisRequest(BaseModel):
         if value not in CROPS:
             raise ValueError("Nieznana uprawa.")
         return value
+
+    @field_validator("experiment_results")
+    @classmethod
+    def validate_experiment_results(cls, results):
+        experiment_diagnosis({"agricultural": True, "metrics": {"recent": None, "root": None},
+                              "sources": [], "experiment_results": results}, results)
+        return results
 
     @model_validator(mode="after")
     def validate_inputs(self):
@@ -483,6 +491,9 @@ def execute_analysis(request: AnalysisRequest, on_progress=None):
         result = run(parcel, request, on_progress)
         if answers := request.farmer_answers.model_dump(mode="json", exclude_unset=True):
             result["farmer_answers"] = answers
+        if request.experiment_results and result["agricultural"]:
+            result["experiment_results"] = request.experiment_results
+            result["experiment_conclusions"] = experiment_diagnosis(result, request.experiment_results)
         result["situation"] = report_message(result)
         result["evidence"] = report_evidence(result)
         result["experiments"] = experiment_checks(result)
@@ -670,7 +681,7 @@ def get_report(analysis_id):
         raise HTTPException(404, "Raport nie istnieje lub wygasł.")
     if "situation" not in report:
         report["situation"] = report_message(report)
-    if "evidence" not in report:
+    if "evidence" not in report or report.get("experiment_results"):
         report["evidence"] = report_evidence(report)
     for recommendation in report.get("recommendations", ()):
         if "location" not in recommendation:
@@ -697,6 +708,7 @@ def save_experiments(analysis_id: str, results: dict[str, str] = Body(max_length
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
     report.update(analysis_id=uuid4().hex, experiment_results=results, experiment_conclusions=conclusions)
+    report["evidence"] = report_evidence(report)
     report["experiments"] = experiment_checks(report)
     write(f"report:{report['analysis_id']}", report)
     return report
