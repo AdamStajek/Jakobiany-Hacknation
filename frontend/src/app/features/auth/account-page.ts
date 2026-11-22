@@ -88,7 +88,7 @@ type PrefsState = 'loading' | 'ready' | 'error';
           }
         </app-panel>
 
-        <app-panel heading="Zmiana hasła" icon="pi-key"><app-password-form /></app-panel>
+        <div id="haslo" class="scroll-mt-20"><app-panel heading="Zmiana hasła" icon="pi-key"><app-password-form /></app-panel></div>
 
         <app-panel heading="Usunięcie konta" icon="pi-trash">
           <p class="text-sm text-muted-color">Usunięcie konta kasuje na stałe Twoje pola, zapisane raporty i ustawienia powiadomień. Tej operacji nie można cofnąć.</p>

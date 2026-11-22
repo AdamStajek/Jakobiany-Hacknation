@@ -287,8 +287,8 @@ async function run(name) {
     // 9. Link do samej działki, motyw, rysowanie granicy.
     await page.goto(reportUrl.replace(/\/analiza\/.*$/, ''), {waitUntil: 'domcontentloaded'});
     await selectedCard(matches).waitFor({timeout: 20000});
-    const themeButton = page.getByRole('button', {name: /Motyw/}).locator('visible=true').first();
-    await themeButton.click();
+    await page.getByRole('button', {name: /^Menu/}).locator('visible=true').first().click();
+    await page.getByRole('button', {name: 'Ciemny'}).click();
     await page.waitForTimeout(300);
     await shot('11-motyw');
     if (!mobile) {

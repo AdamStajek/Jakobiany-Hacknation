@@ -4,7 +4,6 @@ import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter, map } from 'rxjs';
 import { AuthStore } from '../core/state/auth.store';
 import { FieldsStore } from '../core/state/fields.store';
-import { ThemeService } from '../core/theme/theme';
 import { AccountMenu } from './account-menu';
 import { ConsentBanner } from './consent-banner';
 import { PwaBanner } from './pwa-banner';
@@ -43,10 +42,6 @@ const NAV: NavItem[] = [
       </nav>
       <div class="mt-auto space-y-3">
         <app-account-menu variant="sidebar" [url]="url()" />
-        <button type="button" (click)="theme.cycle()" [attr.aria-label]="label() + '. Kliknij, aby zmienić.'"
-          class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-surface-100 dark:hover:bg-surface-800">
-          <i class="pi {{icon()}} text-base" aria-hidden="true"></i>{{label()}}
-        </button>
         <p class="px-3 text-xs leading-snug text-muted-color">Zespół Jakobiany<br>HackNation 2026 · KOWR</p>
       </div>
     </aside>
@@ -57,10 +52,6 @@ const NAV: NavItem[] = [
         <span class="text-base font-extrabold tracking-tight">Pole Widzenia</span>
       </a>
       <app-account-menu class="ml-auto" variant="header" [url]="url()" />
-      <button type="button" (click)="theme.cycle()" [attr.aria-label]="label() + '. Kliknij, aby zmienić.'"
-        class="grid h-10 w-10 place-items-center rounded-full hover:bg-surface-100 dark:hover:bg-surface-800">
-        <i class="pi {{icon()}}" aria-hidden="true"></i>
-      </button>
     </header>
 
     <div class="lg:pl-60"><app-pwa-banner /></div>
@@ -80,15 +71,12 @@ const NAV: NavItem[] = [
   `,
 })
 export class Shell {
-  protected readonly theme = inject(ThemeService);
   /** Tworzony od startu, aby każdy raport z analizy odświeżał status zapisanych pól. */
   private readonly fields = inject(FieldsStore);
   /** Sesję sprawdzamy od startu, aby menu konta i pola od razu znały źródło danych. */
   private readonly auth = inject(AuthStore);
   protected readonly nav = NAV;
   constructor() { void this.auth.init(); }
-  protected readonly label = computed(() => ({system: 'Motyw systemowy', light: 'Motyw jasny', dark: 'Motyw ciemny'})[this.theme.mode()]);
-  protected readonly icon = computed(() => ({system: 'pi-desktop', light: 'pi-sun', dark: 'pi-moon'})[this.theme.mode()]);
   private readonly router = inject(Router);
   protected readonly url = toSignal(this.router.events.pipe(filter((e) => e instanceof NavigationEnd), map(() => this.router.url)),
     {initialValue: this.router.url});

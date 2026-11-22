@@ -1,56 +1,59 @@
-import { Component, computed, inject, input } from '@angular/core';
+import { Component, ElementRef, computed, effect, inject, input, signal, untracked, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthStore } from '../core/state/auth.store';
 import { loginQuery } from '../core/state/return-url';
+import { ThemeMode, ThemeService } from '../core/theme/theme';
 
-/** Menu konta: w pasku bocznym (desktop) pełne, w górnym pasku (telefon) jako ikona. */
+const THEMES: {mode: ThemeMode; label: string; icon: string}[] = [
+  {mode: 'system', label: 'Systemowy', icon: 'pi-desktop'},
+  {mode: 'light', label: 'Jasny', icon: 'pi-sun'},
+  {mode: 'dark', label: 'Ciemny', icon: 'pi-moon'},
+];
+
+/** Menu konta (ikona użytkownika): konto, hasło, powiadomienia, motyw i wylogowanie; dla gościa logowanie. */
 @Component({
   selector: 'app-account-menu',
   imports: [RouterLink],
-  template: `
-    @if (auth.status() !== 'loading') {
-      @if (auth.user(); as user) {
-        @if (variant() === 'header') {
-          <a routerLink="/konto" [attr.aria-label]="'Konto: ' + user.username" class="relative grid h-10 w-10 place-items-center rounded-full hover:bg-surface-100 dark:hover:bg-surface-800">
-            <i class="pi pi-user" aria-hidden="true"></i>
-            @if (!user.email_verified) { <i class="pi pi-exclamation-circle absolute right-0 top-0 text-xs text-amber-700 dark:text-amber-400" aria-hidden="true"></i> }
-          </a>
-        } @else {
-          <div class="flex items-center gap-1">
-            <a routerLink="/konto" [attr.aria-current]="active() ? 'page' : null"
-              class="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-surface-100 dark:hover:bg-surface-800"
-              [class]="active() ? 'bg-primary-50 font-semibold text-primary dark:bg-primary-950' : ''">
-              <i class="pi pi-user text-base" aria-hidden="true"></i><span class="truncate">{{user.username}}</span>
-              @if (!user.email_verified) { <i class="pi pi-exclamation-circle text-amber-700 dark:text-amber-400" title="E-mail niepotwierdzony" aria-label="E-mail niepotwierdzony"></i> }
-            </a>
-            <button type="button" (click)="logout()" aria-label="Wyloguj się" title="Wyloguj się"
-              class="grid h-10 w-10 shrink-0 place-items-center rounded-full text-muted-color hover:bg-surface-100 dark:hover:bg-surface-800">
-              <i class="pi pi-sign-out" aria-hidden="true"></i>
-            </button>
-          </div>
-        }
-      } @else if (variant() === 'header') {
-        <a routerLink="/zaloguj" [queryParams]="query()" aria-label="Zaloguj się" class="grid h-10 w-10 place-items-center rounded-full hover:bg-surface-100 dark:hover:bg-surface-800">
-          <i class="pi pi-sign-in" aria-hidden="true"></i>
-        </a>
-      } @else {
-        <a routerLink="/zaloguj" [queryParams]="query()" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-surface-100 dark:hover:bg-surface-800">
-          <i class="pi pi-sign-in text-base" aria-hidden="true"></i>Zaloguj się
-        </a>
-      }
-    }
-  `,
+  templateUrl: './account-menu.html',
+  host: {'(document:click)': 'outside($event)', '(keydown.escape)': 'escape()'},
 })
 export class AccountMenu {
   protected readonly auth = inject(AuthStore);
+  protected readonly theme = inject(ThemeService);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly trigger = viewChild<ElementRef<HTMLButtonElement>>('trigger');
 
   readonly variant = input<'sidebar' | 'header'>('sidebar');
-  /** Bieżący adres: po zalogowaniu wracamy na to samo miejsce. */
+  /** Bieżący adres: po zalogowaniu wracamy na to samo miejsce; zmiana adresu zamyka menu. */
   readonly url = input('/');
+  protected readonly open = signal(false);
+  protected readonly themes = THEMES;
+  protected readonly item = 'flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm hover:bg-surface-100 dark:hover:bg-surface-800';
   protected readonly query = computed(() => loginQuery(this.url()));
-  protected readonly active = computed(() => this.url().startsWith('/konto'));
+  protected readonly triggerLabel = computed(() => {
+    const user = this.auth.user();
+    return user ? `Menu konta: ${user.username}` : 'Menu: logowanie i ustawienia';
+  });
+
+  constructor() {
+    effect(() => { this.url(); untracked(() => this.open.set(false)); });
+  }
+
+  protected toggle() { this.open.update((value) => !value); }
+  protected close() { this.open.set(false); }
+
+  protected escape() {
+    if (!this.open()) return;
+    this.open.set(false);
+    this.trigger()?.nativeElement.focus();
+  }
+
+  protected outside(event: Event) {
+    if (this.open() && !this.host.nativeElement.contains(event.target as Node)) this.open.set(false);
+  }
 
   protected async logout() {
+    this.open.set(false);
     try { await this.auth.logout(); } catch { /* sesja i tak została zamknięta po stronie aplikacji */ }
   }
 }
