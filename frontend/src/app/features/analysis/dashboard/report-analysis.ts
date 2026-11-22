@@ -1,4 +1,4 @@
-import { DecimalPipe } from '@angular/common';
+import { DecimalPipe, PercentPipe } from '@angular/common';
 import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { Report } from '../../../core/api/types';
 import { ConsentStore } from '../../../core/state/consent.store';
@@ -14,7 +14,7 @@ type ReportMode = 'simple' | 'advanced';
 
 @Component({
   selector: 'app-report-analysis',
-  imports: [DecimalPipe, KpiCard, Segmented, ReportEnvironment, ReportQuestion, RootWaterScale,
+  imports: [DecimalPipe, PercentPipe, KpiCard, Segmented, ReportEnvironment, ReportQuestion, RootWaterScale,
     WaterBalanceChart, SoilChart, SatelliteChart, SeasonChart],
   host: {class: 'block'},
   templateUrl: './report-analysis.html',

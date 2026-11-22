@@ -4,6 +4,9 @@
 @let root = r.agricultural ? m.root : null;
 @let recent = m.recent;
 @let h = m.history;
+@let scene = sources()['satellite']?.scene;
+@let terrain = sources()['terrain'];
+@let weather = sources()['weather'];
 <section aria-labelledby="analiza-wodna" class="space-y-4">
   <div class="flex flex-wrap items-center justify-between gap-2">
     <h3 id="analiza-wodna" class="text-lg font-semibold">Analiza</h3>
@@ -28,14 +31,16 @@
         </div>
       }
     </div>
-    @if (root) { <app-root-water-scale [root]="root" [conclusion]="e.reason" /> }
+    @if (root) { <app-root-water-scale [root]="root" [conclusion]="e.reason" [advanced]="advanced()" /> }
     @if (advanced()) {
       <p class="border-t border-surface pt-2 text-sm text-muted-color">Ocena modelu {{r.model_version}} · {{m.risk}} · Faza uprawy: {{m.stage}}</p>
     }
   </article>
 
   <div class="space-y-2">
-    <app-report-question sectionId="bilans" icon="pi-cloud" question="Bilans wodny uprawy" [finding]="e.balance">
+    <app-report-question sectionId="bilans" icon="pi-cloud"
+      [question]="advanced() ? 'Bilans opadu i ewapotranspiracji uprawy' : 'Bilans wodny uprawy'" [finding]="e.balance"
+      [metrics]="advanced() && recent ? 'Opad ' + (recent.rain_mm | number:'1.0-1') + ' mm · ETc ' + (recent.etc_mm | number:'1.0-1') + ' mm · Bilans ' + (recent.crop_balance_mm | number:'1.0-1') + ' mm' : ''">
       <ng-template>
         @if (recent) {
           <p class="text-muted-color"><strong class="text-color">{{recent.start}} – {{recent.end}}</strong> · Dane z {{recent.samples}} z {{recent.days}} dni</p>
@@ -64,7 +69,9 @@
       </ng-template>
     </app-report-question>
 
-    <app-report-question sectionId="gleba" icon="pi-sitemap" question="Zapas wody w strefie korzeni"
+    <app-report-question sectionId="gleba" icon="pi-sitemap"
+      [question]="advanced() ? 'Bilans wody w strefie korzeni (FAO-56)' : 'Zapas wody w strefie korzeni'"
+      [metrics]="advanced() && root ? 'TAW ' + (root.taw_mm | number:'1.0-1') + ' mm · RAW ' + (root.raw_mm | number:'1.0-1') + ' mm · Okres modelowania ' + root.days + ' dni' : ''"
       [finding]="root ? 'Modelowana pojemność strefy korzeni: ' + (root.taw_mm | number:'1.0-1') + ' mm.' : 'Dla tej daty nie ma oceny zapasu przy korzeniach.'">
       <ng-template>
         @if (root) {
@@ -102,9 +109,11 @@
       </ng-template>
     </app-report-question>
 
-    <app-report-question sectionId="satelita" icon="pi-camera" question="Obserwacje satelitarne" [finding]="e.satellite">
+    <app-report-question sectionId="satelita" icon="pi-camera"
+      [question]="advanced() ? 'Wskaźniki satelitarne Sentinel-2' : 'Obserwacje satelitarne'" [finding]="e.satellite"
+      [metrics]="advanced() && scene ? 'NDVI ' + (scene.ndvi | number:'1.0-3') + ' · NDMI ' + (scene.ndmi | number:'1.0-3') + ' · Użyteczne piksele ' + (scene.clear_share | percent:'1.0-0') : ''">
       <ng-template>
-        @if (sources()['satellite']?.scene; as scene) {
+        @if (scene) {
           <p>Zdjęcie z <strong>{{scene.date}}</strong> · {{scene.clear_share * 100 | number:'1.0-0'}}% użytecznych pikseli.
             @if (scene.crop_stage) { Faza według kalendarza uprawy: {{scene.crop_stage}}. }</p>
           @if (m.satellite_comparison; as c) {
@@ -128,7 +137,9 @@
       </ng-template>
     </app-report-question>
 
-    <app-report-question sectionId="odplyw" icon="pi-compass" question="Spływ wody z pola" [finding]="e.runoff">
+    <app-report-question sectionId="odplyw" icon="pi-compass"
+      [question]="advanced() ? 'Rzeźba terenu i spływ powierzchniowy' : 'Spływ wody z pola'" [finding]="e.runoff"
+      [metrics]="advanced() && (terrain?.relief_m ?? null) !== null ? 'Różnica wysokości ' + (terrain?.relief_m | number:'1.0-1') + ' m · Rozdzielczość: ' + terrain?.resolution : ''">
       <ng-template>
         <app-report-environment [report]="r" />
         @if (r.farmer_answers?.['surface_runoff_frequency']; as runoff) { <p>Spływ wody po powierzchni podczas ulewy: {{runoff}}.</p> }
@@ -143,7 +154,9 @@
       </ng-template>
     </app-report-question>
 
-    <app-report-question sectionId="historia" icon="pi-history" question="Historia niedoborów wody" [finding]="historyFinding()">
+    <app-report-question sectionId="historia" icon="pi-history"
+      [question]="advanced() ? 'Wieloletni bilans opadu i ET₀' : 'Historia niedoborów wody'" [finding]="historyFinding()"
+      [metrics]="advanced() ? 'Pokrycie archiwum: ' + h.seasons.length + ' z ' + e.eligible_seasons + ' sezonów' + ((h.median_season_mm ?? null) !== null ? ' · Mediana bilansu ' + (h.median_season_mm | number:'1.0-1') + ' mm' : '') : ''">
       <ng-template>
         <div class="flex flex-wrap items-center justify-between gap-2">
           <p class="font-semibold">Tło wieloletnie <span class="block font-normal text-muted-color">{{e.history_start}} – {{r.date}}</span></p>
@@ -174,7 +187,9 @@
       </ng-template>
     </app-report-question>
 
-    <app-report-question sectionId="zrodla" icon="pi-database" question="Źródła i ograniczenia danych"
+    <app-report-question sectionId="zrodla" icon="pi-database"
+      [question]="advanced() ? 'Pochodzenie i rozdzielczość danych' : 'Źródła i ograniczenia danych'"
+      [metrics]="advanced() && weather ? 'Meteorologia: ' + weather.name + ' · ' + weather.resolution : ''"
       [finding]="'Źródła opisane w raporcie: ' + r.sources.length + '. Zgłoszone ograniczenia: ' + missing().length + '.'">
       <ng-template>
         @if (missing().length) {
