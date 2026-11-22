@@ -51,6 +51,10 @@ def test_report_download_is_pdf_with_saved_field_results(monkeypatch):
     report = report_with_weather(0)
     report.update(parcel={"id": "Test", "area_ha": 1, "geometry": {"type": "Polygon", "coordinates": [
         [[21, 52], [21.001, 52], [21.001, 52.001], [21, 52]]]}}, recommendations=[])
+    report["metrics"]["history"].update(negative_seasons=1, seasons=[
+        {"year": 2023, "rain_mm": 200, "et0_mm": 350, "balance_mm": -150, "samples": 180, "days": 183},
+    ])
+    report["scenario"] = {"input_mm": 10, "depletion_reduction_mm": [6, 8], "note": "Scenariusz porównawczy."}
     results = {"wilgotnosc-gleby": "moist"}
     report.update(experiments=experiment_checks(report), experiment_results=results,
                   experiment_conclusions=experiment_diagnosis(report, results))
@@ -65,5 +69,8 @@ def test_report_download_is_pdf_with_saved_field_results(monkeypatch):
         text = run(["pdftotext", "-", "-"], input=response.content, capture_output=True, check=True).stdout.decode()
         assert text.index("1. Analiza") < text.index("2. Eksperymenty") < text.index("3. Co możesz zrobić?")
         assert "Skąd pochodzą dane i czego brakuje?" not in text
+        for label in ("Bilans uprawy", "Próg łatwo dostępnej wody (RAW)", "Symulacja dodatkowej wody",
+                      "Porównanie sezonów od kwietnia do września", "180/183"):
+            assert label in text
         assert "Wilgotno na głębokości korzeni" in text
         assert "Wniosek z próby" in text

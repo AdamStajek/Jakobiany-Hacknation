@@ -125,14 +125,23 @@ def pdf(report):
     flows = [p("Analiza działki", title),
              p(f'Działka {parcel["id"]} · {report["date"]} · {metrics["crop"]["label"]} · {number(parcel["area_ha"])} ha'),
              p("1. Analiza", section)]
+    if metrics.get("stage"):
+        flows.append(p(f'Faza uprawy: {metrics["stage"]}.', tiny))
     verdict = [p(evidence["headline"], sub), p(evidence["reason"]), p(evidence["confidence_note"], tiny)]
     table = Table([[ParcelMap(parcel), verdict]], colWidths=[185, 300])
     table.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                                ("BACKGROUND", (1, 0), (-1, -1), PAPER)]))
     flows.extend([table, Spacer(1, 8), p("Czy deszcz pokrył potrzeby uprawy?", sub), p(evidence["balance"])])
     if recent := metrics["recent"]:
-        flows.append(p(f'{recent["start"]} – {recent["end"]} · Opad {number(recent["rain_mm"])} mm · '
-                       f'Potrzeby uprawy {number(recent["etc_mm"])} mm · Dane z {recent["samples"]} z {recent["days"]} dni.', tiny))
+        flows.append(p(f'{recent["start"]} – {recent["end"]} · Dane z {recent["samples"]} z {recent["days"]} dni.'))
+        values = [("Opad", "rain_mm"), ("Parowanie referencyjne (ET₀)", "et0_mm"),
+                  ("Potrzeby uprawy (ETc)", "etc_mm"), ("Bilans uprawy", "crop_balance_mm")]
+        flows.append(p(" · ".join(f"{label}: {number(recent[key])} mm" for label, key in values
+                                 if recent.get(key) is not None)))
+        if recent.get("dry_spell_days") is not None:
+            flows.append(p(f'Najdłuższa seria dni z opadem poniżej 1 mm: {recent["dry_spell_days"]}.'))
+        flows.append(p("Bilans uprawy to różnica między opadem a potrzebami wodnymi uprawy. "
+                       "Korzenie mogą też korzystać z zapasu w glebie.", tiny))
     flows.append(p("Ile wody może zatrzymać gleba przy korzeniach?", sub))
     if report["agricultural"] and (root := metrics["root"]):
         flows.append(p(f'Modelowana pojemność strefy korzeni wynosi {number(root["taw_mm"])} mm. '
@@ -140,6 +149,17 @@ def pdf(report):
                        f'na początku i {number(root["initially_dry"]["depletion_mm"])} mm przy suchej.'))
     else:
         flows.append(p("Dla tej daty nie ma oceny zapasu przy korzeniach."))
+    if report["agricultural"] and (root := metrics["root"]) and root.get("raw_mm") is not None:
+        flows.append(p(f'Próg łatwo dostępnej wody (RAW) wynosi {number(root["raw_mm"])} mm. '
+                       "Po przekroczeniu tego ubytku roślinom może być trudniej pobierać wodę."))
+        if start := evidence.get("root_start"):
+            flows.append(p(f'Okres modelowania: {start} – {report["date"]} ({root["days"]} dni).', tiny))
+    if scenario := report.get("scenario"):
+        low, high = scenario["depletion_reduction_mm"]
+        flows.extend([p("Symulacja dodatkowej wody", sub),
+                      p(f'Przy dodatkowych {number(scenario["input_mm"])} mm wody ubytek zmniejszyłby się '
+                        f'o {number(low)}–{number(high)} mm.'),
+                      p(scenario["note"], tiny)])
     history = metrics["history"]
     count = len(history["seasons"])
     flows.extend([p("Co widać na zdjęciu satelitarnym?", sub), p(evidence["satellite"]),
@@ -147,6 +167,17 @@ def pdf(report):
                   p("Czy takie warunki często się tu powtarzają?", sub),
                   p(f'W {history["negative_seasons"]} z {count} ocenionych sezonów opad był niższy niż parowanie referencyjne.'
                     if count else "Za mało danych, żeby ustalić, jak często powracał niedobór opadów.")])
+
+    if count:
+        rows = [["Sezon", "Opad (mm)", "ET₀ (mm)", "Opad − ET₀ (mm)", "Dni z danymi"]]
+        rows.extend([str(season["year"]), number(season["rain_mm"]), number(season["et0_mm"]),
+                     number(season["balance_mm"]), f'{season["samples"]}/{season["days"]}']
+                    for season in history["seasons"])
+        seasonal = Table(rows, colWidths=[65, 95, 95, 115, 115], repeatRows=1)
+        seasonal.setStyle(TableStyle([("FONTNAME", (0, 0), (-1, -1), "Wodo"),
+                                      ("BACKGROUND", (0, 0), (-1, 0), PAPER),
+                                      ("ALIGN", (1, 0), (-1, -1), "RIGHT")]))
+        flows.extend([p("Porównanie sezonów od kwietnia do września", sub), seasonal])
 
     flows.append(p("2. Eksperymenty", section))
     if not report.get("experiments"):
