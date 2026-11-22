@@ -20,8 +20,8 @@ from reportlab.platypus import (
 from shapely import transform
 from shapely.geometry import shape
 
-from wodo.farmer_report import report_message
 from wodo.geo import TO_PL
+from wodo.report_evidence import number, report_evidence
 from wodo.science import CROPS
 
 FONT_DIR = Path("/usr/share/fonts/truetype/dejavu")
@@ -63,31 +63,6 @@ class ParcelMap(Flowable):
         canvas.drawString(13 + metres * scale, 8, f"{metres:g} m")
 
 
-class Timeline(Flowable):
-    def __init__(self, seasons):
-        super().__init__()
-        self.seasons = seasons
-        self.width, self.height = 487, 105
-
-    def draw(self):
-        canvas = self.canv
-        values = [s["balance_mm"] for s in self.seasons]
-        magnitude = max((abs(x) for x in values), default=1) or 1
-        offset, usable = 12, self.width - 24
-        step = usable / max(len(values), 1)
-        canvas.setStrokeColor(colors.HexColor("#a8b9b0"))
-        canvas.line(offset, 60, offset + usable, 60)
-        canvas.setFont("Wodo", 8)
-        for i, (season, value) in enumerate(zip(self.seasons, values, strict=True)):
-            x = offset + step * (i + .5)
-            height = value / magnitude * 33
-            canvas.setFillColor(GREEN if value >= 0 else colors.HexColor("#bc6843"))
-            canvas.rect(x - 10, min(60, 60 + height), 20, abs(height), fill=1, stroke=0)
-            canvas.setFillColor(INK)
-            canvas.drawCentredString(x, 12, str(season["year"]))
-            canvas.drawCentredString(x, 62 + max(height, 0), f"{value:+g}")
-
-
 def pdf(report):
     if "Wodo" not in pdfmetrics.getRegisteredFontNames():
         pdfmetrics.registerFont(TTFont("Wodo", str(FONT_DIR / "DejaVuSans.ttf")))
@@ -96,8 +71,8 @@ def pdf(report):
     body = ParagraphStyle("text", parent=styles["BodyText"], fontName="Wodo", fontSize=9.5,
                           textColor=INK, leading=14, spaceAfter=5, splitLongWords=True)
     title = ParagraphStyle("title", parent=body, fontName="WodoBold", fontSize=24, leading=30)
-    section = ParagraphStyle("section", parent=body, fontName="WodoBold", fontSize=14, leading=19, spaceBefore=13)
-    sub = ParagraphStyle("sub", parent=body, fontName="WodoBold", fontSize=11, leading=15)
+    section = ParagraphStyle("section", parent=body, fontName="WodoBold", fontSize=14, leading=19, spaceBefore=13, keepWithNext=True, textColor=GREEN)
+    sub = ParagraphStyle("sub", parent=body, fontName="WodoBold", fontSize=11, leading=15, keepWithNext=True)
     tiny = ParagraphStyle("small", parent=body, fontSize=8, leading=11, textColor=MUTED)
     buf = BytesIO()
     document = SimpleDocTemplate(buf, pagesize=A4, leftMargin=52, rightMargin=52, topMargin=48,
@@ -146,79 +121,89 @@ def pdf(report):
         return buf.getvalue()
 
     parcel, metrics = report["parcel"], report["metrics"]
-    flows = [p("WODOSTRAŻNIK / RAPORT DZIAŁKI", tiny), p("Stan wody na Twojej działce", title),
-             p(f"Analiza {report['date']} · {metrics['crop']['label']} · {metrics['stage']}"), Spacer(1, 8)]
-    context = [p(parcel["id"], sub), p(f'{parcel["area_ha"]:g} ha · {parcel["commune"] or "wskazana geometria"}'),
-               p(f'Źródło granicy: {parcel["source"]}.', tiny), p(f'Ryzyko: {metrics["risk"]}', sub)]
-    if report["confidence"] != "Ograniczona":
-        context.append(p(f'Pewność oceny: {report["confidence"].lower()}'))
-    table = Table([[ParcelMap(parcel), context]], colWidths=[185, 300])
-    table.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
-    flows.append(table)
-    flows.append(p(report.get("situation") or report_message(report), reading))
-    if report["recommendations"]:
-        flows.append(p("Co możesz zrobić?", section))
-    for rec in report["recommendations"]:
-        scope = {"field": "Całe pole", "point": "Zaznaczone miejsca"}.get(rec.get("scope"))
-        timing = f'{rec["when"]} · {scope}' if scope else rec["when"]
-        flows.append(KeepTogether([p(rec["title"], sub), p(timing), *(
-            [p(rec["action"], reading)] if rec["action"] != rec["title"] else []
-        )]))
+    evidence = report.get("evidence") or report_evidence(report)
+    flows = [p("Analiza działki", title),
+             p(f'Działka {parcel["id"]} · {report["date"]} · {metrics["crop"]["label"]} · {number(parcel["area_ha"])} ha'),
+             p("1. Analiza", section)]
+    if metrics.get("stage"):
+        flows.append(p(f'Faza uprawy: {metrics["stage"]}.', tiny))
+    verdict = [p(evidence["headline"], sub), p(evidence["reason"]), p(evidence["confidence_note"], tiny)]
+    table = Table([[ParcelMap(parcel), verdict]], colWidths=[185, 300])
+    table.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                               ("BACKGROUND", (1, 0), (-1, -1), PAPER)]))
+    flows.extend([table, Spacer(1, 8), p("Czy deszcz pokrył potrzeby uprawy?", sub), p(evidence["balance"])])
     if recent := metrics["recent"]:
-        flows.extend([p("Sytuacja wodna", section),
-                      p(f'{recent["start"]} – {recent["end"]}. Opad {recent["rain_mm"]:g} mm. ET₀ {recent["et0_mm"]:g} mm. '
-                        f'Zapotrzebowanie uprawy ETc {recent["etc_mm"]:g} mm. Bilans opad − ETc {recent["crop_balance_mm"]:+g} mm. '
-                        f'Najdłuższy ciąg z opadem <1 mm: {recent["dry_spell_days"]} dni. Dni z kompletem danych: {recent["samples"]}/{recent["days"]}.')])
-    if root := metrics["root"]:
-        flows.append(p(f'Maksymalny zapas dostępny dla korzeni: {root["taw_mm"]:g} mm. Próg łatwej dostępności: {root["raw_mm"]:g} mm. '
-                       f'Ubytek w dwóch wariantach początkowych: {root["initially_wet"]["depletion_mm"]:g}–'
-                       f'{root["initially_dry"]["depletion_mm"]:g} mm.'))
-    history = metrics["history"]
-    if history["seasons"]:
-        flows.extend([p("Historia suszy", section), p("Bilans opad − ET₀ w okresie kwiecień–wrzesień [mm]."),
-                      Timeline(history["seasons"]),
-                      p(f'Ujemny bilans w {history["negative_seasons"]} z {len(history["seasons"])} sezonów. '
-                        f'Miesiące o najniższym typowym bilansie: {", ".join(history["riskiest_months"]) or "brak"}.')])
-    flows.append(p("Gleba, roślinność i otoczenie", section))
-    for src in report["sources"]:
-        if src["key"] == "satellite" and src.get("scene"):
-            scene = src["scene"]
-            flows.append(p(f'Sentinel-2 ({scene["date"]}) · NDVI {scene["ndvi"]} · NDMI {scene["ndmi"]} · NDWI {scene["ndwi"]}. '
-                           f'Użyteczne piksele: {scene["clear_share"]:.0%}. Wskaźniki opisują sygnał spektralny powierzchni.'))
-        if src["key"] == "soil":
-            depth = src["layer_depths"]
-            values = [f"{d}: {layer[0]:g}/{layer[1]:g}" for d, layer in zip(depth, src["layers"], strict=True) if layer]
-            flows.append(p("SoilGrids, retencja przy 33/1500 kPa [mm/m] · " + ", ".join(values)))
-        if src["key"] == "terrain":
-            flows.append(p(f'Wysokość {src["elevation_m"]} m. Nachylenie: {src["slope_pct"] if src["slope_pct"] is not None else "brak wiarygodnego odczytu"} %.'))
-        if src["key"] == "land":
-            water = src["nearest_water_m"]
-            flows.append(p("Pokrycie 2021 · " + ", ".join(f'{c["class"]} {c["percent"]:g}%' for c in src["classes"])
-                           + (f". Wykryta stała woda ~{water} m od granicy." if water is not None else
-                              f'. W promieniu {src["search_m"]} m nie wykryto pikseli stałej wody.')))
-        if src["key"] == "gauge":
-            flows.append(p(f'Wodowskaz {src["station"]}, {src["river"]}: {src["gauge_cm"]:g} cm. '
-                           f'Odległość {src["distance_km"]:g} km. Punktowy odczyt kontekstowy.'))
-    if report["recommendations"]:
-        flows.append(p("Podstawa zaleceń", section))
-    for rec in report["recommendations"]:
-        flows.extend([p(rec["title"], sub), *recommendation_details(rec)])
-    if scenario := report["scenario"]:
+        flows.append(p(f'{recent["start"]} – {recent["end"]} · Dane z {recent["samples"]} z {recent["days"]} dni.'))
+        values = [("Opad", "rain_mm"), ("Parowanie referencyjne (ET₀)", "et0_mm"),
+                  ("Potrzeby uprawy (ETc)", "etc_mm"), ("Bilans uprawy", "crop_balance_mm")]
+        flows.append(p(" · ".join(f"{label}: {number(recent[key])} mm" for label, key in values
+                                 if recent.get(key) is not None)))
+        if recent.get("dry_spell_days") is not None:
+            flows.append(p(f'Najdłuższa seria dni z opadem poniżej 1 mm: {recent["dry_spell_days"]}.'))
+        flows.append(p("Bilans uprawy to różnica między opadem a potrzebami wodnymi uprawy. "
+                       "Korzenie mogą też korzystać z zapasu w glebie.", tiny))
+    flows.append(p("Ile wody może zatrzymać gleba przy korzeniach?", sub))
+    if report["agricultural"] and (root := metrics["root"]):
+        flows.append(p(f'Modelowana pojemność strefy korzeni wynosi {number(root["taw_mm"])} mm. '
+                       f'Szacowany ubytek to {number(root["initially_wet"]["depletion_mm"])} mm przy wilgotnej glebie '
+                       f'na początku i {number(root["initially_dry"]["depletion_mm"])} mm przy suchej.'))
+    else:
+        flows.append(p("Dla tej daty nie ma oceny zapasu przy korzeniach."))
+    if report["agricultural"] and (root := metrics["root"]) and root.get("raw_mm") is not None:
+        flows.append(p(f'Próg łatwo dostępnej wody (RAW) wynosi {number(root["raw_mm"])} mm. '
+                       "Po przekroczeniu tego ubytku roślinom może być trudniej pobierać wodę."))
+        if start := evidence.get("root_start"):
+            flows.append(p(f'Okres modelowania: {start} – {report["date"]} ({root["days"]} dni).', tiny))
+    if scenario := report.get("scenario"):
         low, high = scenario["depletion_reduction_mm"]
-        flows.extend([p("Co jeśli? Symulacja", section), p(f'Dodatkowe {scenario["input_mm"]:g} mm: zmniejszenie ubytku o {low:g}–{high:g} mm. {scenario["note"]}')])
-    flows.extend([p("Źródła, metody i ograniczenia", section), p("ET₀ wg FAO-56, z uproszczeniem Hargreavesa przy oznaczonych brakach. Bilans opadu i ewapotranspiracji pokazuje "
-        "warunki modelowe. Gleba jest predykcją przestrzenną. Nawadnianie, spływ, poziom wód gruntowych i stan rowów "
-        "mogą odbiegać od obliczeń. Przed pracami terenowymi sprawdź warunki na działce.", tiny)])
-    for key, reason in report["missing"].items():
-        flows.append(p(f"{key} · {reason}", tiny))
-    for src in report["sources"]:
-        coverage = ", ".join(str(d) for d in src.get("coverage", []) if d)
-        flows.extend([p(f'{src["name"]} · {src["kind"]} · {src["resolution"]}', sub),
-                      p(f'Pobrano {src["retrieved_at"]} · Zasięg: {coverage or "punkt/produkt statyczny"} · '
-                        f'Publikacja: {src.get("publication_date") or "brak daty w metadanych"}', tiny),
-                      p(src["url"], tiny)])
-        if src.get("attribution"):
-            flows.append(p(src["attribution"], tiny))
-    flows.append(p(f'Realizacja: {report["created_at"]} · Metoda {report["model_version"]} · {report["analysis_id"]}', tiny))
+        flows.extend([p("Symulacja dodatkowej wody", sub),
+                      p(f'Przy dodatkowych {number(scenario["input_mm"])} mm wody ubytek zmniejszyłby się '
+                        f'o {number(low)}–{number(high)} mm.'),
+                      p(scenario["note"], tiny)])
+    history = metrics["history"]
+    count = len(history["seasons"])
+    flows.extend([p("Co widać na zdjęciu satelitarnym?", sub), p(evidence["satellite"]),
+                  p("Czy woda może spływać z pola?", sub), p(evidence["runoff"]),
+                  p("Czy takie warunki często się tu powtarzają?", sub),
+                  p(f'W {history["negative_seasons"]} z {count} ocenionych sezonów opad był niższy niż parowanie referencyjne.'
+                    if count else "Za mało danych, żeby ustalić, jak często powracał niedobór opadów.")])
+
+    if count:
+        rows = [["Sezon", "Opad (mm)", "ET₀ (mm)", "Opad − ET₀ (mm)", "Dni z danymi"]]
+        rows.extend([str(season["year"]), number(season["rain_mm"]), number(season["et0_mm"]),
+                     number(season["balance_mm"]), f'{season["samples"]}/{season["days"]}']
+                    for season in history["seasons"])
+        seasonal = Table(rows, colWidths=[65, 95, 95, 115, 115], repeatRows=1)
+        seasonal.setStyle(TableStyle([("FONTNAME", (0, 0), (-1, -1), "Wodo"),
+                                      ("BACKGROUND", (0, 0), (-1, 0), PAPER),
+                                      ("ALIGN", (1, 0), (-1, -1), "RIGHT")]))
+        flows.extend([p("Porównanie sezonów od kwietnia do września", sub), seasonal])
+
+    flows.append(p("2. Eksperymenty", section))
+    if not report.get("experiments"):
+        flows.append(p("Dla tej analizy nie zaproponowano eksperymentów."))
+    for check in report.get("experiments", ()):
+        slug = check["slug"]
+        value = report.get("experiment_results", {}).get(slug)
+        label = next((o["label"] for o in check["options"] if o["value"] == value),
+                     "Brak wyniku lub próba niejednoznaczna")
+        flows.extend([p(check["title"], sub), p(check["impact"]), p(f"Wynik próby: {label}.")])
+        if conclusion := report.get("experiment_conclusions", {}).get(slug):
+            flows.append(p(f"Wniosek z próby: {conclusion}"))
+
+    flows.append(p("3. Co możesz zrobić?", section))
+    if not report["recommendations"]:
+        flows.append(p("Brak wystarczających podstaw do zaleceń dla wybranej działki i daty."))
+    for rec in report["recommendations"]:
+        flows.append(p(rec["title"], sub))
+        if rec["action"] != rec["title"]:
+            flows.append(p(rec["action"]))
+        scope = rec.get("location") or {"field": "Całe pole", "point": "Zaznaczone miejsca"}.get(rec.get("scope"))
+        flows.append(p(f'Kiedy? {rec["when"]}' + (f" · {scope}" if scope else "")))
+        if rec.get("cost") and not rec.get("cost_estimate"):
+            flows.append(p(f'Koszt: {rec["cost"]}'))
+        for n, step in enumerate(rec.get("steps", ()), start=1):
+            flows.append(p(f"{n}. {step}"))
+        flows.extend(recommendation_details(rec))
     document.build(flows, onFirstPage=footer, onLaterPages=footer)
     return buf.getvalue()

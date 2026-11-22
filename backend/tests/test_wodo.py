@@ -108,6 +108,22 @@ def test_cloud_mask():
     assert output["ndwi"] == -.5
 
 
+def test_scouting_point_uses_only_clear_pixels_in_the_field():
+    from rasterio.transform import from_origin
+
+    from wodo.geo import TO_GPS
+
+    footprint = np.ones((2, 3), dtype=bool)
+    footprint[0, 0] = False
+    unit = np.ones((2, 3))
+    red = np.array([[10., 9., 3.], [1., 1., 1.]])
+    scl = unit * 4
+    scl[0, 1] = 9
+    result = indices([red, 3 * unit, unit, unit, scl], footprint, from_origin(500000, 500000, 20, 20))
+    assert result["ndvi_low_point"] == list(TO_GPS(500050, 499990))
+    assert "ndmi_low_point" not in result
+
+
 def test_ssrf_cache_and_upstream_rate_limit(monkeypatch, tmp_path):
     monkeypatch.setattr(store, "ROOT", tmp_path)
     assert cached("u", [1], 1, lambda: {"x": 1})["cached"] is False

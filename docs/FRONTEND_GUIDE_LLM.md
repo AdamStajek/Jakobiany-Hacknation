@@ -27,7 +27,7 @@ src/app/  core/ (api, state, theme) · shared/ (ui, map, charts, experiments) ·
 ## Układ (mobile-first)
 
 - Projektuj od 390 px; jedyny breakpoint to `lg` (1024 px). Cele dotykowe ≥ 36–44 px.
-- Główna nawigacja jest w `layout/shell.ts` (Start, Sprawdź pole (`/sprawdz`), Moje pola, Jak to działa): desktop — pasek boczny `w-60`; telefon — górny pasek + dolna nawigacja. Paszport to widok „Moich pól”, a eksperymenty są zakładką w „Jak to działa” (`/metody/eksperymenty`).
+- Główna nawigacja jest w `layout/shell.ts` (Start, Analizuj pole (`/sprawdz`), Moje pola, Jak to działa): desktop — pasek boczny `w-60`; telefon — górny pasek + dolna nawigacja. Dane działki to widok „Moich pól”, a eksperymenty są zakładką w „Jak to działa” (`/metody/eksperymenty`).
 - Pełnoekranowe widoki: wysokość `100dvh - var(--shell-top) - var(--shell-bottom)`.
 - Reużywaj `app-panel` (karta z nagłówkiem: `heading`, `icon`) i `app-segmented` (przełącznik widoków: `options`, `label`, `model()` `value`).
 - Analiza (`features/analysis`): widoki `map`/`form`/`report` w signalu `view`; telefon — segmenty, desktop — panel „Dane” obok mapy/raportu. URL odtwarza działkę i raport.

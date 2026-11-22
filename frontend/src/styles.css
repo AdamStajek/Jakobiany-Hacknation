@@ -49,6 +49,11 @@
     text-transform: uppercase;
     color: var(--p-text-muted-color);
   }
+  /* Typografia: nagłówki stron i sekcji oraz tekst wprowadzający (rozmiary jak text-2xl/xl/base z Tailwinda). */
+  .pw-h1 { font-size: 1.5rem; line-height: 2rem; font-weight: 700; letter-spacing: -0.025em; }
+  .pw-h2 { font-size: 1.25rem; line-height: 1.75rem; font-weight: 700; }
+  .pw-h3 { font-size: 1rem; line-height: 1.5rem; font-weight: 600; }
+  .pw-lead { font-size: 1.125rem; line-height: 1.5; }
   .pw-scroll { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
 }
 
@@ -58,5 +63,18 @@ html.app-dark { color-scheme: dark; }
 html.app-dark body { background: var(--p-surface-950); color: var(--p-text-color); }
 :focus-visible { outline: 3px solid var(--pw-forest); outline-offset: 2px; }
 html.app-dark :focus-visible { outline-color: var(--pw-orange); }
+/* Natywne selecty: w ciemnym motywie jak pola p-inputtext (zamiast jasnego tła z bg-surface-0). */
+html.app-dark select.p-select {
+  background: var(--p-inputtext-background, var(--p-surface-950));
+  color: var(--p-inputtext-color, var(--p-text-color));
+  border-color: var(--p-inputtext-border-color, var(--p-surface-500));
+}
+html.app-dark select.p-select option { background: var(--p-surface-900); color: var(--p-text-color); }
 button, a { touch-action: manipulation; }
+/* Własne elementy Angulara domyślnie są inline; jako blok układ (fixed, wysokości dvh, przewijanie) jest przewidywalny na telefonach. */
+app-root, app-shell, app-home-page { display: block; }
+/* Telefon: treść nie chowa się pod dolną nawigacją. */
+@media (max-width: 1023.98px) {
+  main#tresc { padding-bottom: var(--shell-bottom); }
+}
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }

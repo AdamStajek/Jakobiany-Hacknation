@@ -127,18 +127,63 @@ def field_facts(metrics, inputs, request, answers):
     return facts | forecast_facts(inputs.get("forecast", {}).get("rows", {}), day, metrics, active)
 
 
-def action_steps(row, scope, points):
+# Przesłanka z całej działki nie wyznacza położenia tych działań.
+SITE_LABELS = {
+    7: "Fragment z potwierdzoną zagęszczoną warstwą gleby",
+    15: "Pas na drodze spływu wody, zanim woda opuści pole",
+    16: "Uprawiany stok, wzdłuż warstwic",
+    18: "Przy odpływie wody z dostępnego dachu",
+    19: "Przy urządzeniach regulujących odpływ z drenów",
+    20: "Podmokłe obniżenie terenu",
+    30: "Miejsca pomiaru w strefach o różnej wilgotności",
+    31: "Stałe ścieżki przejazdu maszyn",
+    38: "Pasy upraw wzdłuż warstwic na stoku",
+    39: "Pasy przeznaczone na drzewa i krzewy",
+    41: "Wzdłuż instalacji nawadniającej",
+    42: "W zasięgu sprawdzanych zraszaczy",
+    50: "Strefy o różnych właściwościach gleby",
+    52: "Miejsce pomiaru przy korzeniach uprawy",
+    53: "Fragment uprawy o słabszej kondycji",
+    54: "Miejsca pobrania próbek gleby",
+    55: "Miejsca zastoisk lub utrudnionego wsiąkania wody",
+    60: "Wyloty drenów i miejsca odpływu wody",
+}
+
+
+def locate_action(rec, sample_point=None, day=None):
+    key = rec.get("id")
+    points = rec.get("points") or []
+    if rec.get("scope") not in ("field", "point") or key not in ACTIONS:
+        return
+    if key in (52, 54) and not points and sample_point and day:
+        points = rec["points"] = [{"coordinates": list(sample_point), "type": "Proponowane miejsce pomiaru",
+                                   "date": str(day), "description": "Punkt startowy wewnątrz granicy działki.",
+                                   "evidence": "Porównaj wynik z pomiarami w innych częściach pola."}]
+    if points and (rec["scope"] == "point" or key in SITE_LABELS):
+        rec["scope"] = "point"
+        rec["location"] = f"Miejsca na mapie ({len(points)})"
+        where = "w miejscach wskazanych na mapie"
+    elif key in SITE_LABELS:
+        rec["scope"] = "site"
+        rec["location"] = SITE_LABELS[key]
+        where = "po potwierdzeniu lokalizacji w terenie"
+    else:
+        rec["location"] = "Całe pole"
+        where = "na całym polu"
+    rec["steps"] = action_steps(ACTIONS[key], where)
+
+
+def action_steps(row, where):
     """Krótki plan działań złożony wyłącznie z pól katalogu rekomendacji i dowodów z pola."""
-    where = f"zaznaczonych miejscach ({len(points)})" if scope == "point" else "całym polu"
     return [
         f"Zacznij od oceny, czy warunki się zgadzają: {row['warunki_rekomendacji'].rstrip('.')}.",
         f"Zaplanuj termin: {row['termin_realizacji'].rstrip('.')}.",
         f"Przygotuj się na koszt ({row['koszt']}): {row['skladniki_kosztu'].rstrip('.')}.",
-        f"Zastosuj działanie „{row['dzialanie']}” na {where}.",
+        f"Zastosuj działanie „{row['dzialanie']}” {where}.",
     ]
 
 
-def matching_actions(facts, answers, day):
+def matching_actions(facts, answers, day, sample_point=None):
     """Keep field observations at field scale and attach local evidence to its declared points."""
     field = facts | {key: f"Informacja od rolnika. {OBSERVATIONS[key]}." for key in answers.recommendation_observations}
     locations = [(None, field)]
@@ -174,25 +219,39 @@ def matching_actions(facts, answers, day):
         points = [{"coordinates": list(zone.geometry.coordinates), "type": zone.type, "date": zone.date.isoformat(),
                    "description": zone.description, "evidence": evidence} for zone, evidence in matched if zone is not None]
         field_evidence = next((evidence for zone, evidence in matched if zone is None), None)
-        yield {"id": key, "group": row["kategoria"], "title": row["dzialanie"], "action": row["dzialanie"],
+        rec = {"id": key, "group": row["kategoria"], "title": row["dzialanie"], "action": row["dzialanie"],
                **action_details(key), "evidence": field_evidence or " ".join(dict.fromkeys(point["evidence"] for point in points)),
                "when": row["termin_realizacji"], "confidence": "wstępna", "limits": row["warunki_rekomendacji"],
                "cost": row["koszt"], "cost_details": row["skladniki_kosztu"],
-               "scope": "field" if field_evidence else "point", "points": points, "sources": references(key),
-               "steps": action_steps(row, "field" if field_evidence else "point", points)}
+               "scope": "field" if field_evidence else "point", "points": points, "sources": references(key)}
+        locate_action(rec, sample_point, day)
+        yield rec
 
 
-def recommendations(metrics, inputs, request, agricultural):
+def recommendations(metrics, inputs, request, agricultural, sample_point=None):
     if not agricultural:
         return []
     answers = getattr(request, "farmer_answers", FarmerAnswers())
     facts = field_facts(metrics, inputs, request, answers)
-    return ordered_recommendations(facts, answers, request.day)
+    actions = ordered_recommendations(facts, answers, request.day, sample_point)
+    if "sat_anomaly" in facts:
+        scene = inputs["satellite"]["scene"]
+        comparison = metrics["satellite_comparison"]
+        indicator = min(("ndvi", "ndmi"), key=lambda name: comparison[f"{name}_delta"])
+        point = scene.get(f"{indicator}_low_point")
+        for rec in actions:
+            if rec["id"] == 53 and point and not rec["points"]:
+                rec["scope"] = "point"
+                rec["points"] = [{"coordinates": point, "date": scene["date"], "type": "Miejsce do lustracji",
+                                  "description": "Środek piksela Sentinel-2 (20 m).",
+                                  "evidence": f"W tym miejscu wskaźnik {indicator.upper()} należy do niższych na polu."}]
+                locate_action(rec)
+    return actions
 
 
-def ordered_recommendations(facts, answers, day):
+def ordered_recommendations(facts, answers, day, sample_point=None):
     groups = [ACTIONS[key]["kategoria"] for key in GROUPS]
-    return sorted(matching_actions(facts, answers, day), key=lambda item: (
+    return sorted(matching_actions(facts, answers, day, sample_point), key=lambda item: (
         PRIORITY.index(item["id"]) if item["id"] in PRIORITY else len(PRIORITY),
         groups.index(item["group"]) if item["group"] in groups else len(groups), item["id"],
     ))

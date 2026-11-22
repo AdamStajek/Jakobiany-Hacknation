@@ -13,7 +13,7 @@ from wodo.recommendation_catalog import (
     TRIGGERS,
     catalog,
 )
-from wodo.recommendations import matching_actions, recommendations
+from wodo.recommendations import SITE_LABELS, matching_actions, recommendations
 
 DAY = date(2026, 7, 1)
 POINT = {"geometry": {"type": "Point", "coordinates": [19, 52]}, "date": DAY, "type": "Inne"}
@@ -45,9 +45,39 @@ def test_all_catalog_actions_have_runnable_sourced_triggers():
                 else:
                     answers = FarmerAnswers(recommendation_observations=observations)
                 match = next(rec for rec in matching_actions(facts, answers, DAY) if rec["id"] == key)
-                assert match["scope"] == scope and bool(match["points"]) == (scope == "point")
+                expected = "site" if scope == "field" and key in SITE_LABELS else scope
+                assert match["scope"] == expected and bool(match["points"]) == (scope == "point")
                 assert 3 <= len(match["steps"]) <= 4 and all(step.strip() for step in match["steps"])
                 assert ACTIONS[key]["termin_realizacji"].rstrip(".") in match["steps"][1]
+
+
+def test_location_uses_matching_observations_before_a_suggested_sampling_point():
+    answers = FarmerAnswers(problem_zones=[ProblemZone(**POINT, recommendation_observations=["check_water"])])
+    facts = {"active_crop": "Uprawa", "root_risk": "Ryzyko"}
+
+    def measurement():
+        return next(rec for rec in matching_actions(facts, answers, DAY, [20, 51]) if rec["id"] == 52)
+
+    assert measurement()["points"][0]["coordinates"] == [19, 52]
+    answers.problem_zones.clear()
+    rec = measurement()
+    assert rec["scope"] == "point" and rec["points"][0]["coordinates"] == [20, 51]
+    assert rec["points"][0]["type"] == "Proponowane miejsce pomiaru"
+
+
+def test_scouting_map_uses_the_indicator_behind_the_anomaly():
+    request = SimpleNamespace(day=DAY, crop="potato", irrigation=False, soil_observation=None)
+    metrics = {"crop": {"label": "Ziemniak"}, "stage": "Wzrost", "stage_id": 2, "recent": None, "root": None,
+               "history": {"seasons": []}, "satellite_comparison": {"n": 3, "ndvi_delta": -.12, "ndmi_delta": -.2}}
+    scene = {"date": DAY.isoformat(), "ndvi_low_point": [19, 52], "ndmi_low_point": [19.001, 52]}
+
+    def scout():
+        return next(rec for rec in recommendations(metrics, {"satellite": {"scene": scene}}, request, True)
+                    if rec["id"] == 53)
+
+    assert scout()["points"][0]["coordinates"] == scene["ndmi_low_point"]
+    del scene["ndmi_low_point"]
+    assert scout()["scope"] == "site" and not scout()["points"]
 
 
 def test_catalog_costs_have_numeric_bounds_and_explain_the_estimate():
@@ -65,6 +95,7 @@ def test_saved_report_uses_catalogue_costs_and_plain_explanations(monkeypatch):
         {"id": 15, "cost": "niski", "why": "Opis techniczny", "evidence": "Zapisana obserwacja."},
     ]}
     monkeypatch.setattr(main, "read", lambda *args: saved)
+    monkeypatch.setattr(main, "report_evidence", lambda _: {})
     recommendation, = main.get_report("a" * 32)["recommendations"]
     action = next(item for item in catalog() if item["id"] == 15)
     assert recommendation["cost_estimate"] == action["cost_estimate"]

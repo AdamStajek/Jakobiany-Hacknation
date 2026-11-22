@@ -6,7 +6,7 @@ import type { Parcel, Report } from '../api/types';
 import { AnalysisStore } from './analysis.store';
 import { AuthStore } from './auth.store';
 import { ConsentStore } from './consent.store';
-import { FIELD_COLORS, Field, NewField, Resolution, STORAGE_KEY, attentionReasons, fieldFromServer, readField, statusFromReport, toServerColor, toServerLastReport } from './fields.model';
+import { FIELD_COLORS, FIELD_NAME_MAX, Field, NewField, Resolution, STORAGE_KEY, attentionReasons, fieldFromServer, readField, statusFromReport, toServerColor, toServerLastReport } from './fields.model';
 
 export * from './fields.model';
 
@@ -113,6 +113,30 @@ export class FieldsStore {
     } finally {
       this.adding.set(false);
     }
+  }
+
+  /** Zmienia nazwę pola (lokalnie albo PATCH na koncie). Zwraca true, gdy zapisano; błąd trafia do `error`. */
+  async rename(id: string, name: string): Promise<boolean> {
+    const clean = name.trim();
+    if (!clean || clean.length > FIELD_NAME_MAX) {
+      this.error.set(clean ? `Nazwa pola może mieć najwyżej ${FIELD_NAME_MAX} znaków.` : 'Nazwa pola nie może być pusta.');
+      return false;
+    }
+    const apply = (f: Field) => (f.id === id ? {...f, name: clean} : f);
+    if (this.source() === 'server') {
+      try {
+        await this.api.updateServerField(id, {name: clean});
+      } catch (error) {
+        this.error.set(errorMessage(error, 'Nie udało się zmienić nazwy pola na koncie. Spróbuj ponownie.'));
+        return false;
+      }
+      this.remote.update((list) => list.map(apply));
+    } else {
+      this.local.update((list) => list.map(apply));
+      this.persist();
+    }
+    this.error.set('');
+    return true;
   }
 
   async remove(id: string) {

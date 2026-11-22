@@ -5,6 +5,7 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { AnalysisStore } from '../../core/state/analysis.store';
 import { AuthStore } from '../../core/state/auth.store';
 import { ConsentStore } from '../../core/state/consent.store';
+import { PassportStore } from '../../core/state/passport.store';
 import { Field, FieldsStore } from '../../core/state/fields.store';
 import { ParcelStore } from '../../core/state/parcel.store';
 import { loginQuery } from '../../core/state/return-url';
@@ -39,15 +40,16 @@ export class FieldsPage {
   protected readonly auth = inject(AuthStore);
   protected readonly consent = inject(ConsentStore);
   private readonly router = inject(Router);
+  private readonly passports = inject(PassportStore);
 
   protected readonly views: SegmentOption<View>[] = [
     {value: 'list', label: 'Pola', icon: 'pi-list'},
     {value: 'map', label: 'Mapa', icon: 'pi-map'},
-    {value: 'passports', label: 'Paszporty', icon: 'pi-id-card'},
+    {value: 'passports', label: 'Dane działek', icon: 'pi-id-card'},
   ];
   protected readonly paneOptions: SegmentOption<View>[] = [
     {value: 'map', label: 'Mapa', icon: 'pi-map'},
-    {value: 'passports', label: 'Paszporty', icon: 'pi-id-card'},
+    {value: 'passports', label: 'Dane działek', icon: 'pi-id-card'},
   ];
   /** Parametr zapytania `widok=paszporty` (stary adres /paszporty) otwiera od razu widok paszportów. */
   readonly widok = input<string>();
@@ -84,6 +86,8 @@ export class FieldsPage {
   constructor() {
     void this.init();
     void this.auth.init();
+    // Dane pierwszego pola ładują się po cichu, zanim użytkownik otworzy „Dane działek”.
+    effect(() => { const first = this.fields.fields()[0]; if (first) untracked(() => this.passports.prefetch(first)); });
     effect(() => { if (this.widok() === 'paszporty') untracked(() => this.view.set('passports')); });
     effect(() => {
       const id = this.pole();
@@ -139,6 +143,10 @@ export class FieldsPage {
   protected remove(id: string) {
     if (this.selectedId() === id) this.selectedId.set(null);
     this.fields.remove(id);
+  }
+
+  protected async rename(event: {id: string; name: string; done: (ok: boolean) => void}) {
+    event.done(await this.fields.rename(event.id, event.name));
   }
 
   /** Odświeża datę raportu i otwiera okno drukowania (zapis do PDF); ekran wraca do normy po zamknięciu okna. */

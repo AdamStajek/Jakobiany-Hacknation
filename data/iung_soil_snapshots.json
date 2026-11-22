@@ -1,0 +1,1502 @@
+{
+  "221507_2.0010.113": {
+    "cache_key": "5:soil:f369ce7e44b688756328a371dc07857773c3def391c26ccfebeadbbfe48ce89c",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          399.0,
+          122.0
+        ],
+        [
+          350.0,
+          125.0
+        ],
+        [
+          319.0,
+          117.0
+        ],
+        [
+          293.0,
+          114.0
+        ],
+        [
+          289.0,
+          122.0
+        ]
+      ],
+      "sampling": [
+        "piksel w punkcie wewnętrznym"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        18.04134474410887,
+        54.61678738507645,
+        18.05070098291883,
+        54.62700479962416
+      ],
+      "retrieved_at": "2026-11-22T02:31:52+00:00"
+    }
+  },
+  "141911_2.0016.84/1": {
+    "cache_key": "5:soil:d54a88aa63fc90d34b33cba2d16d7a75f81f54805368676c561c5bd448cfb96f",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          378.0,
+          90.0
+        ],
+        [
+          319.0,
+          89.0
+        ],
+        [
+          311.0,
+          93.0
+        ],
+        [
+          304.0,
+          127.0
+        ],
+        [
+          300.0,
+          130.0
+        ]
+      ],
+      "sampling": [
+        "piksel w punkcie wewnętrznym"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        19.85502116089668,
+        52.44368160552775,
+        19.86687512069069,
+        52.45230074516681
+      ],
+      "retrieved_at": "2026-11-22T02:31:10+00:00"
+    }
+  },
+  "221507_2.0010.82/6": {
+    "cache_key": "5:soil:39febb10c0ab96abfc81b1df5d32b736f76d1dfa345ed6cd83b59e726e7c6e16",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          405.0,
+          123.0
+        ],
+        [
+          352.0,
+          126.0
+        ],
+        [
+          321.0,
+          118.0
+        ],
+        [
+          293.0,
+          111.0
+        ],
+        [
+          287.0,
+          117.0
+        ]
+      ],
+      "sampling": [
+        "piksel w punkcie wewnętrznym"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        18.041700202340326,
+        54.619803474153585,
+        18.055079865224656,
+        54.62708314789071
+      ],
+      "retrieved_at": "2026-11-22T02:32:00+00:00"
+    }
+  },
+  "181303_2.0014.17": {
+    "cache_key": "5:soil:4d194b93d4e83193b8e1ad46e4f4ddd2247ae22075f0c58a477730b1a623d73f",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          355.0,
+          154.0
+        ],
+        [
+          316.0,
+          147.0
+        ],
+        [
+          311.0,
+          140.0
+        ],
+        [
+          298.0,
+          168.0
+        ],
+        [
+          300.0,
+          172.0
+        ]
+      ],
+      "sampling": [
+        "piksel w punkcie wewnętrznym"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        22.660119028382397,
+        49.65842667367284,
+        22.672965528438915,
+        49.66616875313663
+      ],
+      "retrieved_at": "2026-11-22T02:31:28+00:00"
+    }
+  },
+  "221507_2.0009.29": {
+    "cache_key": "5:soil:d16583ffa8a493818bd4f3cbdcd097a9ed3a71e2b37b982e71b8747a495b2dce",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          379.0,
+          103.0
+        ],
+        [
+          319.0,
+          104.0
+        ],
+        [
+          291.0,
+          103.0
+        ],
+        [
+          281.0,
+          123.0
+        ],
+        [
+          288.0,
+          124.0
+        ]
+      ],
+      "sampling": [
+        "piksele wewnątrz granicy"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        18.073778527749106,
+        54.61873805603038,
+        18.084762671193932,
+        54.62629043965593
+      ],
+      "retrieved_at": "2026-11-22T02:31:57+00:00"
+    }
+  },
+  "181303_2.0001.69/1": {
+    "cache_key": "5:soil:9fead2b1a47a282b8965defe51590da07aa5540729fb71b9dff7b0ef1674aa98",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          363.0,
+          173.0
+        ],
+        [
+          318.0,
+          174.0
+        ],
+        [
+          314.0,
+          171.0
+        ],
+        [
+          304.0,
+          214.0
+        ],
+        [
+          307.0,
+          215.0
+        ]
+      ],
+      "sampling": [
+        "piksel w punkcie wewnętrznym"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        22.735652009002894,
+        49.67693306802565,
+        22.744411402440683,
+        49.68688309565429
+      ],
+      "retrieved_at": "2026-11-22T02:31:34+00:00"
+    }
+  },
+  "221507_2.0004.1173/4": {
+    "cache_key": "5:soil:dd53064e3acbef2f9cbd2c3d7a7ce85768136e8b14fc7faced1023e5cc6418d8",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          378.0,
+          105.0
+        ],
+        [
+          321.0,
+          103.0
+        ],
+        [
+          301.0,
+          89.0
+        ],
+        [
+          290.0,
+          103.0
+        ],
+        [
+          293.0,
+          105.0
+        ]
+      ],
+      "sampling": [
+        "piksele wewnątrz granicy"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        18.113782526172347,
+        54.55404758307379,
+        18.124964201175693,
+        54.56326635656115
+      ],
+      "retrieved_at": "2026-11-22T02:31:53+00:00"
+    }
+  },
+  "200904_2.0001.36/5": {
+    "cache_key": "5:soil:5b93b6f62bc7c262934a28725582cdb5b5e6bc6b44787333bb4d3f4a76308e9b",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          393.0,
+          112.0
+        ],
+        [
+          334.0,
+          112.0
+        ],
+        [
+          305.0,
+          98.0
+        ],
+        [
+          293.0,
+          84.0
+        ],
+        [
+          286.0,
+          87.0
+        ]
+      ],
+      "sampling": [
+        "piksele wewnątrz granicy"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        23.337083428987206,
+        54.22647822291782,
+        23.349212940515326,
+        54.23472104915273
+      ],
+      "retrieved_at": "2026-11-22T02:31:40+00:00"
+    }
+  },
+  "281004_2.0015.15/5": {
+    "cache_key": "5:soil:be78d87480e70c5c7ae7b27e5824189ae9eb4ff5b1efb2bbb062d219f5ee8372",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          367.0,
+          89.0
+        ],
+        [
+          311.0,
+          84.0
+        ],
+        [
+          294.0,
+          92.0
+        ],
+        [
+          288.0,
+          106.0
+        ],
+        [
+          288.0,
+          108.0
+        ]
+      ],
+      "sampling": [
+        "piksele wewnątrz granicy"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        21.337176617728982,
+        53.69815428305091,
+        21.348211596267863,
+        53.705972223968196
+      ],
+      "retrieved_at": "2026-11-22T02:32:29+00:00"
+    }
+  },
+  "240609_2.0008.707": {
+    "cache_key": "5:soil:0817257307bd2bd241fff85eaf9e378ddbecb24af01af229cc6ffa3e018e32f4",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          387.0,
+          92.0
+        ],
+        [
+          345.0,
+          89.0
+        ],
+        [
+          323.0,
+          93.0
+        ],
+        [
+          321.0,
+          149.0
+        ],
+        [
+          319.0,
+          157.0
+        ]
+      ],
+      "sampling": [
+        "piksele wewnątrz granicy"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        18.9334380501997,
+        50.850532199656854,
+        18.94506191851607,
+        50.85825400337571
+      ],
+      "retrieved_at": "2026-11-22T02:32:07+00:00"
+    }
+  },
+  "221507_2.0009.174": {
+    "cache_key": "5:soil:6cd64c52077cf8e4815b7d59b46d02eb9fec45fddf57c6e1e962e3c2b429ba9a",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          399.0,
+          115.0
+        ],
+        [
+          336.0,
+          115.0
+        ],
+        [
+          303.0,
+          112.0
+        ],
+        [
+          287.0,
+          116.0
+        ],
+        [
+          289.0,
+          117.0
+        ]
+      ],
+      "sampling": [
+        "piksel w punkcie wewnętrznym"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        18.067400392068794,
+        54.607278497690736,
+        18.075828622557253,
+        54.62567266427845
+      ],
+      "retrieved_at": "2026-11-22T02:32:03+00:00"
+    }
+  },
+  "281004_2.0003.36/1": {
+    "cache_key": "5:soil:c9f0236226e0e9faebca6e0f39c2776e97b9cc8157e141b6e3af6caaade05fb0",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          374.0,
+          102.0
+        ],
+        [
+          318.0,
+          96.0
+        ],
+        [
+          307.0,
+          102.0
+        ],
+        [
+          297.0,
+          127.0
+        ],
+        [
+          291.0,
+          128.0
+        ]
+      ],
+      "sampling": [
+        "piksele wewnątrz granicy"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        21.31353476137894,
+        53.781670095132974,
+        21.324783540521384,
+        53.788995423191594
+      ],
+      "retrieved_at": "2026-11-22T02:32:27+00:00"
+    }
+  },
+  "281004_2.0016.343": {
+    "cache_key": "5:soil:cb817dc6bfe024654a7d02333a211476f327b0d654fb0e6d6046e1b63a6136c6",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          387.0,
+          100.0
+        ],
+        [
+          317.0,
+          94.0
+        ],
+        [
+          297.0,
+          99.0
+        ],
+        [
+          293.0,
+          105.0
+        ],
+        [
+          288.0,
+          108.0
+        ]
+      ],
+      "sampling": [
+        "piksele wewnątrz granicy"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        21.32645891185571,
+        53.70207557272646,
+        21.33794246509364,
+        53.70992402975914
+      ],
+      "retrieved_at": "2026-11-22T02:32:36+00:00"
+    }
+  },
+  "281004_2.0003.203": {
+    "cache_key": "5:soil:43c522040e41afefe73f31caaca677c38ab56c87b2ca24cefd58f04bd96feb57",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          394.0,
+          110.0
+        ],
+        [
+          333.0,
+          103.0
+        ],
+        [
+          320.0,
+          112.0
+        ],
+        [
+          306.0,
+          120.0
+        ],
+        [
+          300.0,
+          125.0
+        ]
+      ],
+      "sampling": [
+        "piksele wewnątrz granicy"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        21.31517434999687,
+        53.766041014281846,
+        21.326987729941084,
+        53.77354924699394
+      ],
+      "retrieved_at": "2026-11-22T02:32:30+00:00"
+    }
+  },
+  "281004_2.0010.3091/1": {
+    "cache_key": "5:soil:6e0362e6c417ed28083123cb5d02479cfd609dad2007c93b8b87c415be78346b",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          377.0,
+          93.0
+        ],
+        [
+          335.0,
+          86.0
+        ],
+        [
+          307.0,
+          97.0
+        ],
+        [
+          292.0,
+          121.0
+        ],
+        [
+          285.0,
+          122.0
+        ]
+      ],
+      "sampling": [
+        "piksele wewnątrz granicy"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        21.38896468917538,
+        53.77525582999339,
+        21.399339066918746,
+        53.783588280676746
+      ],
+      "retrieved_at": "2026-11-22T02:32:33+00:00"
+    }
+  },
+  "240609_2.0011.1557": {
+    "cache_key": "5:soil:4f4ac37551f7ef8f99a1824c4b34f43ab358dca2b9fb053dc5996317abcf6941",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          388.0,
+          88.0
+        ],
+        [
+          341.0,
+          84.0
+        ],
+        [
+          325.0,
+          83.0
+        ],
+        [
+          318.0,
+          117.0
+        ],
+        [
+          317.0,
+          119.0
+        ]
+      ],
+      "sampling": [
+        "piksel w punkcie wewnętrznym"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        18.974020569130218,
+        50.81409364009636,
+        18.984171205875175,
+        50.82230225236774
+      ],
+      "retrieved_at": "2026-11-22T02:32:05+00:00"
+    }
+  },
+  "240609_2.0023.576": {
+    "cache_key": "5:soil:bb3e7c9bc39620bf1f8b9eefa41ca4f96f875108e79d0c09ce92d0e94510338d",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          390.0,
+          88.0
+        ],
+        [
+          342.0,
+          85.0
+        ],
+        [
+          325.0,
+          88.0
+        ],
+        [
+          325.0,
+          148.0
+        ],
+        [
+          322.0,
+          155.0
+        ]
+      ],
+      "sampling": [
+        "piksele wewnątrz granicy"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        18.921099319250928,
+        50.84843554989143,
+        18.931805739279888,
+        50.8559292080045
+      ],
+      "retrieved_at": "2026-11-22T02:32:10+00:00"
+    }
+  },
+  "181303_2.0015.163/1": {
+    "cache_key": "5:soil:3bbffbc7701fbed9681fd697ee7b544cfe0feba86fee3861d31b789e831b3216",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          364.0,
+          165.0
+        ],
+        [
+          330.0,
+          164.0
+        ],
+        [
+          324.0,
+          159.0
+        ],
+        [
+          315.0,
+          201.0
+        ],
+        [
+          315.0,
+          208.0
+        ]
+      ],
+      "sampling": [
+        "piksel w punkcie wewnętrznym"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        22.76520780289648,
+        49.68278982654771,
+        22.774759955625715,
+        49.69472102049331
+      ],
+      "retrieved_at": "2026-11-22T02:31:36+00:00"
+    }
+  },
+  "260607_2.0029.803": {
+    "cache_key": "5:soil:a99112e16fea3bd8d5e90dc341ed9c22f7b27bda9e2838cd21fa3ccc0afef2a0",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          346.0,
+          93.0
+        ],
+        [
+          317.0,
+          93.0
+        ],
+        [
+          305.0,
+          93.0
+        ],
+        [
+          292.0,
+          141.0
+        ],
+        [
+          291.0,
+          146.0
+        ]
+      ],
+      "sampling": [
+        "piksel w punkcie wewnętrznym"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        21.73679447395405,
+        51.000531322665196,
+        21.745630104049166,
+        51.011694213090564
+      ],
+      "retrieved_at": "2026-11-22T02:32:21+00:00"
+    }
+  },
+  "301501_2.0004.408": {
+    "cache_key": "5:soil:a04ecde81c8c3ddb35e0bf1f2ca0b50b562350ae51d401cce744b89ccf12f75c",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          377.0,
+          70.0
+        ],
+        [
+          317.0,
+          65.0
+        ],
+        [
+          301.0,
+          65.0
+        ],
+        [
+          290.0,
+          103.0
+        ],
+        [
+          287.0,
+          101.0
+        ]
+      ],
+      "sampling": [
+        "piksele wewnątrz granicy"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        16.282458984542423,
+        52.38058726733687,
+        16.294570237403722,
+        52.38853794083368
+      ],
+      "retrieved_at": "2026-11-22T02:32:42+00:00"
+    }
+  },
+  "240609_2.0023.730/3": {
+    "cache_key": "5:soil:b207135378cab8f723606fc1432922896d16b70ee8f8c73f4237d7eb44d24fa0",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          388.0,
+          95.0
+        ],
+        [
+          344.0,
+          92.0
+        ],
+        [
+          325.0,
+          96.0
+        ],
+        [
+          323.0,
+          144.0
+        ],
+        [
+          320.0,
+          150.0
+        ]
+      ],
+      "sampling": [
+        "piksele wewnątrz granicy"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        18.928824219801974,
+        50.83680932158486,
+        18.940014887165137,
+        50.845094006997215
+      ],
+      "retrieved_at": "2026-11-22T02:32:13+00:00"
+    }
+  },
+  "240609_2.0020.754": {
+    "cache_key": "5:soil:fa903bbd239c9bca2cba5ee4788c4ccab35189740db003060dfdfbe08fbc21b6",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          375.0,
+          96.0
+        ],
+        [
+          343.0,
+          91.0
+        ],
+        [
+          318.0,
+          94.0
+        ],
+        [
+          316.0,
+          134.0
+        ],
+        [
+          310.0,
+          137.0
+        ]
+      ],
+      "sampling": [
+        "piksel w punkcie wewnętrznym"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        18.79878394867793,
+        50.86311996870292,
+        18.810381682238607,
+        50.87149847793018
+      ],
+      "retrieved_at": "2026-11-22T02:32:12+00:00"
+    }
+  },
+  "301501_2.0011.554": {
+    "cache_key": "5:soil:ae8e4e7497ed2c3365474e3288363c946ae4fa708dfeee11682ca7e25a5f9425",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          362.0,
+          71.0
+        ],
+        [
+          308.0,
+          70.0
+        ],
+        [
+          293.0,
+          68.0
+        ],
+        [
+          284.0,
+          103.0
+        ],
+        [
+          284.0,
+          107.0
+        ]
+      ],
+      "sampling": [
+        "piksele wewnątrz granicy"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        16.227603195712177,
+        52.3504982945267,
+        16.238331732702274,
+        52.358040005931336
+      ],
+      "retrieved_at": "2026-11-22T02:32:46+00:00"
+    }
+  },
+  "301501_2.0002.92/1": {
+    "cache_key": "5:soil:bf2a2bf14385e26580c2f82e032d1e7c1f84533a48760eab739f92d1fdff2915",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          368.0,
+          65.0
+        ],
+        [
+          305.0,
+          61.0
+        ],
+        [
+          288.0,
+          63.0
+        ],
+        [
+          273.0,
+          114.0
+        ],
+        [
+          276.0,
+          116.0
+        ]
+      ],
+      "sampling": [
+        "piksel w punkcie wewnętrznym"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        16.25826000804312,
+        52.31221080439427,
+        16.269279454418108,
+        52.320059022257205
+      ],
+      "retrieved_at": "2026-11-22T02:32:44+00:00"
+    }
+  },
+  "260607_2.0015.118/1": {
+    "cache_key": "5:soil:d77cec9ca293d5551fde61ececa92c365a46ae71484d8a1c70a615286ce25534",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          355.0,
+          79.0
+        ],
+        [
+          329.0,
+          77.0
+        ],
+        [
+          311.0,
+          82.0
+        ],
+        [
+          305.0,
+          128.0
+        ],
+        [
+          289.0,
+          133.0
+        ]
+      ],
+      "sampling": [
+        "piksel w punkcie wewnętrznym"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        21.72782607182104,
+        50.957082125610945,
+        21.738144426560964,
+        50.96687210341106
+      ],
+      "retrieved_at": "2026-11-22T02:32:23+00:00"
+    }
+  },
+  "260607_2.0029.1139": {
+    "cache_key": "5:soil:54f3d10feb69848a5c923568b0dca1a5652b406692061e9aec8c6fc6d31776a7",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          352.0,
+          81.0
+        ],
+        [
+          320.0,
+          79.0
+        ],
+        [
+          303.0,
+          80.0
+        ],
+        [
+          293.0,
+          134.0
+        ],
+        [
+          283.0,
+          140.0
+        ]
+      ],
+      "sampling": [
+        "piksele wewnątrz granicy"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        21.72556300810897,
+        50.992675003324244,
+        21.736815435217785,
+        51.000652499423374
+      ],
+      "retrieved_at": "2026-11-22T02:32:17+00:00"
+    }
+  },
+  "260607_2.0029.967": {
+    "cache_key": "5:soil:9079e20566876812afc64dfbd1d46f305fb6c55eb9c3640c6ffddc118f154e63",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          353.0,
+          94.0
+        ],
+        [
+          327.0,
+          90.0
+        ],
+        [
+          312.0,
+          95.0
+        ],
+        [
+          297.0,
+          143.0
+        ],
+        [
+          286.0,
+          151.0
+        ]
+      ],
+      "sampling": [
+        "piksele wewnątrz granicy"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        21.739568617332186,
+        50.99482758254291,
+        21.750793855125274,
+        51.00301531571855
+      ],
+      "retrieved_at": "2026-11-22T02:32:15+00:00"
+    }
+  },
+  "301501_2.0005.242": {
+    "cache_key": "5:soil:9979525f3f75d37b4468b1dbc891ce95584cb8212dd702d5ea096c8e6ee71c2d",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          368.0,
+          65.0
+        ],
+        [
+          312.0,
+          62.0
+        ],
+        [
+          302.0,
+          62.0
+        ],
+        [
+          289.0,
+          106.0
+        ],
+        [
+          292.0,
+          109.0
+        ]
+      ],
+      "sampling": [
+        "piksel w punkcie wewnętrznym"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        16.30485784200515,
+        52.345845509179775,
+        16.313881577954156,
+        52.35994583497416
+      ],
+      "retrieved_at": "2026-11-22T02:32:40+00:00"
+    }
+  },
+  "301501_2.0007.69": {
+    "cache_key": "5:soil:8850f97f82e92de9ed74cd23ba5d07353e3a35d5c6c3de66869f2bc287566a79",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          369.0,
+          81.0
+        ],
+        [
+          310.0,
+          80.0
+        ],
+        [
+          307.0,
+          83.0
+        ],
+        [
+          297.0,
+          119.0
+        ],
+        [
+          296.0,
+          126.0
+        ]
+      ],
+      "sampling": [
+        "piksele wewnątrz granicy"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        16.377583054261944,
+        52.37796118483058,
+        16.388488191003123,
+        52.38576044984025
+      ],
+      "retrieved_at": "2026-11-22T02:32:38+00:00"
+    }
+  },
+  "260607_2.0029.2220": {
+    "cache_key": "5:soil:d44ef93e0741efc1ddef6f39fe01041b5229d2484bc0f27fc3280bc55c4aa8f8",
+    "source": {
+      "name": "ISRIC SoilGrids 2.0 / WCS",
+      "url": "https://maps.isric.org/mapserv",
+      "kind": "predykcja przestrzenna",
+      "resolution": "250 m",
+      "publication_date": null,
+      "layer_depths": [
+        "0-5cm",
+        "5-15cm",
+        "15-30cm",
+        "30-60cm",
+        "60-100cm"
+      ],
+      "layers": [
+        [
+          362.0,
+          86.0
+        ],
+        [
+          337.0,
+          84.0
+        ],
+        [
+          312.0,
+          85.0
+        ],
+        [
+          306.0,
+          131.0
+        ],
+        [
+          292.0,
+          139.0
+        ]
+      ],
+      "sampling": [
+        "piksele wewnątrz granicy"
+      ],
+      "capacity_unit": "mm/m",
+      "bounds": [
+        21.689370612248688,
+        50.98501016986304,
+        21.701013039910833,
+        50.99291317983377
+      ],
+      "retrieved_at": "2026-11-22T02:32:24+00:00"
+    }
+  }
+}

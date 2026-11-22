@@ -25,6 +25,7 @@ export class AnalysisStore {
   readonly savingExperiment = signal(false);
   readonly running = computed(() => !!this.progress());
   /** [lon, lat] najbliższej stałej wody z ostatniego raportu. */
+  readonly surfacePoints = computed(() => this.report()?.sources.find((s) => s.key === 'terrain')?.surface_points);
   readonly waterPoint = computed(() => this.report()?.sources.find((s) => s.key === 'land')?.nearest_water_point ?? null);
 
   /** Parametry ostatniej analizy uruchomionej w tej sesji, powiązane z identyfikatorem raportu. */
@@ -96,7 +97,9 @@ export class AnalysisStore {
       if (value) results[slug] = value;
       else delete results[slug];
       const updated = await this.api.saveExperiments(report.analysis_id, results);
-      if (this.report() === report) this.report.set({...updated, metrics: report.metrics});
+      if (this.report() !== report) return;
+      this.report.set({...updated, metrics: report.metrics});
+      return updated;
     } catch (error) {
       if (this.report() === report) this.experimentError.set(errorMessage(error, 'Nie udało się zapisać wyniku próby.'));
     } finally {

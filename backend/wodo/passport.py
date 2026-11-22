@@ -4,12 +4,13 @@ import csv
 import json
 import logging
 from collections import defaultdict
-from concurrent.futures import wait
+from concurrent.futures import FIRST_COMPLETED, wait
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+from time import monotonic
 
 from wodo.analysis import PROVIDERS
-from wodo.passport_layers import anomalies, basin_flow, soil_history
+from wodo.passport_layers import BDOT, CLMS, anomalies, basin_flow, soil_history
 from wodo.passport_sources import ADMIN, ERA, FAO, SUPPORTED_FIELDS, WORKERS
 from wodo.science import CROPS, assess, bucket, dates, phenology, retention, years_ago
 from wodo.spatial import WCS_DEPTHS
@@ -21,6 +22,13 @@ PIPELINE = "Własny pipeline"
 METHOD_VERSION = "passport-1"
 
 LOG = logging.getLogger(__name__)
+COLLECT_BUDGET_S = 24  # jak w analizie (wodo/analysis.py): źródła po terminie trafiają do braków
+PROGRESS_LABELS = {
+    BDOT: "Hydrologia", CLMS: "Uprawy", "GUGiK NMT": "Teren", ADMIN: "Granice administracyjne",
+    ERA: "Gleba (ERA5-Land)", "ISRIC SoilGrids": "Gleba", "GUGiK EGiB": "Ewidencja działek",
+    "ISRIC SoilGrids / funkcje pedotransferowe": "Retencja glebowa", "Sentinel-2 L2A / Earth Search": "Sentinel-2",
+    "Open-Meteo Historical API / ERA5-Land": "Pogoda", "Open-Meteo Forecast API": "Prognoza pogody",
+}
 
 
 def load_catalog():
@@ -145,7 +153,8 @@ def add_nasa_fallback(results, history, start, end):
         results[source] = existing, meta, error
 
 
-def collect(parcel, end, crop=None, sowing=None, stage=None, irrigation_mm=0):
+def collect(parcel, end, crop=None, sowing=None, stage=None, irrigation_mm=0, on_progress=None, budget=COLLECT_BUDGET_S):
+    """on_progress(done, total, label) jest wołane po każdym ukończonym źródle (z wątku wywołującego)."""
     start = end - timedelta(days=364)
     groups = load_catalog()
     tasks = {PROVIDERS.submit(worker, parcel, start, end): source
@@ -157,7 +166,17 @@ def collect(parcel, end, crop=None, sowing=None, stage=None, irrigation_mm=0):
                        ("GUGiK NMT", basin_flow, ("flow_direction_raster_uri", "flow_accumulation_raster_uri")),
                    ) if source in groups}
     historical = PROVIDERS.submit(nasa, *parcel["sample_point"]) if ERA in groups and "sample_point" in parcel else None
-    done, pending = wait([*tasks, *supplements, *([historical] if historical else [])], timeout=90)
+    labels = {**{f: PROGRESS_LABELS.get(source, source) for f, source in tasks.items()},
+              **{f: PROGRESS_LABELS.get(source, source) for f, (source, _) in supplements.items()}}
+    if historical:
+        labels[historical] = "Pogoda historyczna"
+    done, pending, deadline = set(), set(labels), monotonic() + budget
+    while pending and (remaining := deadline - monotonic()) > 0:
+        finished, pending = wait(pending, timeout=remaining, return_when=FIRST_COMPLETED)
+        for future in finished:
+            done.add(future)
+            if on_progress:
+                on_progress(len(done), len(labels), labels[future])
     history = None
     if historical:
         if historical in done:

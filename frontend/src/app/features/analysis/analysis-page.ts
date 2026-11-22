@@ -6,6 +6,7 @@ import { MessageModule } from 'primeng/message';
 import { SkeletonModule } from 'primeng/skeleton';
 import { AnalysisStore } from '../../core/state/analysis.store';
 import { ConsentStore } from '../../core/state/consent.store';
+import { MapPrefsStore } from '../../core/state/map-prefs.store';
 import { toServerColor } from '../../core/state/fields.model';
 import { FieldsStore, fieldsGeometry } from '../../core/state/fields.store';
 import { ParcelStore } from '../../core/state/parcel.store';
@@ -37,6 +38,7 @@ type Pane = 'map' | 'report';
   host: {class: 'block'},
   template: `
     <div class="flex h-[calc(100dvh-var(--shell-top)-var(--shell-bottom))] flex-col print:block print:h-auto">
+      <p class="sr-only" role="status" aria-live="polite">Widok: {{viewLabel()}}</p>
       <div class="border-b border-surface bg-surface-0 px-3 py-2 print:hidden lg:hidden dark:bg-surface-900">
         <app-segmented label="Widok" [options]="mobileViews()" [(value)]="view" />
       </div>
@@ -59,14 +61,35 @@ type Pane = 'map' | 'report';
             }
           </div>
 
+          @if (analysis.report() && pane() === 'map' && !analysis.surfacePoints()?.features?.length) {
+            <p class="border-b border-surface px-4 py-2 text-sm print:hidden" role="status">
+              @if (analysis.surfacePoints()) {
+                W próbkach terenu nie wyznaczono kierunku spływu ani lokalnych obniżeń.
+              } @else { Brak danych o kierunkach spływu i lokalnych obniżeniach w tym raporcie. }
+            </p>
+          }
           <div class="relative min-h-0 flex-1 print:hidden" [class.hidden]="pane() !== 'map'">
-            <app-wodo-map [locateUser]="true" [geometry]="parcels.parcel()?.geometry ?? null" [waterPoint]="analysis.waterPoint()"
+            <app-wodo-map [(basemap)]="prefs.basemap" [locateUser]="true" [geometry]="parcels.parcel()?.geometry ?? null" [waterPoint]="analysis.waterPoint()" [surface]="analysis.surfacePoints()"
               [fields]="visibleShapes()" [fieldsMuted]="true" [fieldsToggleVisible]="shapes().length > 0" [fieldsShown]="showFields()"
               [markers]="zones.markers()" [numberedMarkers]="true" [markMode]="zones.marking()" [markAvailable]="!!parcels.parcel()" [markNotice]="zones.notice()"
               [hintSeen]="hintSeen() || !!parcels.parcel()" (hintDismissed)="dismissHint()"
               (pointClicked)="onPoint($event)" (polygonDrawn)="parcels.importGeometry($event)" (fieldClicked)="openField($event)" (fieldsToggle)="toggleFields()"
               (markToggle)="toggleMarking()" (markUndo)="zones.undo()" (markClear)="zones.clear()" (markDone)="finishMarking()" />
             <div class="absolute inset-x-3 top-3 z-10 lg:hidden"><app-parcel-picker variant="search" /></div>
+            @if (analysis.surfacePoints()?.features?.length) {
+              <div class="group absolute left-3 top-17 z-10 lg:top-3">
+                <details class="peer">
+                  <summary aria-describedby="runoff-legend-description"
+                    class="pw-card flex min-h-11 cursor-pointer list-none items-center px-3 text-sm shadow-md">
+                    <span aria-hidden="true">↑&nbsp;–&nbsp;</span>Kierunek spływu wody
+                  </summary>
+                </details>
+                <p id="runoff-legend-description"
+                  class="pw-card invisible absolute w-64 p-3 text-sm shadow-md group-hover:visible group-focus-within:visible peer-open:visible">
+                  ≈ Możliwe zatrzymanie wody w lokalnym obniżeniu. Wskazania z próbek wysokości terenu.
+                </p>
+              </div>
+            }
             @if (parcels.parcel(); as parcel) {
               @if (!zones.marking()) {
               <div class="pw-card absolute inset-x-3 bottom-3 z-10 flex flex-col gap-2 p-3 shadow-lg lg:hidden" role="status">
@@ -116,6 +139,7 @@ type Pane = 'map' | 'report';
   `,
 })
 export class AnalysisPage {
+  protected readonly prefs = inject(MapPrefsStore);
   protected readonly parcels = inject(ParcelStore);
   protected readonly analysis = inject(AnalysisStore);
   protected readonly fields = inject(FieldsStore);
@@ -147,6 +171,7 @@ export class AnalysisPage {
     {value: 'map', label: 'Mapa', icon: 'pi-map'},
     {value: 'report', label: 'Raport', icon: 'pi-chart-bar', disabled: !this.hasReport()},
   ]);
+  protected readonly viewLabel = computed(() => ({map: 'Mapa', form: 'Dane analizy', report: 'Raport'})[this.view()]);
   protected readonly mobileViews = computed<SegmentOption<View>[]>(() => [
     {value: 'map', label: 'Mapa', icon: 'pi-map'},
     {value: 'form', label: 'Dane', icon: 'pi-sliders-h'},

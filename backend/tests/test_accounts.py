@@ -178,6 +178,11 @@ def test_fields_crud_and_isolation(client):
     assert field["last_report"] is None and field["parcels"][0]["id"] == "x" and field["color"]
     patched = client.patch(f"/api/fields/{field['id']}", json={"name": "Nowa", "color": "#112233"})
     assert patched.json()["name"] == "Nowa" and patched.json()["parcels"]
+    assert client.patch(f"/api/fields/{field['id']}", json={"name": "   "}).status_code == 422
+    assert client.patch(f"/api/fields/{field['id']}", json={"name": "x" * 81}).status_code == 422
+    assert client.post("/api/fields", json={"name": "  "}).status_code == 422
+    trimmed = client.patch(f"/api/fields/{field['id']}", json={"name": "  Nowa  "}).json()
+    assert trimmed["name"] == "Nowa"
     report = {"risk": "Podwyższone", "dry_spell_days": 9, "crop_balance_mm": -12.5}
     saved = client.put(f"/api/fields/{field['id']}/last-report", json=report).json()
     assert saved["last_report"]["saved_at"] and saved["last_report"]["risk"] == "Podwyższone"

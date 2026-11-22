@@ -123,7 +123,7 @@ def stac(collections, bbox, limit, period=None, endpoint=STAC):
     return payload(endpoint, params, timeout=5)["features"]
 
 
-def indices(bands, footprint):
+def indices(bands, footprint, affine=None):
     red, nir, green, swir, scl = bands
     reflectance = np.stack([red, nir, green, swir])
     clear = (footprint & np.isin(scl, [4, 5]) & np.isfinite(reflectance).all(axis=0) &
@@ -136,8 +136,17 @@ def indices(bands, footprint):
     def nd(a, b):
         return round(float(np.median((a[clear] - b[clear]) / (a[clear] + b[clear]))), 3)
 
-    return {"ndvi": nd(nir, red), "ndmi": nd(nir, swir), "ndwi": nd(green, nir),
-            "clear_share": round(share, 3), "pixels": number}
+    result = {"ndvi": nd(nir, red), "ndmi": nd(nir, swir), "ndwi": nd(green, nir),
+              "clear_share": round(share, 3), "pixels": number}
+    if affine is not None:
+        rows, cols = np.nonzero(clear)
+        for key, band in (("ndvi", red), ("ndmi", swir)):
+            values = (nir[clear] - band[clear]) / (nir[clear] + band[clear])
+            index = int(np.argmin(np.abs(values - np.percentile(values, 10))))
+            if round(float(values[index]), 3) < result[key]:
+                xy = affine @ (cols[index] + .5, rows[index] + .5)
+                result[f"{key}_low_point"] = list(TO_GPS(*xy))
+    return result
 
 
 def passport_stats(bands, footprint):
@@ -185,7 +194,7 @@ def scene_metrics(scene, local, for_passport=False):
 
     with ThreadPoolExecutor(max_workers=4) as pool:
         bands = list(pool.map(load, SENTINEL_BANDS[:-1]))
-    output = indices([*bands, scl], footprint)
+    output = indices([*bands, scl], footprint, affine)
     if output:
         props = scene["properties"]
         if for_passport:
@@ -249,7 +258,7 @@ def satellite(geometry, day, baseline=False, *, earth_search_only=False):
             raise SourceError("Część scen była nieużyteczna lub przekroczyła limit odczytu rastrów.")
         return {"scene": None, "searched": len(candidates), "read_failures": rejected, "endpoint": endpoint}
 
-    cache_name = "passport-sentinel" if earth_search_only else ("sentinel-baseline" if baseline else "sentinel")
+    cache_name = "passport-sentinel" if earth_search_only else ("sentinel-baseline" if baseline else "sentinel-scouting")
     return cached(cache_name, [geometry, day.isoformat()],
                   .25 if day >= date.today() - timedelta(days=5) else 45, download)
 
@@ -324,6 +333,28 @@ def soil(geometry):
     return cached("soil", geometry, 90, download)
 
 
+def surface_points(centers, samples):
+    features = []
+    for (x, y), values in zip(centers, samples, strict=True):
+        if not np.isfinite(values).all():
+            continue
+        center, west, east, south, north = values
+        lon, lat = TO_GPS(x, y)
+        dx, dy = west - east, south - north
+        if center < min(west, east, south, north):
+            properties = {"kind": "depression"}
+        elif min(west, east, south, north) < center and (dx or dy):
+            length = math.hypot(dx, dy)
+            lon2, lat2 = TO_GPS(x + dx / length, y + dy / length)
+            bearing = math.degrees(math.atan2((lon2 - lon) * math.cos(math.radians(lat)), lat2 - lat))
+            properties = {"kind": "flow", "bearing": bearing}
+        else:
+            continue
+        features.append({"type": "Feature", "geometry": {"type": "Point", "coordinates": [lon, lat]},
+                         "properties": properties})
+    return {"type": "FeatureCollection", "features": features}
+
+
 def cop_dem(geometry):
     local = transform(shape(geometry), TO_PL, interleaved=False)
     area = transform(local.envelope.buffer(60), TO_GPS, interleaved=False).bounds
@@ -347,14 +378,19 @@ def cop_dem(geometry):
         grad_y, grad_x = np.gradient(merged, 30, 30)
         slopes = 100 * np.hypot(grad_x, grad_y)[inside]
         slopes = slopes[np.isfinite(slopes)]
-        return {"name": "Copernicus DEM GLO-30", "url": STAC, "kind": "model powierzchni",
+        rows, cols = np.where(inside & np.isfinite(merged))
+        ids = np.linspace(0, len(rows) - 1, min(9, len(rows)), dtype=int)
+        r, c = rows[ids], cols[ids]
+        centers = zip(*rasterio.transform.xy(affine, r, c), strict=True)
+        samples = np.column_stack([merged[r + dy, c + dx] for dy, dx in ((0, 0), (0, -1), (0, 1), (1, 0), (-1, 0))])
+        return {"surface_points": surface_points(centers, samples), "name": "Copernicus DEM GLO-30", "url": STAC, "kind": "model powierzchni",
                 "publication_date": "2021-04-22", "coverage": ["2010", "2015"], "resolution": "około 30 m",
                 "elevation_m": round(float(np.nanmean(values)), 1),
                 "slope_pct": round(float(np.median(slopes)), 1) if slopes.size >= 3 else None,
                 "relief_m": round(float(np.nanmax(values) - np.nanmin(values)), 1) if values.size >= 3 else None,
                 "pixels": int(np.isfinite(values).sum()), "tiles": tiles, "attribution": DEM_NOTICE}
 
-    return cached("dem", geometry, 90, download)
+    return cached("dem-surface-v1", geometry, 90, download)
 
 
 def terrain(geometry):
@@ -386,7 +422,7 @@ def terrain(geometry):
             raise SourceError("EU-DEM zawiera nieprawidłowe wysokości.")
         heights = values[:, 0]
         slopes = 100 * np.hypot(values[:, 2] - values[:, 1], values[:, 4] - values[:, 3]) / 50
-        return {"name": "Copernicus EU-DEM v1.1 / Open Topo Data", "url": TOPO, "kind": "model powierzchni",
+        return {"surface_points": surface_points(centers, values), "name": "Copernicus EU-DEM v1.1 / Open Topo Data", "url": TOPO, "kind": "model powierzchni",
                 "publication_date": "2016", "coverage": [], "resolution": "25 m, próbki z modelu",
                 "elevation_m": round(float(np.mean(heights)), 1),
                 "slope_pct": round(float(np.median(slopes)), 1) if len(heights) >= 3 else None,
@@ -395,7 +431,7 @@ def terrain(geometry):
                 "attribution": "Produced using Copernicus data and information funded by the European Union – EU-DEM layers."}
 
     try:
-        return cached("eu-dem", geometry, 90, download)
+        return cached("eu-dem-surface-v1", geometry, 90, download)
     except SourceError:
         return cop_dem(geometry)
 

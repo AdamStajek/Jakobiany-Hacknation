@@ -1,6 +1,7 @@
 import { Component, computed, effect, signal, inject, untracked, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AccordionModule } from 'primeng/accordion';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
 import { MessageModule } from 'primeng/message';
@@ -18,7 +19,7 @@ const STAGES = ['Początek wzrostu', 'Rozwój', 'Pełnia wzrostu', 'Dojrzewanie'
 
 @Component({
   selector: 'app-analysis-form',
-  imports: [ReactiveFormsModule, ButtonModule, CheckboxModule, MessageModule, SelectModule, FieldDeclarations, FieldDescriptionInput],
+  imports: [ReactiveFormsModule, AccordionModule, ButtonModule, CheckboxModule, MessageModule, SelectModule, FieldDeclarations, FieldDescriptionInput],
   templateUrl: './analysis-form.html',
 })
 export class AnalysisForm {
@@ -49,6 +50,14 @@ export class AnalysisForm {
   });
 
   private readonly cropValue = toSignal(this.form.controls.crop.valueChanges, {initialValue: this.form.controls.crop.value});
+  private readonly formValue = toSignal(this.form.valueChanges, {initialValue: this.form.getRawValue()});
+  /** Liczba uzupełnionych opcjonalnych pól (opis własnymi słowami, faza, siew, gleba, nawadnianie, scenariusz). */
+  protected readonly filledCount = computed(() => {
+    const v = this.formValue();
+    return [this.description.confirmed(), v.stage != null, v.sowing, v.soil_observation, v.irrigation, (v.scenario_mm ?? 0) > 0]
+      .filter(Boolean).length;
+  });
+
   protected cropUnknown() { return this.cropValue() === 'unknown'; }
 
   constructor() {

@@ -24,6 +24,7 @@ export type Source = {
   retrieved_at: string; publication_date: string | null; cached: boolean; attribution?: string;
   scene?: Scene; history?: Scene[]; classes?: {class: string; percent: number}[];
   layers?: ([number, number] | null)[]; layer_depths?: string[];
+  surface_points?: GeoJSON.FeatureCollection<GeoJSON.Point>;
   elevation_m?: number; slope_pct?: number | null; relief_m?: number | null;
   nearest_water_m?: number | null; nearest_water_point?: [number, number] | null; search_m?: number;
   station?: string; river?: string; distance_km?: number; gauge_cm?: number;
@@ -36,7 +37,7 @@ export type RecommendationPoint = {
 };
 export type Recommendation = {
   group: string; title: string; action: string; why: string; evidence: string; when: string; confidence: string; limits: string;
-  id?: number; cost?: string; cost_details?: string; cost_estimate?: CostEstimate; scope?: 'field' | 'point'; points?: RecommendationPoint[];
+  id?: number; cost?: string; cost_details?: string; cost_estimate?: CostEstimate; scope?: 'field' | 'point' | 'site'; location?: string; points?: RecommendationPoint[];
   sources?: ResearchSource[];
   /** Krótki plan działań (3–4 kroki) z katalogu rekomendacji. */
   steps?: string[];
@@ -60,6 +61,9 @@ export type ProblemZone = {geometry: {type: 'Point'; coordinates: [number, numbe
 export type Watering = {date: string; dose_mm: number | null};
 export type FarmerAnswers = Record<string, string | string[] | ProblemZone[] | Watering[] | null>;
 export type Report = {
+  evidence: {headline: string; reason: string; confidence_note: string; balance: string;
+    satellite: string; runoff: string; history_start: string; eligible_seasons: number; root_start: string | null};
+  model_version: string;
   farmer_answers?: FarmerAnswers;
   experiments?: ExperimentCheck[];
   experiment_results?: Record<string, string>;
@@ -71,7 +75,7 @@ export type Report = {
   soil_observation?: 'dry' | 'moist' | 'wet' | null;
   metrics: {
     risk: string; kc: number; stage: string; crop: {label: string; root_m: number};
-    weather_last_day: string | null; recent: Recent | null;
+    weather_first_day: string | null; weather_last_day: string | null; recent: Recent | null;
     root: {taw_mm: number; raw_mm: number; days: number; input_mm?: number; initially_wet: {depletion_mm: number}; initially_dry: {depletion_mm: number}} | null;
     history: {seasons: Season[]; negative_seasons: number; riskiest_months: string[]; matched_years: number;
       matched_balance_mm: number | null; matched_rain_mm: number | null; median_season_mm: number | null};
@@ -89,10 +93,10 @@ export type PassportField = {
   status: string; value: unknown; detail?: string | null; provenance?: {source_id?: string};
 };
 type PassportFact = {label: string; value: number | string | null; unit?: string | null; hint?: string | null};
-/** Paszport pola z /api/passport; frontend pokazuje z niego tylko krótkie podsumowanie. */
+/** Dane działki z /api/passport (`view=summary` pomija `fields` i `steps`); UI pokazuje tylko krótkie podsumowanie. */
 export type Passport = {
-  parcel_id: string; analysis_as_of: string; fields: PassportField[]; summary: PassportFact[];
-  farmer_report?: {situation: string; next_check: string | null; steps: Recommendation[]};
+  parcel_id: string; analysis_as_of: string; fields?: PassportField[]; summary: PassportFact[];
+  farmer_report?: {situation: string; next_check: string | null; steps?: Recommendation[]};
 };
 export type Health = {status: string; analysis_date_min: string; analysis_date_max: string};
 export type Crop = {id: string; label: string};
@@ -111,7 +115,19 @@ export type NotificationSettings = {
   email_enabled: boolean;
   recommendation_email_enabled: boolean;
 };
-export type NotificationPrefs = NotificationSettings & {email?: string; email_verified?: boolean};
+/** Push (Web Push) oraz godziny ciszy; `quiet_*` to „HH:MM” w strefie `timezone` (nazwa IANA). */
+export type DeliverySettings = {
+  push_enabled: boolean;
+  quiet_enabled: boolean;
+  quiet_start: string;
+  quiet_end: string;
+  timezone: string;
+};
+export type NotificationPrefs = NotificationSettings & DeliverySettings & {
+  email?: string; email_verified?: boolean; push_available: boolean; push_devices: number;
+};
+export type PushDemoKind = 'basic' | 'water' | 'rain' | 'frost' | 'heat' | 'residue';
+export type PushSubscriptionInput = {endpoint: string; keys: {p256dh: string; auth: string}};
 export type TestEmailEvent =
   | ({type: 'progress'} & AnalysisProgress)
   | {type: 'result'}

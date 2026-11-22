@@ -67,6 +67,29 @@ CREATE TABLE IF NOT EXISTS recommendation_email_state (
     sources TEXT NOT NULL,
     PRIMARY KEY (consent_id, field_id, parcel_id)
 );
+CREATE TABLE IF NOT EXISTS notification_settings (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    push_enabled INTEGER NOT NULL DEFAULT 0,
+    quiet_enabled INTEGER NOT NULL DEFAULT 0,
+    quiet_start TEXT NOT NULL DEFAULT '22:00',
+    quiet_end TEXT NOT NULL DEFAULT '07:00',
+    timezone TEXT NOT NULL DEFAULT 'Europe/Warsaw'
+);
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+    endpoint TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    created_at REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS push_subscriptions_user ON push_subscriptions(user_id);
+CREATE TABLE IF NOT EXISTS push_log (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    field_id TEXT NOT NULL,
+    dedupe_key TEXT NOT NULL,
+    sent_at REAL NOT NULL,
+    PRIMARY KEY (user_id, field_id)
+);
 """
 READY = set()
 LOCK = Lock()

@@ -4,7 +4,7 @@ Pierwsza wersja używa tylko sygnałów, które analiza już liczy (lista w sekc
 
 ## Brakujące sygnały (wymagają nowych danych lub obliczeń)
 
-- [ ] **Prognoza opadu** — „zapowiadany deszcz” jest w opisie metody, ale backend nie ma prognozy; powiadomienie „nie podlewaj, jutro opad” i „brak opadu w tygodniu” bez niej nie ruszy. Dane/źródło: darmowa prognoza (do wyboru: Open-Meteo, IMGW). Priorytet: P1. Właściciel: —.
+- [x] ~~**Prognoza opadu**~~ — zrobione: `weather.forecast` (Open-Meteo, 4 dni, flaga `WODO_NONCOMMERCIAL_OPEN_METEO`), używana w `recommendations.forecast_facts`; powiadomienia na jej podstawie jeszcze nie ruszyły. Było: „zapowiadany deszcz” jest w opisie metody, ale backend nie ma prognozy; powiadomienie „nie podlewaj, jutro opad” i „brak opadu w tygodniu” bez niej nie ruszy. Dane/źródło: darmowa prognoza (do wyboru: Open-Meteo, IMGW). Priorytet: P1. Właściciel: —.
 - [ ] **Ostrzeżenia przymrozkowe i upały** — `T2M_MIN`/`T2M_MAX` są już pobierane z NASA POWER dla historii, ale nie są używane do alertów. Potrzebna prognoza temperatur i progi per uprawa i faza. Priorytet: P1. Właściciel: —.
 - [ ] **Ostrzeżenia hydrologiczne i meteorologiczne IMGW** — wodowskaz jest tylko informacją w raporcie; ostrzeżenia IMGW (susza hydrologiczna, burze, ulewy) mogłyby być osobną kategorią. Priorytet: P2. Właściciel: —.
 - [ ] **Wskaźnik suszy względem wielolecia (np. SPI)** — dziś mamy anomalię opadu względem mediany; wskaźnik znormalizowany dałby spójniejsze progi dla całej Polski. Priorytet: P2. Właściciel: —.
@@ -21,7 +21,7 @@ Pierwsza wersja używa tylko sygnałów, które analiza już liczy (lista w sekc
 
 ## Kanały
 
-- [ ] **E-mail** — adres w koncie, SMTP (wdrożone: potwierdzenie, reset, „pole wymaga uwagi” z `python -m wodo.notify`), podsumowania dzienne/tygodniowe, link „wypisz się”. Zależy od: wyboru dostawcy (darmowy/open source). Priorytet: P1. Właściciel: —.
-- [ ] **Web Push (PWA)** — manifest, service worker, klucze VAPID, zgoda przy pierwszym powiadomieniu. Priorytet: P2. Właściciel: —.
-- [ ] **Godziny ciszy i strefa czasowa użytkownika.** Priorytet: P2. Właściciel: —.
+- [ ] **E-mail** (częściowo: potwierdzenie, reset, „pole wymaga uwagi”; brak podsumowań dziennych/tygodniowych i linku „wypisz się”) — adres w koncie, SMTP (wdrożone: potwierdzenie, reset, „pole wymaga uwagi” z `python -m wodo.notify`), podsumowania dzienne/tygodniowe, link „wypisz się”. Zależy od: wyboru dostawcy (darmowy/open source). Priorytet: P1. Właściciel: —.
+- [x] ~~**Web Push (PWA)**~~ — zrobione: `wodo/notify/push.py`, endpointy `/api/me/push/*`, wysyłka w `python -m wodo.notify`, zgoda przeglądarki po włączeniu w „Powiadomieniach”. Wymaga kluczy VAPID (`python -m wodo.notify.push`, zmienne `WODO_VAPID_*`) i `uv lock` po dodaniu `pywebpush`; wysyłka przez prawdziwą bibliotekę nie była testowana (testy używają atrapy). Było — manifest, service worker, klucze VAPID, zgoda przy pierwszym powiadomieniu. Priorytet: P2. Właściciel: —.
+- [x] ~~**Godziny ciszy i strefa czasowa użytkownika.**~~ — zrobione: `wodo/notify/quiet.py`, ustawienia w „Powiadomieniach”, dotyczy e-maili i push (nie dotyczy e-maili o nowych rekomendacjach). Priorytet: P2. Właściciel: —.
 - [ ] **Powiadomienia SMS/komunikatory** — tylko jeśli będzie zapotrzebowanie; wymaga płatnej bramki, więc poza zasadą „darmowe” bez osobnej decyzji. Priorytet: —. Właściciel: —.

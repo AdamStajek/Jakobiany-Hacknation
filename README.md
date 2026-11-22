@@ -50,7 +50,7 @@ W sekcji Analiza działki pracujesz w trzech widokach: **Mapa** (wyszukiwanie i 
 - Sześć upraw, ruchomy przedział dziesięciu lat, opcjonalna faza, początek wegetacji, lokalna obserwacja i znane nawadnianie.
 - Bilans pogodowy, porównania sezonowe, model strefy korzeni, indeksy Sentinel-2, pokrycie terenu, wody powierzchniowe, stacje IMGW i spadek terenu.
 - Sugestie z katalogu 60 działań KOWR dla całego pola lub punktów z mapy, z uzasadnieniem, terminem i kosztem. Warunki i publikacje są w zakładce „Jak to działa?”.
-- Scenariusz dodatkowej wody, PDF z granicą, druk i eksport JSON.
+- Scenariusz dodatkowej wody, raport PDF z granicą działki, eksperymentami i zaleceniami oraz druk.
 
 ## Architektura i dane
 
@@ -62,7 +62,7 @@ Angular, PrimeNG i ECharts renderują formularz, wykresy i raport, a MapLibre GL
 | GET /api/parcels/{id}, /api/parcels/search, /api/parcels/by-point, POST /api/parcels/import | Wyszukiwanie i walidacja geometrii |
 | POST /api/analysis | Pobranie danych i obliczenie oceny |
 | GET /api/analysis/{id} | Odczyt raportu |
-| GET /api/analysis/{id}/provenance, /api/analysis/{id}/report | Metadane oraz eksport PDF lub JSON |
+| GET /api/analysis/{id}/provenance, /api/analysis/{id}/report | Metadane oraz eksport PDF |
 | GET /api/recommendations/catalog | 60 działań KOWR, warunki i źródła |
 | GET /api/data-sources/status | Dostępność źródeł w ostatniej analizie |
 

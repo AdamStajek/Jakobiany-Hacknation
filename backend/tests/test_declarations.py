@@ -27,6 +27,7 @@ def test_farmer_answers_cover_csv_and_are_stored_with_report(monkeypatch):
     monkeypatch.setattr(main, "lookup", lambda _id: [PARCEL])
     monkeypatch.setattr(main, "run", lambda *_: {"agricultural": False, "sources": [], "missing": {}})
     monkeypatch.setattr(main, "report_message", lambda _: "")
+    monkeypatch.setattr(main, "report_evidence", lambda _: {})
     saved = {}
     monkeypatch.setattr(main, "write", lambda key, value: saved.update({key: value}))
 

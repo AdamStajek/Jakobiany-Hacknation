@@ -121,7 +121,7 @@ def run(parcel, request, on_progress=None):
     context["retention_available"] = bool(
         inputs.get("soil") and retention(inputs["soil"]["layers"], metrics["crop"]["root_m"])
     )
-    output = recommendations(metrics, context, request, agricultural)
+    output = recommendations(metrics, context, request, agricultural, parcel["sample_point"])
     scenario = None
     if (root := metrics["root"]) and request.scenario_mm and agricultural:
         sample = rows.get(day.isoformat())

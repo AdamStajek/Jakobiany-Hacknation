@@ -47,6 +47,14 @@ def clean_color(value):
     return value
 
 
+def clean_name(value):
+    if value is not None:
+        value = value.strip()
+        if not value:
+            raise ValueError("Nazwa pola nie może być pusta.")
+    return value
+
+
 def clean_crop(value):
     if value is not None and value not in CROPS:
         raise ValueError("Nieznana uprawa.")
@@ -59,6 +67,11 @@ class FieldIn(BaseModel):
     color: str = DEFAULT_COLOR
     crop: str | None = None
     parcels: list[Parcel] = Field(default_factory=list, max_length=MAX_PARCELS)
+
+    @field_validator("name")
+    @classmethod
+    def name_ok(cls, value):
+        return clean_name(value)
 
     @field_validator("color")
     @classmethod
@@ -77,6 +90,11 @@ class FieldPatch(BaseModel):
     color: str | None = None
     crop: str | None = None
     parcels: list[Parcel] | None = Field(default=None, max_length=MAX_PARCELS)
+
+    @field_validator("name")
+    @classmethod
+    def name_ok(cls, value):
+        return clean_name(value)
 
     @field_validator("color")
     @classmethod

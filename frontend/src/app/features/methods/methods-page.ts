@@ -10,18 +10,18 @@ type Item = {name: string; what: string; url: string};
   template: `
     <article class="max-w-4xl space-y-5">
       <header>
-        <h1 class="text-2xl font-bold tracking-tight">Jak to działa?</h1>
+        <h1 class="pw-h1">Jak to działa?</h1>
       </header>
 
       <app-recommendation-methods class="block" />
 
       <details class="pw-card p-4">
-        <summary class="cursor-pointer font-semibold">Szczegóły modelu paszportu pola</summary>
+        <summary class="cursor-pointer font-semibold">Szczegóły modelu danych działki</summary>
         <app-model-page />
       </details>
 
       <section aria-labelledby="zrodla" class="space-y-2">
-        <h2 id="zrodla" class="text-lg font-semibold">Źródła danych</h2>
+        <h2 id="zrodla" class="pw-h2">Źródła danych</h2>
         <div class="grid gap-3 sm:grid-cols-2">
           @for (item of sources; track item.name) {
             <a [href]="item.url" target="_blank" rel="noopener" class="pw-card block p-3 hover:border-primary">

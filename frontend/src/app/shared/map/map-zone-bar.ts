@@ -7,6 +7,7 @@ import { Component, input, output } from '@angular/core';
     <div class="pw-card flex flex-col gap-2 p-3 shadow-lg" role="region" aria-label="Zaznaczanie miejsc problemowych">
       <p class="text-sm font-medium">Dotknij miejsca na działce, które sprawia kłopot. Możesz dodać wiele miejsc.</p>
       <p class="text-sm" role="status">Zaznaczono: <strong>{{count()}}</strong></p>
+      <p class="text-xs text-muted-color">Typ, datę i opis każdego miejsca dodasz po kliknięciu „Gotowe”: w panelu „Dodatkowe informacje o polu” → „Miejsca problemowe”.</p>
       @if (notice()) {
         <p class="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900 dark:border-amber-500 dark:bg-amber-950 dark:text-amber-100" role="alert">{{notice()}}</p>
       }

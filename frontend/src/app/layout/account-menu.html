@@ -1,0 +1,61 @@
+@if (auth.status() !== 'loading') {
+  <div class="relative" [class.w-full]="variant() === 'sidebar'">
+    <button type="button" #trigger (click)="toggle()" [attr.aria-expanded]="open()" aria-controls="account-menu-panel" aria-haspopup="true"
+      [attr.aria-label]="triggerLabel()"
+      [class]="variant() === 'header'
+        ? 'relative grid h-10 w-10 place-items-center rounded-full bg-surface-100 hover:bg-surface-200 dark:bg-surface-800 dark:hover:bg-surface-700'
+        : 'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-surface-100 dark:hover:bg-surface-800'">
+      <span class="grid shrink-0 place-items-center rounded-full bg-primary-50 text-primary dark:bg-primary-950"
+        [class]="variant() === 'header' ? '' : 'h-8 w-8'"><i class="pi pi-user" aria-hidden="true"></i></span>
+      @if (variant() === 'sidebar') {
+        <span class="min-w-0 flex-1 truncate text-left font-medium">{{auth.user()?.username ?? 'Konto i ustawienia'}}</span>
+        <i class="pi text-xs text-muted-color" [class.pi-chevron-up]="!open()" [class.pi-chevron-down]="open()" aria-hidden="true"></i>
+      }
+      @if (auth.user() && !auth.user()?.email_verified) {
+        <i class="pi pi-exclamation-circle absolute right-0 top-0 text-xs text-amber-700 dark:text-amber-400" aria-hidden="true"></i>
+      }
+    </button>
+
+    @if (open()) {
+      <div id="account-menu-panel" role="group" aria-label="Menu konta i ustawień"
+        class="pw-card absolute z-50 w-72 max-w-[calc(100vw-1.5rem)] p-2 shadow-xl"
+        [class]="variant() === 'header' ? 'right-0 top-12' : 'bottom-full left-0 mb-2'">
+        @if (auth.user(); as user) {
+          <div class="px-3 py-2">
+            <p class="truncate text-sm font-semibold">{{user.username}}</p>
+            <p class="truncate text-xs text-muted-color">{{user.email}}</p>
+            @if (!user.email_verified) {
+              <p class="mt-1 flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400"><i class="pi pi-exclamation-circle" aria-hidden="true"></i>E-mail niepotwierdzony</p>
+            }
+          </div>
+          <hr class="my-1 border-surface">
+          <a routerLink="/konto" (click)="close()" [class]="item"><i class="pi pi-user" aria-hidden="true"></i>Moje konto</a>
+          <a routerLink="/konto" fragment="haslo" (click)="close()" [class]="item"><i class="pi pi-key" aria-hidden="true"></i>Zmiana hasła</a>
+        } @else {
+          <a routerLink="/zaloguj" [queryParams]="query()" (click)="close()" [class]="item"><i class="pi pi-sign-in" aria-hidden="true"></i>Zaloguj się</a>
+          <a routerLink="/rejestracja" (click)="close()" [class]="item"><i class="pi pi-user-plus" aria-hidden="true"></i>Utwórz konto</a>
+        }
+        <a routerLink="/powiadomienia" (click)="close()" [class]="item"><i class="pi pi-bell" aria-hidden="true"></i>Powiadomienia</a>
+
+        <hr class="my-1 border-surface">
+        <div role="group" aria-label="Motyw aplikacji" class="px-1 py-1">
+          <p class="px-2 pb-1 text-xs font-medium text-muted-color">Motyw</p>
+          <div class="grid grid-cols-3 gap-1">
+            @for (option of themes; track option.mode) {
+              <button type="button" (click)="theme.set(option.mode)" [attr.aria-pressed]="theme.mode() === option.mode"
+                class="flex min-h-12 flex-col items-center justify-center gap-1 rounded-lg text-xs hover:bg-surface-100 dark:hover:bg-surface-800"
+                [class]="theme.mode() === option.mode ? 'bg-primary-50 font-semibold text-primary dark:bg-primary-950' : ''">
+                <i class="pi {{option.icon}}" aria-hidden="true"></i>{{option.label}}
+              </button>
+            }
+          </div>
+        </div>
+
+        @if (auth.user()) {
+          <hr class="my-1 border-surface">
+          <button type="button" (click)="logout()" [class]="item"><i class="pi pi-sign-out" aria-hidden="true"></i>Wyloguj się</button>
+        }
+      </div>
+    }
+  </div>
+}

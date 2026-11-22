@@ -101,9 +101,9 @@
               </button>
               @if (!parcel()) { <p class="text-sm text-muted-color">Najpierw wybierz działkę na mapie.</p> }
               @if (!zoneRows().length) {
-                <p class="text-sm text-muted-color">Nie zaznaczono jeszcze żadnych miejsc.</p>
+                <p class="text-sm text-muted-color">Nie zaznaczono jeszcze żadnych miejsc. Kliknij „Zaznacz na mapie”, a potem uzupełnij tu typ, datę i opis każdego z nich.</p>
               } @else {
-                <p class="text-sm text-muted-color" role="status">Zaznaczono: {{zoneRows().length}} z {{maxZones}}</p>
+                <p class="text-sm text-muted-color" role="status">Zaznaczono: {{zoneRows().length}} z {{maxZones}}. Uzupełnij typ, datę i opis każdego miejsca poniżej.</p>
               }
               @for (row of zoneRows(); track row.zone.id; let i = $index) {
                 <div class="space-y-2 rounded-lg border border-surface p-2" role="group" [attr.aria-label]="'Miejsce problemowe ' + (i + 1)">

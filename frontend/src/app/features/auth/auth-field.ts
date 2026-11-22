@@ -1,12 +1,14 @@
 import { Component, computed, input, model } from '@angular/core';
+import { InputTextModule } from 'primeng/inputtext';
 
 /** Pole formularza konta: etykieta, podpowiedź i błąd powiązane z inputem (aria). */
 @Component({
   selector: 'app-auth-field',
+  imports: [InputTextModule],
   template: `
     <div class="flex flex-col gap-1">
       <label [for]="id()" class="text-sm font-medium">{{label()}}</label>
-      <input [id]="id()" [type]="type()" [value]="value()" (input)="value.set(read($event))" class="p-inputtext p-component h-11 w-full"
+      <input [id]="id()" [type]="type()" [value]="value()" (input)="value.set(read($event))" pInputText class="h-11 w-full dark:border-surface-400 dark:bg-surface-900"
         [attr.autocomplete]="autocomplete()" [attr.aria-invalid]="error() ? 'true' : null" [attr.aria-describedby]="describedBy()"
         autocapitalize="none" spellcheck="false" required />
       @if (hint() && !error()) { <p [id]="id() + '-hint'" class="text-xs text-muted-color">{{hint()}}</p> }

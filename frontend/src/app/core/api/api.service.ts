@@ -2,15 +2,21 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
-  AnalysisEvent, AnalysisProgress, AnalysisRequest, Crop, DemoNotification, DemoNotificationKind,
+  AnalysisProgress, AnalysisRequest, Crop, DemoNotification, DemoNotificationKind,
   DemoNotificationQuery, FarmerQuestion, FieldDescription, Health, LastReportInput, LoginRequest,
-  NotificationPrefs, NotificationSettings, Parcel, Passport, PasswordChange, RecommendationCatalog,
+  DeliverySettings, NotificationPrefs, PushDemoKind, NotificationSettings, Parcel, PushSubscriptionInput, Passport, PasswordChange, RecommendationCatalog,
   RegisterRequest, Report, ServerField, ServerFieldInput, TestEmailEvent, User,
 } from './types';
 
 /** Nagłówek wymagany przez serwer przy żądaniach zmieniających stan (ochrona przed CSRF). */
 const STATE_CHANGING = {headers: {'X-Requested-With': 'XMLHttpRequest'}, withCredentials: true};
 const READ = {withCredentials: true};
+
+/** Zdarzenia WebSocketu: wynik leży pod kluczem `K` (`report` albo `passport`). */
+type SocketEvent<K extends string, R> =
+  | ({type: 'progress'} & AnalysisProgress)
+  | ({type: 'result'} & Record<K, R>)
+  | {type: 'error'; status: number; detail: string};
 
 @Injectable({providedIn: 'root'})
 export class ApiService {
@@ -30,8 +36,14 @@ export class ApiService {
   importParcel(geojson: object) { return firstValueFrom(this.http.post<Parcel>('/api/parcels/import', geojson)); }
   passport(parcelId: string, asOf: string, crop: string | null) {
     return firstValueFrom(this.http.get<Passport>('/api/passport', {
-      params: {parcel_id: parcelId, as_of: asOf, ...(crop ? {crop} : {}), irrigation_mm: 0},
+      params: {parcel_id: parcelId, as_of: asOf, ...(crop ? {crop} : {}), irrigation_mm: 0, view: 'summary'},
     }));
+  }
+  /** Dane działki z postępem przez WebSocket (/api/ws/passport); bez WebSocketu wraca do GET `view=summary`. */
+  passportWithProgress(parcelId: string, asOf: string, crop: string | null,
+    onProgress: (progress: AnalysisProgress) => void, signal?: AbortSignal): Promise<Passport> {
+    return this.socketRequest<'passport', Passport>('/api/ws/passport', {parcel_id: parcelId, as_of: asOf, ...(crop ? {crop} : {})},
+      'passport', onProgress, () => this.passport(parcelId, asOf, crop), signal);
   }
   report(analysisId: string) { return firstValueFrom(this.http.get<Report>(`/api/analysis/${encodeURIComponent(analysisId)}`)); }
   saveExperiments(analysisId: string, results: Record<string, string>) {
@@ -53,8 +65,19 @@ export class ApiService {
     return firstValueFrom(this.http.post<unknown>('/api/auth/reset', {token, password}, STATE_CHANGING));
   }
   notificationPrefs() { return firstValueFrom(this.http.get<NotificationPrefs>('/api/me/notifications', READ)); }
-  setNotificationPrefs(body: Partial<NotificationSettings>) {
+  setNotificationPrefs(body: Partial<NotificationSettings & DeliverySettings>) {
     return firstValueFrom(this.http.patch<NotificationPrefs>('/api/me/notifications', body, STATE_CHANGING));
+  }
+
+  pushKey() { return firstValueFrom(this.http.get<{public_key: string}>('/api/me/push/key', READ)); }
+  savePushSubscription(body: PushSubscriptionInput) {
+    return firstValueFrom(this.http.put<void>('/api/me/push/subscription', body, STATE_CHANGING));
+  }
+  removePushSubscription(endpoint: string) {
+    return firstValueFrom(this.http.post<void>('/api/me/push/unsubscribe', {endpoint}, STATE_CHANGING));
+  }
+  sendTestPush(kind: PushDemoKind = 'basic', fieldName: string | null = null) {
+    return firstValueFrom(this.http.post<void>('/api/me/push/test', {kind, ...(fieldName ? {field_name: fieldName} : {})}, STATE_CHANGING));
   }
 
   sendTestEmail(onProgress: (progress: AnalysisProgress) => void) {
@@ -96,6 +119,7 @@ export class ApiService {
   // Pola na serwerze (wymagają sesji).
   serverFields() { return firstValueFrom(this.http.get<ServerField[]>('/api/fields', READ)); }
   createServerField(body: ServerFieldInput) { return firstValueFrom(this.http.post<ServerField>('/api/fields', body, STATE_CHANGING)); }
+  updateServerField(id: string, body: Partial<ServerFieldInput>) { return firstValueFrom(this.http.patch<ServerField>(`/api/fields/${encodeURIComponent(id)}`, body, STATE_CHANGING)); }
   deleteServerField(id: string) { return firstValueFrom(this.http.delete<unknown>(`/api/fields/${encodeURIComponent(id)}`, STATE_CHANGING)); }
   putLastReport(id: string, body: LastReportInput) {
     return firstValueFrom(this.http.put<ServerField>(`/api/fields/${encodeURIComponent(id)}/last-report`, body, STATE_CHANGING));
@@ -106,29 +130,37 @@ export class ApiService {
    * Gdy WebSocket jest niedostępny (np. proxy go blokuje), wraca do zwykłego POST bez postępu.
    */
   analyzeWithProgress(request: AnalysisRequest, onProgress: (progress: AnalysisProgress) => void, signal?: AbortSignal): Promise<Report> {
-    return new Promise<Report>((resolve, reject) => {
+    return this.socketRequest<'report', Report>('/api/ws/analysis', request, 'report', onProgress, () => this.analyze(request), signal);
+  }
+
+  /** Jedno żądanie przez WebSocket: zdarzenia `progress` → `result` albo `error`; brak połączenia → `fallback` (HTTP). */
+  private socketRequest<K extends string, R>(
+    path: string, payload: object, key: K, onProgress: (progress: AnalysisProgress) => void,
+    fallback: () => Promise<R>, signal?: AbortSignal,
+  ): Promise<R> {
+    return new Promise<R>((resolve, reject) => {
       const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
       let settled = false, opened = false;
-      const socket = new WebSocket(`${scheme}://${location.host}/api/ws/analysis`);
+      const socket = new WebSocket(`${scheme}://${location.host}${path}`);
       const finish = (action: () => void) => { if (!settled) { settled = true; action(); } };
       signal?.addEventListener('abort', () => {
         finish(() => reject(new DOMException('Anulowano', 'AbortError')));
         socket.close();
       }, {once: true});
-      socket.onopen = () => { opened = true; socket.send(JSON.stringify(request)); };
+      socket.onopen = () => { opened = true; socket.send(JSON.stringify(payload)); };
       socket.onmessage = (message) => {
-        const event = JSON.parse(message.data as string) as AnalysisEvent;
-        if (event.type === 'progress') onProgress(event);
-        else if (event.type === 'result') finish(() => resolve(event.report));
+        const event = JSON.parse(message.data as string) as SocketEvent<K, R>;
+        if (event.type === 'progress') { onProgress(event); return; }
+        if (event.type === 'result') finish(() => resolve(event[key]));
         else finish(() => reject(new WsError(event.detail, event.status)));
-        if (event.type !== 'progress') socket.close();
+        socket.close();
       };
       socket.onerror = () => {
         // Nie udało się nawiązać połączenia: zwykłe żądanie HTTP.
-        if (!opened) finish(() => this.analyze(request).then(resolve, reject));
+        if (!opened) finish(() => fallback().then(resolve, reject));
       };
       socket.onclose = () => {
-        if (opened) finish(() => reject(new WsError('Połączenie z serwerem analizy zostało przerwane. Spróbuj ponownie.', 0)));
+        if (opened) finish(() => reject(new WsError('Połączenie z serwerem zostało przerwane. Spróbuj ponownie.', 0)));
       };
     });
   }

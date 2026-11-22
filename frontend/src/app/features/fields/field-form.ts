@@ -58,8 +58,9 @@ const toFieldParcel = (p: Parcel): FieldParcel => ({id: p.id, area_ha: p.area_ha
         </p>
       </div>
 
+      <p class="sr-only" role="status" aria-live="polite">{{summary()}}</p>
       @if (rows().length) {
-        <ul class="flex flex-col gap-2" aria-label="Stan numerów działek" aria-live="polite">
+        <ul class="flex flex-col gap-2" aria-label="Stan numerów działek">
           @for (row of rows(); track row.key) {
             <li class="pw-card flex flex-col gap-2 p-3 text-sm">
               <div class="flex items-center gap-2">
@@ -133,6 +134,11 @@ export class FieldForm {
     const parcel = this.choices()[key] ?? (entry?.state === 'recognized' ? entry.parcel : null);
     return {token, key, entry, parcel};
   }));
+  /** Zbiorcza informacja dla czytnika ekranu; pojedyncze wiersze nie ogłaszają zmian. */
+  protected readonly summary = computed(() => {
+    const rows = this.rows().filter((r) => r.entry && r.entry.state !== 'pending');
+    return rows.length ? `Sprawdzono ${rows.length} z ${this.rows().length} numerów, rozpoznano ${rows.filter((r) => r.parcel).length}.` : '';
+  });
   protected readonly needsCheck = computed(() => this.rows().some((r) => r.entry === null || r.entry.state === 'error'));
   protected readonly skipped = computed(() => this.rows().filter((r) => r.entry && !r.parcel && r.entry.state !== 'pending').length);
   protected readonly canSave = computed(() =>

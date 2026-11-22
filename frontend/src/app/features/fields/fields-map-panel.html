@@ -1,4 +1,4 @@
-<app-wodo-map [drawEnabled]="false" [fitGeometry]="geometry()" [fields]="shapes()" [selectedFieldId]="selected()?.id ?? null" [pins]="pins()"
+<app-wodo-map [(basemap)]="prefs.basemap" [drawEnabled]="false" [fitGeometry]="geometry()" [fields]="shapes()" [selectedFieldId]="selected()?.id ?? null" [pins]="pins()"
   hintText="Dotknij granicy pola, żeby je wybrać. Pinezki pokazują pola po oddaleniu mapy."
   [hintSeen]="hintSeen() || !!selected() || !fields().length" (hintDismissed)="hintDismissed.emit()"
   (fieldClicked)="picked.emit($event)" (pinClicked)="picked.emit($event)" />

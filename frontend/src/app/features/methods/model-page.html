@@ -1,6 +1,6 @@
 <article class="mt-4 space-y-4" aria-labelledby="model-title">
   <header>
-    <h1 id="model-title" tabindex="-1" class="text-xl font-bold tracking-tight">Jak działa model?</h1>
+    <h1 id="model-title" tabindex="-1" class="pw-h1">Jak działa model?</h1>
     <p>Pole Widzenia sprawdza, ile wody może zatrzymać gleba, ile potrzebuje uprawa i kiedy korzeniom może zacząć brakować wody. Z tych obliczeń wynikają zalecenia dla konkretnej działki.</p>
   </header>
 
@@ -12,7 +12,7 @@
       <dt>Gleba</dt>
       <dd>Mapy SoilGrids pomagają oszacować, ile wody zostaje po odcieknięciu nadmiaru i ile roślina może jeszcze pobrać. Dane opisują obszary rzędu 250 m. Dwie części tej samej działki mogą w rzeczywistości mieć różne gleby.</dd>
       <dt>Zdjęcia satelitarne i rzeźba terenu</dt>
-      <dd>Sentinel‑2 pokazuje stan roślinności na obszarze widocznym bez chmur. Paszport porównuje go z wcześniejszymi sezonami, jeśli ma dane dla tej samej uprawy i fazy wzrostu. Słabszy sygnał może wynikać także z choroby albo zbioru. Mapa wysokości pomaga znaleźć stoki i zagłębienia. Warstwy hydrologiczne pokazują otoczenie pola, w tym pobliskie cieki i zbiorniki.</dd>
+      <dd>Sentinel‑2 pokazuje stan roślinności na obszarze widocznym bez chmur. Dane działki porównują go z wcześniejszymi sezonami, jeśli ma dane dla tej samej uprawy i fazy wzrostu. Słabszy sygnał może wynikać także z choroby albo zbioru. Mapa wysokości pomaga znaleźć stoki i zagłębienia. Warstwy hydrologiczne pokazują otoczenie pola, w tym pobliskie cieki i zbiorniki.</dd>
     </dl>
   </section>
 
@@ -33,7 +33,7 @@
   <section class="pw-card space-y-2 p-4 text-sm [&_a]:text-primary [&_a]:underline [&_dd]:mb-2 [&_dt]:font-semibold [&_h2]:text-base [&_h2]:font-semibold [&_ul]:ml-5 [&_ul]:list-disc [&_ul]:space-y-1">
     <h2>Co mówi historia pogody?</h2>
     <p>Model porównuje opad z wodą, która mogłaby uciec przez parowanie i rośliny. Gdy opadu jest mniej, pole może korzystać z wcześniej zgromadzonej wody. Dlatego sam ujemny bilans pogody nie wystarcza do rozpoznania niedoboru przy korzeniach.</p>
-    <p>Jeśli paszport ma dane z dziesięciu pełnych sezonów, model odtwarza każdy z nich dla tej samej uprawy, z pełnym zapasem wody na starcie i bez nawadniania. Raport podaje początek, długość i wielkość modelowanych niedoborów. To pomaga zaplanować kontrole pola. Wynik zależy od przyjętych warunków i dostępnych lat.</p>
+    <p>Jeśli dane działki obejmują dziesięć pełnych sezonów, model odtwarza każdy z nich dla tej samej uprawy, z pełnym zapasem wody na starcie i bez nawadniania. Raport podaje początek, długość i wielkość modelowanych niedoborów. To pomaga zaplanować kontrole pola. Wynik zależy od przyjętych warunków i dostępnych lat.</p>
   </section>
 
   <section class="pw-card space-y-2 p-4 text-sm [&_a]:text-primary [&_a]:underline [&_dd]:mb-2 [&_dt]:font-semibold [&_h2]:text-base [&_h2]:font-semibold [&_ul]:ml-5 [&_ul]:list-disc [&_ul]:space-y-1">
@@ -49,7 +49,7 @@
   <section class="pw-card space-y-2 p-4 text-sm [&_a]:text-primary [&_a]:underline [&_dd]:mb-2 [&_dt]:font-semibold [&_h2]:text-base [&_h2]:font-semibold [&_ul]:ml-5 [&_ul]:list-disc [&_ul]:space-y-1">
     <h2>Jak czytać niepewność wyniku?</h2>
     <p>Model liczy bilans dla dwóch punktów wyjścia: bardzo suchej gleby i pełnego zapasu wody dostępnej dla roślin. Jeśli oba wyniki wskazują niedobór, wniosek jest odporny na tę jedną niewiadomą. Przedział między wynikami pokazuje wpływ stanu początkowego. Dokładność zależy także od lokalnego opadu, danych glebowych i faktycznej głębokości korzeni.</p>
-    <p>W analizie archiwalnego paszportu znaczenie ma data dostępności danych. Na przykład zdjęcie opublikowane po dacie analizy zostaje pominięte. Przy brakach raport pokazuje, czego można dowiedzieć się z dostępnych danych i co trzeba sprawdzić w terenie. Obliczenia przeszły testy wzorów i scenariuszy. Dokładność na konkretnych działkach wymaga porównania z pomiarami polowymi.</p>
+    <p>W analizie archiwalnych danych działki znaczenie ma data dostępności danych. Na przykład zdjęcie opublikowane po dacie analizy zostaje pominięte. Przy brakach raport pokazuje, czego można dowiedzieć się z dostępnych danych i co trzeba sprawdzić w terenie. Obliczenia przeszły testy wzorów i scenariuszy. Dokładność na konkretnych działkach wymaga porównania z pomiarami polowymi.</p>
   </section>
 
   <section class="pw-card space-y-2 p-4 text-sm [&_a]:text-primary [&_a]:underline [&_dd]:mb-2 [&_dt]:font-semibold [&_h2]:text-base [&_h2]:font-semibold [&_ul]:ml-5 [&_ul]:list-disc [&_ul]:space-y-1">

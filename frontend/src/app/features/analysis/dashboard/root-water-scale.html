@@ -1,0 +1,34 @@
+<figure class="rounded-xl border border-surface bg-surface-50 p-4 dark:bg-surface-900" aria-labelledby="skala-korzeni">
+  <figcaption id="skala-korzeni">
+    <strong>Modelowany ubytek wody przy korzeniach</strong>
+  </figcaption>
+  @let r = root();
+  <p class="mt-2 rounded-lg border-l-4 border-primary bg-surface-100 p-3 text-sm dark:bg-surface-800">
+    <strong>Wniosek z modelu</strong> {{conclusion()}}
+  </p>
+  <div class="mt-4 flex items-center gap-2 text-sm">
+    <span aria-hidden="true" class="h-4 border-l-2 border-dashed border-surface-950 dark:border-white"></span>
+    <span><strong>Próg niedoboru: {{r.raw_mm | number:'1.0-1'}} mm.</strong> Po jego przekroczeniu korzeniom trudniej pobierać wodę.</span>
+  </div>
+  <div class="mt-3 grid gap-4">
+    @for (variant of [{label: 'Gleba wilgotna na początku', value: r.initially_wet.depletion_mm},
+                      {label: 'Gleba sucha na początku', value: r.initially_dry.depletion_mm}]; track variant.label) {
+      <div>
+        <div class="mb-1 flex justify-between gap-2 text-sm">
+          <span>{{variant.label}}</span><strong class="shrink-0 tabular-nums">{{variant.value | number:'1.0-1'}} mm</strong>
+        </div>
+        <div aria-hidden="true" class="relative h-4 rounded bg-surface-200 dark:bg-surface-700">
+          <span class="absolute inset-y-0 right-0 rounded-r bg-amber-100 dark:bg-amber-900"
+            [style.left.%]="100 * r.raw_mm / r.taw_mm"></span>
+          <span class="absolute inset-y-0 left-0 rounded bg-primary-700 dark:bg-primary-300"
+            [style.width.%]="100 * variant.value / r.taw_mm"></span>
+          <span class="absolute -inset-y-1 border-l-2 border-dashed border-surface-950 dark:border-white"
+            [style.left.%]="100 * r.raw_mm / r.taw_mm"></span>
+        </div>
+      </div>
+    }
+  </div>
+  <div class="mt-2 flex justify-between gap-3 text-xs text-muted-color">
+    <span>0 mm · pełny zapas</span><span class="text-right">{{r.taw_mm | number:'1.0-1'}} mm · zapas wyczerpany</span>
+  </div>
+</figure>

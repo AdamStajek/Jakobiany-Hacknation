@@ -1,5 +1,5 @@
 <div class="mx-auto flex max-w-2xl flex-col gap-4 p-4 pb-8">
-  <h1 class="text-xl font-bold">Powiadomienia</h1>
+  <h1 class="pw-h1">Powiadomienia</h1>
 
   <app-panel heading="Powiadamiaj mnie o istotnych zmianach" icon="pi-bell">
     @switch (prefsState()) {
@@ -65,6 +65,8 @@
       }
     }
   </app-panel>
+
+  @if (loggedIn()) { <app-delivery-settings /> }
 
   <app-panel heading="Przykładowe powiadomienia" icon="pi-envelope">
     <p class="text-sm text-muted-color">Zobacz, jak wyglądałaby wiadomość. To tylko podgląd — nic nie jest wysyłane.</p>

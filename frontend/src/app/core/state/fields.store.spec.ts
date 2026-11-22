@@ -64,6 +64,26 @@ describe('FieldsStore', () => {
     expect(localStorage.getItem(STORAGE_KEY)).toBe('[]');
   });
 
+  it('zmienia nazwę pola lokalnie i odrzuca pustą', async () => {
+    const {store} = setup();
+    const field = await store.add(newField());
+    expect(await store.rename(field?.id ?? '', '  Pole przy lesie ')).toBe(true);
+    expect(store.fields()[0].name).toBe('Pole przy lesie');
+    expect(await store.rename(field?.id ?? '', '   ')).toBe(false);
+    expect(store.fields()[0].name).toBe('Pole przy lesie');
+    expect(store.error()).toContain('pusta');
+  });
+
+  it('zapisuje zmianę nazwy na koncie przez PATCH', async () => {
+    const updateServerField = vi.fn(async () => serverField());
+    const {store} = setup({serverFields: async () => [serverField()], updateServerField}, true);
+    TestBed.tick();
+    await vi.waitFor(() => expect(store.fields()).toHaveLength(1));
+    expect(await store.rename('s1', 'Nowa')).toBe(true);
+    expect(updateServerField).toHaveBeenCalledWith('s1', {name: 'Nowa'});
+    expect(store.fields()[0].name).toBe('Nowa');
+  });
+
   it('zapisuje status z raportu tylko w polach z daną działką', async () => {
     const {store} = setup();
     await store.add(newField('P1'));

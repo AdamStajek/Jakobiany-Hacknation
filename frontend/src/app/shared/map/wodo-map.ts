@@ -1,4 +1,4 @@
-import { Component, computed, ElementRef, OnDestroy, afterNextRender, effect, input, output, signal, viewChild } from '@angular/core';
+import { Component, computed, ElementRef, OnDestroy, afterNextRender, effect, input, model, output, signal, viewChild } from '@angular/core';
 import type { GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl';
 import type { TerraDraw } from 'terra-draw';
 import { Geometry } from '../../core/api/types';
@@ -8,7 +8,8 @@ import { FieldShape, fieldsFeatureCollection } from './map-fields';
 import { startPolygonDraw } from './map-draw';
 import { addMapLayers } from './map-layers';
 import { requestUserLocation } from './map-locate';
-import { Basemap, MAP_STYLE, POLAND_CENTER } from './map-style';
+import { browserEnvironment, isLite, performanceOptions } from './map-performance';
+import { Basemap, POLAND_CENTER, mapStyle } from './map-style';
 import { fitMapTo, FieldPin, syncMapData } from './map-sync';
 import { MapTools } from './map-tools';
 import { MapZoneBar } from './map-zone-bar';
@@ -28,6 +29,7 @@ export class WodoMap implements OnDestroy {
   /** [lon, lat] najbliższej stałej wody. */
   readonly waterPoint = input<[number, number] | null>(null);
   /** Dodatkowe punkty [lon, lat], np. oznaczone strefy problemowe. */
+  readonly surface = input<GeoJSON.FeatureCollection<GeoJSON.Point>>();
   readonly markers = input<[number, number][]>([]);
   /** Numeruje znaczniki 1, 2, 3… w kolejności listy. */
   readonly numberedMarkers = input(false);
@@ -70,7 +72,8 @@ export class WodoMap implements OnDestroy {
   readonly hintSeen = input(false);
   readonly hintDismissed = output();
 
-  protected readonly basemap = signal<Basemap>('osm');
+  /** Podkład mapy; rodzic może go wiązać (`[(basemap)]`), by wybór przetrwał zmianę widoku. */
+  readonly basemap = model<Basemap>('osm');
   protected readonly ready = signal(false);
   protected readonly drawing = signal(false);
   protected readonly locateError = signal('');
@@ -99,7 +102,8 @@ export class WodoMap implements OnDestroy {
 
   constructor() {
     afterNextRender(() => void this.init());
-    effect(() => { this.geometry(); this.waterPoint(); this.markers(); this.numberedMarkers(); this.pins(); this.ready(); this.draw(); });
+    effect(() => { this.geometry(); this.surface(); this.waterPoint(); this.markers(); this.numberedMarkers(); this.pins(); this.ready(); this.draw(); });
+    effect(() => { const id = this.basemap(); if (this.ready()) this.applyBasemap(id); });
     effect(() => { if (this.markMode() && this.drawing()) this.stopDraw(); });
     effect(() => {
       const alert = !!this.markNotice();
@@ -115,8 +119,9 @@ export class WodoMap implements OnDestroy {
     this.zoomHintTimer = setTimeout(() => this.zoomHint.set(false), 6000);
   }
 
-  protected setBasemap(id: Basemap) {
-    this.basemap.set(id);
+  protected setBasemap(id: Basemap) { this.basemap.set(id); }
+
+  private applyBasemap(id: Basemap) {
     this.map?.setLayoutProperty('osm', 'visibility', id === 'osm' ? 'visible' : 'none');
     this.map?.setLayoutProperty('orto', 'visibility', id === 'orto' ? 'visible' : 'none');
   }
@@ -174,8 +179,10 @@ export class WodoMap implements OnDestroy {
     const maplibregl = await import('maplibre-gl');
     // Worker serwowany jako zasób statyczny (bundler nie potrafi go wskazać samodzielnie).
     maplibregl.setWorkerUrl('/maplibre/maplibre-gl-worker.mjs');
+    const env = browserEnvironment();
     const map = new maplibregl.Map({
-      container: this.container().nativeElement, style: MAP_STYLE, center: POLAND_CENTER, zoom: 5.4, minZoom: 4, maxZoom: 19,
+      ...performanceOptions(env),
+      container: this.container().nativeElement, style: mapStyle(isLite(env)), center: POLAND_CENTER, zoom: 5.4, minZoom: 4, maxZoom: 19,
       maxBounds: [[9, 46], [29, 58]], attributionControl: {compact: true},
     });
     map.addControl(new maplibregl.ScaleControl({unit: 'metric'}), 'bottom-left');
@@ -213,7 +220,7 @@ export class WodoMap implements OnDestroy {
     if (!map || !this.ready()) return;
     const geometry = this.geometry();
     const water = this.waterPoint();
-    syncMapData(map, {geometry, water, markers: this.markers(), numberedMarkers: this.numberedMarkers(), pins: this.pins()});
+    syncMapData(map, {geometry, water, surface: this.surface(), markers: this.markers(), numberedMarkers: this.numberedMarkers(), pins: this.pins()});
     // Dopasowanie tylko przy zmianie działki lub wody (nie przy każdym dodanym znaczniku).
     if (geometry && (geometry !== this.fitted.geometry || water !== this.fitted.water)) this.fitTo(geometry, water);
     this.fitted = {geometry, water};

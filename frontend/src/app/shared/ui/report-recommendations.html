@@ -1,19 +1,19 @@
 <ng-template #card let-item let-big="big">
   <article class="pw-card flex flex-col gap-3 p-4" [class]="big ? 'lg:p-6' : ''">
-    <div class="flex items-center gap-2 text-sm text-muted-color">
-      <span class="min-w-0 truncate">{{item.group}}</span>
-      @if (item.confidence && item.confidence !== 'wstępna') {
-        <span class="ml-auto shrink-0">Pewność: {{item.confidence}}</span>
-      }
-    </div>
+    <p class="text-sm text-muted-color">{{item.group}}</p>
     <h4 class="font-semibold leading-snug" [class]="big ? 'text-xl' : 'text-base'">{{item.title}}</h4>
     @if (item.action !== item.title) { <p class="text-sm">{{item.action}}</p> }
     @if (item.scope) {
       <p class="text-sm">
         <i [class]="item.scope === 'field' ? 'pi pi-map' : 'pi pi-map-marker'" aria-hidden="true"></i>
-        {{item.scope === 'field' ? 'Całe pole' : 'Zaznaczone miejsca'}}
-        @if (item.points?.length) { · Punkty na mapie ({{item.points?.length}}) }
+        {{item.location ?? (item.scope === 'field' ? 'Całe pole' : 'Zaznaczone miejsca')}}
       </p>
+      @if (item.scope === 'site') {
+        <p class="text-sm text-muted-color">Dokładne miejsce wymaga potwierdzenia w terenie.</p>
+      } @else if (geometry()) {
+        <button type="button" class="min-h-11 self-start text-sm font-semibold text-primary underline"
+          [attr.aria-label]="'Pokaż na mapie: ' + item.title" (click)="selected.set(item)">Pokaż na mapie</button>
+      }
     }
     @if (item.cost_estimate; as estimate) {
       <p class="text-sm"><strong>Przykładowy koszt.</strong>
@@ -78,28 +78,29 @@
   [header]="selected()?.title ?? ''">
   @if (selected(); as rec) {
     <div class="space-y-4 text-sm">
-      <p class="text-muted-color">{{rec.group}}@if (rec.confidence && rec.confidence !== 'wstępna') { · Pewność: {{rec.confidence}} }</p>
-      <div><h4 class="font-semibold">Dlaczego na tej działce?</h4><p>{{rec.evidence}}</p></div>
-      <div><h4 class="font-semibold">Jak to może pomóc?</h4><p>{{rec.why}}</p></div>
-      @if (rec.points?.length) {
+      <p class="text-muted-color">{{rec.group}}</p>
+      @if (rec.scope && rec.scope !== 'site' && geometry(); as boundary) {
         <div>
-          <h4 class="font-semibold">Miejsca na polu</h4>
-          @if (geometry(); as boundary) {
-            <div class="my-2 h-64 overflow-hidden rounded-lg">
-              <app-wodo-map [geometry]="boundary" [markers]="markers()" [drawEnabled]="false" mapLabel="Mapa miejsc objętych zaleceniem" />
-            </div>
-          }
-          <ul class="ml-5 list-disc space-y-2">
-            @for (point of rec.points; track $index) {
-              <li><strong>{{point.type}} · {{point.date}}</strong>
-                <span class="block">{{point.coordinates[1] | number:'1.5-5'}}° N, {{point.coordinates[0] | number:'1.5-5'}}° E</span>
-                @if (point.description) { <span class="block">{{point.description}}</span> }
-                <span>{{point.evidence}}</span>
-              </li>
-            }
-          </ul>
+          <h4 class="font-semibold">{{rec.location ?? (rec.scope === 'field' ? 'Całe pole' : 'Miejsca na polu')}}</h4>
+          <div class="my-2 h-64 overflow-hidden rounded-lg">
+            <app-wodo-map [geometry]="boundary" [markers]="markers()" [numberedMarkers]="true" [drawEnabled]="false" [hintSeen]="true"
+              mapLabel="Mapa miejsc objętych zaleceniem" />
+          </div>
         </div>
       }
+      @if (rec.points?.length) {
+        <ol class="ml-5 list-decimal space-y-2" aria-label="Punkty na mapie">
+          @for (point of rec.points; track $index) {
+            <li><strong>{{point.type}} · {{point.date}}</strong>
+              <span class="block">{{point.coordinates[1] | number:'1.5-5'}}° N, {{point.coordinates[0] | number:'1.5-5'}}° E</span>
+              @if (point.description) { <span class="block">{{point.description}}</span> }
+              <span>{{point.evidence}}</span>
+            </li>
+          }
+        </ol>
+      }
+      <div><h4 class="font-semibold">Dlaczego na tej działce?</h4><p>{{rec.evidence}}</p></div>
+      <div><h4 class="font-semibold">Jak to może pomóc?</h4><p>{{rec.why}}</p></div>
       <div><h4 class="font-semibold">Warunki i ograniczenia</h4><p>{{rec.limits}}</p></div>
       @if (rec.cost_estimate; as estimate) {
         <div>
