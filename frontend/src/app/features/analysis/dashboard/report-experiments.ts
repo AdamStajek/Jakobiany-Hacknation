@@ -1,59 +1,65 @@
-import { Component, inject, input } from '@angular/core';
+import { Component, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
-import { Report } from '../../../core/api/types';
+import { ExperimentCheck, Report } from '../../../core/api/types';
+import { ExperimentPlanStore } from '../../../core/state/experiment-plan.store';
 import { AnalysisStore } from '../../../core/state/analysis.store';
+import { FieldsStore } from '../../../core/state/fields.store';
+import { ExperimentDiagram } from '../../../shared/ui/experiment-diagram';
 import { Panel } from '../../../shared/ui/panel';
+import { experimentGuides } from '../../../shared/experiments/experiment-guides';
+
+function today(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
 
 @Component({
   selector: 'app-report-experiments',
-  imports: [RouterLink, ButtonModule, Panel],
-  template: `
-    @if (report().experiments?.length) {
-      <app-panel heading="Eksperymenty, które mogą doprecyzować diagnozę" icon="pi-list-check">
-        <p class="mb-4 text-sm text-muted-color">Porównaj warunki podczas próby z warunkami w dniu analizy ({{report().date}}).
-          Późniejszy pomiar opisuje stan pola w dniu próby.</p>
-        @if (analysis.experimentError()) {
-          <p role="alert" class="mb-3 text-sm">{{analysis.experimentError()}}</p>
-        }
-        <div class="space-y-4">
-          @for (check of report().experiments; track check.slug) {
-            <article class="space-y-2 rounded-xl border border-surface p-3 text-sm">
-              <h4 class="font-semibold">{{check.title}}</h4>
-              <p>{{check.reason}}</p>
-              <p><strong>Jak zmieni diagnozę?</strong> {{check.impact}}</p>
-              <a class="inline-block py-2 text-primary underline print:hidden"
-                [routerLink]="['/metody/eksperymenty', check.slug]" target="_blank" rel="noopener">
-                Instrukcja — {{check.title}} (nowa karta)
-              </a>
-              <div class="flex flex-wrap items-end gap-2 print:hidden">
-                <label class="flex min-w-0 flex-1 flex-col gap-1 font-medium">
-                  Wynik — {{check.title}}
-                  <select #result class="w-full rounded-lg border border-surface bg-surface-0 p-2 text-color dark:bg-surface-900"
-                    [disabled]="analysis.savingExperiment()">
-                    <option value="" [selected]="!report().experiment_results?.[check.slug]">Brak wyniku lub próba niejednoznaczna</option>
-                    @for (option of check.options; track option.value) {
-                      <option [value]="option.value" [selected]="report().experiment_results?.[check.slug] === option.value">{{option.label}}</option>
-                    }
-                  </select>
-                </label>
-                <p-button label="Zapisz wynik" [disabled]="analysis.savingExperiment()"
-                  [ariaLabel]="'Zapisz wynik — ' + check.title"
-                  (onClick)="analysis.saveExperiment(report(), check.slug, result.value)" />
-              </div>
-              <div aria-live="polite">
-                @if (report().experiment_conclusions?.[check.slug]; as conclusion) {
-                  <p><strong>Wniosek z próby.</strong> {{conclusion}}</p>
-                }
-              </div>
-            </article>
-          }
-        </div>
-      </app-panel>
-    }
-  `,
+  imports: [RouterLink, ButtonModule, Panel, ExperimentDiagram],
+  templateUrl: './report-experiments.html',
 })
 export class ReportExperiments {
   readonly report = input.required<Report>();
   protected readonly analysis = inject(AnalysisStore);
+  private readonly plans = inject(ExperimentPlanStore);
+  private readonly fields = inject(FieldsStore);
+
+  protected readonly proposed = signal(false);
+  protected readonly startDate = signal(today());
+  protected readonly planMessage = signal('');
+
+  /** Nazwa pola użytkownika zawierającego działkę raportu; w razie braku — identyfikator działki. */
+  private readonly fieldName = computed(() => {
+    const id = this.report().parcel.id;
+    return this.fields.fields().find((field) => field.parcels.some((parcel) => parcel.id === id))?.name ?? id;
+  });
+
+  /** Jeden rekomendowany test (pierwszy z backendu); treść z instrukcji, a bez niej z opisu próby. */
+  protected readonly suggestion = computed(() => {
+    const check = this.report().experiments?.[0];
+    if (!check) return null;
+    const guide = experimentGuides.find((item) => item.slug === check.slug);
+    const first = guide?.steps[0];
+    return {
+      check,
+      change: first ? `${first.title}. ${first.instruction}` : check.reason,
+      observe: guide?.record ?? check.reason,
+      compare: guide?.meaning ?? check.impact,
+    };
+  });
+
+  protected setStart(event: Event) {
+    if (event.target instanceof HTMLInputElement) this.startDate.set(event.target.value);
+  }
+
+  protected savePlan(check: ExperimentCheck) {
+    const name = this.fieldName();
+    const result = this.plans.save(check.slug, name, this.startDate());
+    const what = `„${check.title}” — ${name}, start ${this.startDate()}`;
+    this.planMessage.set(
+      result === 'saved' ? `Zapisano zamiar eksperymentu w tej przeglądarce: ${what}.`
+        : result === 'session' ? `Zapisano zamiar eksperymentu tylko do zamknięcia karty (brak zgody na zapis w przeglądarce): ${what}.`
+          : `Nie udało się zapisać w przeglądarce. Zamiar jest zapamiętany tylko do zamknięcia karty: ${what}.`);
+  }
 }

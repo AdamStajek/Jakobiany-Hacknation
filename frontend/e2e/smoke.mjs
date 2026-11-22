@@ -83,7 +83,7 @@ async function run(name) {
   };
 
   try {
-    await page.goto(url, {waitUntil: 'domcontentloaded'});
+    await page.goto(url + '/sprawdz', {waitUntil: 'domcontentloaded'});
     await page.locator('.maplibregl-canvas').first().waitFor();
     await pause(3000);
     await shot('01-start');
@@ -92,7 +92,7 @@ async function run(name) {
     const navs = page.getByRole('navigation', {name: 'Nawigacja główna'});
     const nav = navs.locator('visible=true').first();
     assert.equal(await nav.getByRole('link', {name: 'Eksperymenty'}).count(), 0);
-    for (const [label, path] of [[mobile ? 'Pola' : 'Moje pola', /\/pola$/], ['Jak to działa', /\/metody$/], ['Analiza', /\/$/]]) {
+    for (const [label, path] of [['Moje pola', /\/pola$/], ['Jak to działa', /\/metody$/], ['Sprawdź pole', /\/sprawdz$/]]) {
       const link = nav.getByRole('link', {name: label});
       await link.click();
       await page.waitForURL(path);

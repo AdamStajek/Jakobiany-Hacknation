@@ -1,0 +1,32 @@
+<div #container class="h-full w-full" role="application"
+  [attr.aria-label]="mapLabel()"></div>
+<app-map-tools class="absolute right-3 top-3 z-10 max-lg:top-[4.5rem]" [basemap]="basemap()" [parcelLayer]="parcelLayer()" [drawEnabled]="drawEnabled()"
+  [drawing]="drawing()" [ready]="ready()" [fieldsAvailable]="fieldsToggleVisible()" [fieldsShown]="fieldsShown()"
+  [markAvailable]="markAvailable()" [marking]="markMode()" (fieldsToggle)="fieldsToggle.emit()" (markToggle)="markToggle.emit()" (basemapToggle)="setBasemap(basemap() === 'osm' ? 'orto' : 'osm')"
+  (parcelToggle)="toggleParcelLayer()" (locate)="locate()" (drawToggle)="toggleDraw()" (zoom)="zoomBy($event)" />
+@if (locateError()) {
+  <p class="absolute left-3 right-48 top-3 max-lg:top-[4.5rem] z-10 flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 shadow lg:right-auto lg:max-w-sm dark:border-red-500 dark:bg-red-950 dark:text-red-100" role="alert">
+    <i class="pi pi-exclamation-circle mt-0.5" aria-hidden="true"></i><span>{{locateError()}}</span>
+  </p>
+}
+@if (zoomHint() && !drawing() && !markMode()) {
+  <p class="absolute inset-x-3 bottom-20 z-10 mx-auto flex w-fit max-w-full items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900 shadow-lg lg:bottom-12 dark:border-amber-500 dark:bg-amber-950 dark:text-amber-100" role="status">
+    <i class="pi pi-search-plus" aria-hidden="true"></i>Przybliż mapę, aby wybrać działkę
+  </p>
+}
+@if (drawing()) {
+  <app-map-draw-bar class="absolute inset-x-3 bottom-8 z-10 mx-auto max-w-lg" [points]="drawPoints()"
+    (undo)="undoPoint()" (finish)="finishDraw()" (discard)="stopDraw()" />
+} @else if (markMode()) {
+  <app-map-zone-bar class="absolute inset-x-3 bottom-8 z-10 mx-auto max-w-lg" [count]="markers().length" [notice]="markNotice()"
+    (undo)="markUndo.emit()" (clear)="markClear.emit()" (done)="markDone.emit()" />
+} @else if (hintVisible()) {
+  <p class="pw-card absolute inset-x-3 bottom-8 z-10 mx-auto flex max-w-md items-start gap-2 p-3 pr-1 text-sm shadow-lg" role="note">
+    <i class="pi pi-info-circle mt-0.5" aria-hidden="true"></i>
+    <span class="flex-1">{{hintText()}}</span>
+    <button type="button" (click)="closeHint()" aria-label="Zamknij wskazówkę" class="grid h-12 w-12 shrink-0 place-items-center rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800">
+      <i class="pi pi-times" aria-hidden="true"></i>
+    </button>
+  </p>
+}
+@if (!ready()) { <div class="absolute inset-0 grid place-items-center bg-surface-100 text-sm text-muted-color dark:bg-surface-800" role="status">Ładowanie mapy…</div> }

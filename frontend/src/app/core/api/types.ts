@@ -37,6 +37,8 @@ export type Recommendation = {
   group: string; title: string; action: string; why: string; evidence: string; when: string; confidence: string; limits: string;
   id?: number; cost?: string; cost_details?: string; scope?: 'field' | 'point'; points?: RecommendationPoint[];
   sources?: ResearchSource[];
+  /** Krótki plan działań (3–4 kroki) z katalogu rekomendacji. */
+  steps?: string[];
 };
 export type RecommendationAction = {
   id: number; title: string; group: string; description: string; when: string; conditions: string; cost: string; cost_details: string;
@@ -115,3 +117,27 @@ export type ServerField = {
   last_report?: ServerLastReport | null;
 };
 export type ServerFieldInput = {name: string; color: string; crop: string | null; parcels: {id: string; geometry: Geometry}[]};
+
+/** Opis pola własnymi słowami (POST /api/describe-field). */
+export type DescribeAttributeKey = 'soil' | 'terrain' | 'problem' | 'constraint';
+export type DescribedAttribute = {value: string | null; label: string | null; matched: string | null};
+export type DescribeOption = {value: string; label: string};
+export type FieldDescription = Record<DescribeAttributeKey, DescribedAttribute> & {
+  observation_keys: string[];
+  farmer_answers: Record<string, string>;
+  options: Record<DescribeAttributeKey, DescribeOption[]>;
+  attribute_labels: Record<DescribeAttributeKey, string>;
+};
+/** Potwierdzone przez rolnika atrybuty opisu pola. */
+export type ConfirmedDescription = Record<DescribeAttributeKey, DescribedAttribute> & {
+  farmer_answers: Record<string, string>;
+  observation_keys: string[];
+};
+
+/** Przykładowe powiadomienie demo (GET /api/notifications/demo/{kind}); nic nie jest wysyłane. */
+export type DemoNotificationKind = 'rain' | 'residue';
+export type DemoNotificationQuery = {field_name?: string; soil?: string; terrain?: string};
+export type DemoNotification = {
+  demo: true; kind: DemoNotificationKind; sent: false; subject: string; html: string; text: string;
+  sections: {happening: string; actions: string[]; why: string};
+};

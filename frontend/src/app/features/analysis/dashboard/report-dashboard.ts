@@ -98,9 +98,9 @@ const TONE_CLASS: Record<Tone, string> = {
         <p-message severity="info">Brak wystarczających danych pogodowych dla ostatnich 30 dni.</p-message>
       }
 
-      <app-report-experiments [report]="report()" />
-
       <app-report-recommendations [items]="report().recommendations" [geometry]="report().parcel.geometry" />
+
+      <app-report-experiments [report]="report()" />
 
       @if (advanced()) {
         <div class="grid gap-3 lg:grid-cols-2">

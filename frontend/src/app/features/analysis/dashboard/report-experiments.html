@@ -1,0 +1,71 @@
+@if (report().experiments?.length) {
+  <app-panel heading="Eksperymenty, które mogą doprecyzować diagnozę" icon="pi-list-check">
+    <p class="mb-4 text-sm text-muted-color">Porównaj warunki podczas próby z warunkami w dniu analizy ({{report().date}}).
+      Późniejszy pomiar opisuje stan pola w dniu próby.</p>
+    @if (analysis.experimentError()) {
+      <p role="alert" class="mb-3 text-sm">{{analysis.experimentError()}}</p>
+    }
+    <p-button class="print:hidden" label="Zaproponuj eksperyment" icon="pi pi-lightbulb" styleClass="min-h-11"
+      [attr.aria-expanded]="proposed()" (onClick)="proposed.set(!proposed())" />
+
+    @if (proposed() && suggestion(); as plan) {
+      <article class="mt-4 space-y-3 rounded-xl border border-primary p-3 text-sm" aria-labelledby="proponowany-eksperyment">
+        <h4 id="proponowany-eksperyment" class="text-base font-semibold">Proponowany test: {{plan.check.title}}</h4>
+        <p>{{plan.check.reason}}</p>
+        <app-experiment-diagram [change]="plan.change" />
+        <div class="grid gap-3 md:grid-cols-3">
+          <section><h5 class="font-semibold">Co zmienić</h5><p>{{plan.change}}</p></section>
+          <section><h5 class="font-semibold">Co obserwować</h5><p>{{plan.observe}}</p></section>
+          <section><h5 class="font-semibold">Jak porównać</h5><p>{{plan.compare}}</p></section>
+        </div>
+        <div class="flex flex-wrap items-end gap-2 print:hidden">
+          <label class="flex flex-col gap-1 font-medium">
+            Data startu
+            <input type="date" class="min-h-11 rounded-lg border border-surface bg-surface-0 p-2 text-color dark:bg-surface-900"
+              [value]="startDate()" (input)="setStart($event)" />
+          </label>
+          <p-button label="Zapisz eksperyment" icon="pi pi-bookmark" styleClass="min-h-11" [disabled]="!startDate()"
+            [ariaLabel]="'Zapisz zamiar wykonania eksperymentu — ' + plan.check.title" (onClick)="savePlan(plan.check)" />
+        </div>
+        <p class="text-muted-color">„Zapisz eksperyment” zapamiętuje tylko zamiar jego wykonania. Wynik próby zapiszesz niżej przyciskiem „Zapisz wynik”.</p>
+      </article>
+    }
+    <div aria-live="polite" class="text-sm">
+      @if (planMessage()) { <p class="mt-2 font-semibold">{{planMessage()}}</p> }
+    </div>
+
+    <div class="mt-4 space-y-4">
+      @for (check of report().experiments; track check.slug) {
+        <article class="space-y-2 rounded-xl border border-surface p-3 text-sm">
+          <h4 class="font-semibold">{{check.title}}</h4>
+          <p>{{check.reason}}</p>
+          <p><strong>Jak zmieni diagnozę?</strong> {{check.impact}}</p>
+          <a class="inline-block py-2 text-primary underline print:hidden"
+            [routerLink]="['/metody/eksperymenty', check.slug]" target="_blank" rel="noopener">
+            Instrukcja — {{check.title}} (nowa karta)
+          </a>
+          <div class="flex flex-wrap items-end gap-2 print:hidden">
+            <label class="flex min-w-0 flex-1 flex-col gap-1 font-medium">
+              Wynik — {{check.title}}
+              <select #result class="w-full rounded-lg border border-surface bg-surface-0 p-2 text-color dark:bg-surface-900"
+                [disabled]="analysis.savingExperiment()">
+                <option value="" [selected]="!report().experiment_results?.[check.slug]">Brak wyniku lub próba niejednoznaczna</option>
+                @for (option of check.options; track option.value) {
+                  <option [value]="option.value" [selected]="report().experiment_results?.[check.slug] === option.value">{{option.label}}</option>
+                }
+              </select>
+            </label>
+            <p-button label="Zapisz wynik" [disabled]="analysis.savingExperiment()"
+              [ariaLabel]="'Zapisz wynik — ' + check.title"
+              (onClick)="analysis.saveExperiment(report(), check.slug, result.value)" />
+          </div>
+          <div aria-live="polite">
+            @if (report().experiment_conclusions?.[check.slug]; as conclusion) {
+              <p><strong>Wniosek z próby.</strong> {{conclusion}}</p>
+            }
+          </div>
+        </article>
+      }
+    </div>
+  </app-panel>
+}

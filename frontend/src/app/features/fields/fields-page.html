@@ -1,0 +1,58 @@
+<div class="flex h-[calc(100dvh-var(--shell-top)-var(--shell-bottom))] flex-col print:hidden">
+  <div class="border-b border-surface bg-surface-0 px-3 py-2 lg:hidden dark:bg-surface-900">
+    <app-segmented label="Widok pulpitu" [options]="views" [(value)]="view" />
+  </div>
+
+  <div class="grid min-h-0 flex-1 lg:grid-cols-[28rem_minmax(0,1fr)]">
+    <section aria-label="Lista pól" class="pw-scroll min-h-0 border-surface bg-surface-0 p-4 lg:block lg:border-r dark:bg-surface-900"
+      [class.hidden]="view() !== 'list'">
+      <div class="flex flex-col gap-4">
+        <header class="flex flex-wrap items-center gap-2">
+          <h1 class="mr-auto text-xl font-bold">Moje pola</h1>
+          <a routerLink="/powiadomienia" class="inline-flex min-h-10 items-center gap-2 rounded-full border border-surface px-4 text-sm font-medium hover:bg-surface-100 dark:hover:bg-surface-800">
+            <i class="pi pi-bell" aria-hidden="true"></i>Powiadomienia</a>
+          @if (!adding()) { <p-button label="Dodaj pole" icon="pi pi-plus" (onClick)="startAdd(false)" /> }
+        </header>
+
+        <app-fields-notices [loggedIn]="auth.loggedIn()" [storageAllowed]="consent.storageAllowed()"
+          [offerMigration]="offerMigration()" [localCount]="fields.localFields().length" [migrating]="fields.migrating()"
+          [error]="fields.error()" [analysisError]="analysis.error()"
+          [saveParcelId]="canSaveCurrent() ? (parcels.parcel()?.id ?? null) : null" [saving]="fields.adding()"
+          (reopenConsent)="consent.reopen()" (migrate)="migrate()" (migrationDismissed)="migrationDismissed.set(true)"
+          (reload)="fields.load()" (retry)="init()" (saveCurrent)="saveCurrent()" />
+
+        @if (!ready() || fields.loading()) {
+          <div class="space-y-3" role="status" aria-label="Wczytywanie pól">
+            <p-skeleton height="7rem" borderRadius="14px" /><p-skeleton height="7rem" borderRadius="14px" />
+          </div>
+        } @else if (adding()) {
+          <app-field-form [initial]="prefill()" (saved)="onSaved($event)" (cancelled)="adding.set(false)" />
+        } @else if (!fields.fields().length) {
+          <app-empty-state icon="pi-map-marker" title="Nie masz jeszcze pól"
+            text="Wybierz działkę na mapie i dodaj ją jednym kliknięciem, albo wklej listę numerów działek. Zobaczysz tu status z ostatniego raportu.">
+            <p-button label="Dodaj pierwsze pole" icon="pi pi-plus" (onClick)="startAdd(false)" />
+          </app-empty-state>
+          @if (!auth.loggedIn() && auth.status() === 'guest' && !inviteDismissed()) {
+            <app-login-prompt title="Miej pola pod ręką na każdym urządzeniu"
+              text="Z kontem pola są na każdym urządzeniu. To tylko dodatek: bez konta wszystko działa tak samo."
+              [query]="loginQuery()" (dismissed)="inviteDismissed.set(true)" />
+          }
+        } @else {
+          <app-fields-list [fields]="fields.fields()" [attention]="fields.attention()" [stats]="stats()" [cropLabel]="cropLabel"
+            (download)="print()" (analyze)="analyze($event)" (located)="locate($event)" (passport)="showPassport($event)" (removed)="remove($event)" />
+        }
+      </div>
+    </section>
+
+    <section aria-label="Mapa i paszporty pól" class="flex min-h-0 min-w-0 flex-col lg:flex" [class.hidden]="view() === 'list'">
+      <div class="hidden items-center border-b border-surface bg-surface-0 px-4 py-2 lg:flex dark:bg-surface-900">
+        <div class="w-64"><app-segmented label="Mapa lub paszporty" [options]="paneOptions" [value]="pane()" (valueChange)="view.set($event)" /></div>
+      </div>
+
+      <app-fields-map-panel [class.hidden]="pane() !== 'map'" [fields]="fields.fields()" [selected]="selected()" [hintSeen]="hintSeen()"
+        (picked)="selectedId.set($event)" (hintDismissed)="dismissHint()" (analyze)="analyze($event)" (passport)="showPassport($event)" />
+      <app-fields-passports [class.hidden]="pane() !== 'passports'" [fields]="fields.fields()" [current]="passportField()" (picked)="selectedId.set($event)" />
+    </section>
+  </div>
+</div>
+<app-farm-report [stats]="stats()" [generatedAt]="generatedAt()" />

@@ -76,7 +76,7 @@ export function toServerLastReport(status: FieldStatus): LastReportInput | null 
 }
 
 /** Serwer przyjmuje kolor wyłącznie jako #rrggbb (odcienie 500 palety Tailwind użyte w `field-colors.ts`). */
-export const FIELD_COLOR_HEX: Record<FieldColor, string> = {
+const FIELD_COLOR_HEX: Record<FieldColor, string> = {
   green: '#22c55e', blue: '#3b82f6', amber: '#f59e0b', purple: '#a855f7', teal: '#14b8a6', pink: '#ec4899',
 };
 

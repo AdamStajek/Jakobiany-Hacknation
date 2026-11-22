@@ -112,6 +112,17 @@ def field_facts(metrics, inputs, request, answers):
     return facts | forecast_facts(inputs.get("forecast", {}).get("rows", {}), day, metrics, active)
 
 
+def action_steps(row, scope, points):
+    """Krótki plan działań złożony wyłącznie z pól katalogu rekomendacji i dowodów z pola."""
+    where = f"zaznaczonych miejscach ({len(points)})" if scope == "point" else "całym polu"
+    return [
+        f"Zacznij od oceny, czy warunki się zgadzają: {row['warunki_rekomendacji'].rstrip('.')}.",
+        f"Zaplanuj termin: {row['termin_realizacji'].rstrip('.')}.",
+        f"Przygotuj się na koszt ({row['koszt']}): {row['skladniki_kosztu'].rstrip('.')}.",
+        f"Zastosuj działanie „{row['dzialanie']}” na {where}.",
+    ]
+
+
 def matching_actions(facts, answers, day):
     """Keep field observations at field scale and attach local evidence to its declared points."""
     field = facts | {key: f"Potwierdzenie rolnika: {OBSERVATIONS[key]}." for key in answers.recommendation_observations}
@@ -152,7 +163,8 @@ def matching_actions(facts, answers, day):
                "why": why, "evidence": field_evidence or " ".join(dict.fromkeys(point["evidence"] for point in points)),
                "when": row["termin_realizacji"], "confidence": "wstępna", "limits": row["warunki_rekomendacji"],
                "cost": row["koszt"], "cost_details": row["skladniki_kosztu"],
-               "scope": "field" if field_evidence else "point", "points": points, "sources": references(key)}
+               "scope": "field" if field_evidence else "point", "points": points, "sources": references(key),
+               "steps": action_steps(row, "field" if field_evidence else "point", points)}
 
 
 def recommendations(metrics, inputs, request, agricultural):

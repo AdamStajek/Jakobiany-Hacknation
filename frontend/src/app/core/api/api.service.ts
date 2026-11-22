@@ -2,8 +2,8 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
-  AnalysisEvent, AnalysisProgress, AnalysisRequest, Crop, FarmerQuestion, Health, LoginRequest, NotificationPrefs, Parcel, Passport, PasswordChange, RegisterRequest, RecommendationCatalog, Report,
-  LastReportInput, ServerField, ServerFieldInput, User,
+  AnalysisEvent, AnalysisProgress, AnalysisRequest, Crop, FieldDescription, FarmerQuestion, Health, LoginRequest, NotificationPrefs, Parcel, Passport, PasswordChange, RegisterRequest, RecommendationCatalog, Report,
+  DemoNotification, DemoNotificationKind, DemoNotificationQuery, LastReportInput, ServerField, ServerFieldInput, User,
 } from './types';
 
 /** Nagłówek wymagany przez serwer przy żądaniach zmieniających stan (ochrona przed CSRF). */
@@ -17,6 +17,7 @@ export class ApiService {
   health() { return firstValueFrom(this.http.get<Health>('/api/health')); }
   farmerQuestions() { return firstValueFrom(this.http.get<FarmerQuestion[]>('/api/passport/questions')); }
   recommendationCatalog() { return firstValueFrom(this.http.get<RecommendationCatalog>('/api/recommendations/catalog')); }
+  describeField(text: string) { return firstValueFrom(this.http.post<FieldDescription>('/api/describe-field', {text}, STATE_CHANGING)); }
   crops() { return firstValueFrom(this.http.get<Crop[]>('/api/crops')); }
   searchParcels(query: string) {
     return firstValueFrom(this.http.get<{parcels: Parcel[]}>('/api/parcels/search', {params: {query}}));
@@ -52,12 +53,13 @@ export class ApiService {
     return firstValueFrom(this.http.patch<NotificationPrefs>('/api/me/notifications', body, STATE_CHANGING));
   }
 
+  demoNotification(kind: DemoNotificationKind, query: DemoNotificationQuery) {
+    return firstValueFrom(this.http.get<DemoNotification>(`/api/notifications/demo/${kind}`, {params: {...query}}));
+  }
+
   // Pola na serwerze (wymagają sesji).
   serverFields() { return firstValueFrom(this.http.get<ServerField[]>('/api/fields', READ)); }
   createServerField(body: ServerFieldInput) { return firstValueFrom(this.http.post<ServerField>('/api/fields', body, STATE_CHANGING)); }
-  updateServerField(id: string, body: Partial<Omit<ServerFieldInput, 'parcels'>>) {
-    return firstValueFrom(this.http.patch<ServerField>(`/api/fields/${encodeURIComponent(id)}`, body, STATE_CHANGING));
-  }
   deleteServerField(id: string) { return firstValueFrom(this.http.delete<unknown>(`/api/fields/${encodeURIComponent(id)}`, STATE_CHANGING)); }
   putLastReport(id: string, body: LastReportInput) {
     return firstValueFrom(this.http.put<ServerField>(`/api/fields/${encodeURIComponent(id)}/last-report`, body, STATE_CHANGING));

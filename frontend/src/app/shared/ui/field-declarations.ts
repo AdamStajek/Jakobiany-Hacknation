@@ -1,15 +1,17 @@
-import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, input, signal, untracked } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormControl, ReactiveFormsModule } from '@angular/forms';
+import { AccordionModule } from 'primeng/accordion';
 import { MultiSelectModule } from 'primeng/multiselect';
-import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
-import { FarmerAnswers, FarmerQuestion, Parcel, ProblemZone, RecommendationCatalog } from '../../core/api/types';
-import { WodoMap } from '../map/wodo-map';
+import { FarmerAnswers, FarmerQuestion, Parcel, RecommendationCatalog } from '../../core/api/types';
+import { MAX_ZONES, ZONE_TYPES, ZoneDraft, ZonesStore } from '../../core/state/zones.store';
+import { normalizeSources, normalizeWatering, normalizeZones } from './field-answers';
 
 const CROP_FIELDS = ['current_crop', 'sowing_date', 'growth_stage'];
 
 @Component({
   selector: 'app-field-declarations',
-  imports: [ReactiveFormsModule, MultiSelectModule, WodoMap],
+  imports: [ReactiveFormsModule, AccordionModule, MultiSelectModule],
   templateUrl: './field-declarations.html',
   host: {class: 'block'},
 })
@@ -18,9 +20,13 @@ export class FieldDeclarations {
   readonly parcel = input.required<Parcel | null>();
   readonly day = input.required<string>();
   readonly recommendationCatalog = input<RecommendationCatalog | null>(null);
-  readonly active = input(false);
-  protected readonly zonesTypes = ['Przesuszenie', 'Zastoiska', 'Erozja', 'Słaby plon', 'Inne'];
+  /** Nieużywane: mapa stref jest teraz na głównej mapie (zostawione, by nie łamać istniejącego szablonu rodzica). */
+  protected readonly zoneTypes = ZONE_TYPES;
+  protected readonly maxZones = MAX_ZONES;
+  protected readonly store = inject(ZonesStore);
+  private readonly observationControls = new Map<number, FormControl<string[]>>();
   private readonly fb = inject(FormBuilder).nonNullable;
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly questionsWithControls = computed(() => this.questions()
     .filter(({field}) => !CROP_FIELDS.includes(field))
@@ -29,14 +35,22 @@ export class FieldDeclarations {
       control: this.fb.control(''),
       options: question.format.replace(' (wielokrotny wybór)', '').split('; '),
     })));
+  protected readonly zoneQuestion = computed(() => this.questionsWithControls().find(q => q.field === 'problem_zones'));
+  protected readonly eventsQuestion = computed(() => this.questionsWithControls().find(q => q.field === 'irrigation_events'));
+  protected readonly sourcesQuestion = computed(() => this.questionsWithControls().find(q => q.field === 'irrigation_water_source'));
+  protected readonly otherQuestions = computed(() => this.questionsWithControls()
+    .filter(q => !['problem_zones', 'irrigation_events', 'irrigation_water_source'].includes(q.field)));
   protected readonly observations = this.fb.control<string[]>([]);
   protected readonly sources = this.fb.control<string[]>([]);
   protected readonly history = this.fb.control('');
   protected readonly watering = this.fb.array<ReturnType<FieldDeclarations['wateringGroup']>>([]);
-  protected readonly zones = this.fb.array<ReturnType<FieldDeclarations['zoneGroup']>>([]);
-  protected readonly mapVisible = signal(false);
-  protected readonly markers = signal<[number, number][]>([]);
-  protected readonly error = signal('');
+  /** Strefy z tego samego stanu co mapa; każda z kontrolką warunków (multiselect wymaga FormControl). */
+  protected readonly zoneRows = computed(() => {
+    const zones = this.store.zones();
+    for (const id of this.observationControls.keys()) if (!zones.some((zone) => zone.id === id)) this.observationControls.delete(id);
+    return zones.map((zone) => ({zone, observations: this.observationControl(zone)}));
+  });
+  protected readonly warnings = signal<string[]>([]);
 
   constructor() {
     let previous: Parcel | null = null;
@@ -51,10 +65,8 @@ export class FieldDeclarations {
         this.observations.reset();
         this.history.reset();
         this.watering.clear();
-        this.zones.clear();
-        this.markers.set([]);
-        this.mapVisible.set(false);
-        this.error.set('');
+        this.store.reset();
+        this.warnings.set([]);
       });
     });
   }
@@ -63,60 +75,47 @@ export class FieldDeclarations {
     return this.fb.group({date: '', dose_mm: new FormControl<number | null>(null)});
   }
 
-  private zoneGroup(coordinates: [number, number]) {
-    return this.fb.group({geometry: this.fb.control<ProblemZone['geometry']>({type: 'Point', coordinates}),
-      type: '', date: '', description: '', recommendation_observations: this.fb.control<string[]>([])});
+  private observationControl(zone: ZoneDraft): FormControl<string[]> {
+    let control = this.observationControls.get(zone.id);
+    if (!control) {
+      const created = this.fb.control<string[]>(zone.recommendation_observations);
+      created.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((value) => this.store.update(zone.id, {recommendation_observations: value}));
+      this.observationControls.set(zone.id, created);
+      control = created;
+    }
+    return control;
   }
 
   protected addWatering() { this.watering.push(this.wateringGroup()); }
 
-  protected addZone({lon, lat}: {lon: number; lat: number}) {
-    const geometry = this.parcel()?.geometry;
-    if (!geometry || !booleanPointInPolygon([lon, lat], geometry as Parameters<typeof booleanPointInPolygon>[1])) {
-      this.error.set('Zaznacz punkt wewnątrz granicy pola.');
-      return;
-    }
-    if (this.zones.length >= 30) return;
-    this.zones.push(this.zoneGroup([lon, lat]));
-    this.updateMarkers();
-    this.error.set('');
-  }
+  protected setZone(zone: ZoneDraft, patch: Partial<Pick<ZoneDraft, 'type' | 'date' | 'description'>>) { this.store.update(zone.id, patch); }
 
-  protected removeZone(index: number) {
-    this.zones.removeAt(index);
-    this.updateMarkers();
-  }
+  protected inputValue(event: Event): string { return (event.target as HTMLInputElement).value; }
 
-  private updateMarkers() {
-    this.markers.set(this.zones.getRawValue().map(zone => zone.geometry.coordinates));
-  }
-
-  collect(): FarmerAnswers | null {
+  /** Zbiera odpowiedzi; nigdy nie blokuje analizy. Braki są uzupełniane lub pomijane, a powód trafia do `warnings`. */
+  collect(): FarmerAnswers {
     const answers: FarmerAnswers = {};
-    const sources = this.sources.value;
-    const zones = this.zones.getRawValue();
-    const watering = this.watering.getRawValue();
     const day = this.day();
-    this.error.set('');
-    if (sources.length > 1 && sources.some(source => source.toLowerCase() === 'brak dostępu')) {
-      this.error.set('Wybierz brak dostępu albo wskaż dostępne źródła wody.');
-    } else if (zones.some(zone => !zone.type || !zone.date || zone.date > day)) {
-      this.error.set('Uzupełnij typ i datę każdej strefy. Podaj datę najpóźniej z dnia analizy.');
-    } else if (this.history.value === 'events' && (!watering.length || watering.some(event =>
-      !event.date || event.date > day || (event.dose_mm !== null && event.dose_mm < 0)))) {
-      this.error.set('Dodaj zdarzenie nawadniania z datą najpóźniej z dnia analizy. Dawka jest opcjonalna.');
-    }
-    if (this.error()) return null;
+    const warnings: string[] = [];
+    const sources = normalizeSources(this.sources.value);
+    const zones = normalizeZones(this.store.toProblemZones(), day);
+    warnings.push(...sources.warnings, ...zones.warnings);
     for (const question of this.questionsWithControls()) {
       const value = question.control.value.trim();
       if (value) answers[question.field] = value;
     }
-    if (sources.length) answers['irrigation_water_source'] = sources;
+    if (sources.items.length) answers['irrigation_water_source'] = sources.items;
     if (this.observations.value.length) answers['recommendation_observations'] = this.observations.value;
-    if (zones.length) answers['problem_zones'] = zones;
-    if (this.history.value) {
-      answers['irrigation_events'] = this.history.value === 'events' ? watering : this.history.value === 'none' ? [] : null;
+    if (zones.items.length) answers['problem_zones'] = zones.items;
+    if (this.history.value === 'events') {
+      const events = normalizeWatering(this.watering.getRawValue(), day);
+      warnings.push(...events.warnings);
+      if (events.items.length) answers['irrigation_events'] = events.items;
+      else warnings.push('Nie podano poprawnych zdarzeń nawadniania, więc pomijamy tę odpowiedź.');
+    } else if (this.history.value) {
+      answers['irrigation_events'] = this.history.value === 'none' ? [] : null;
     }
+    this.warnings.set(warnings);
     return answers;
   }
 }

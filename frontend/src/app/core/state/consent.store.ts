@@ -1,11 +1,12 @@
 import { Injectable, computed, signal } from '@angular/core';
 
-export type ConsentChoice = 'granted' | 'denied';
-export type WriteResult = 'saved' | 'skipped' | 'failed';
+type ConsentChoice = 'granted' | 'denied';
+type WriteResult = 'saved' | 'skipped' | 'failed';
 
 export const CONSENT_KEY = 'pw.consent.v1';
 /** Wszystko, co aplikacja zapisuje w przeglądarce za zgodą użytkownika (kasowane przy cofnięciu zgody). */
-const MANAGED_KEYS = ['pw.fields.v1', 'wodo-theme', 'report-mode'];
+const MANAGED_KEYS = ['pw.fields.v1', 'wodo-theme', 'report-mode', 'pw.map-hint.fields.v1', 'pw.notify.v1',
+  'pw.map-hint.analysis.v1', 'pw.analysis.show-fields.v1'];
 
 /**
  * Zgoda na zapis danych w tej przeglądarce (localStorage). Bez zgody nic poza samą decyzją nie jest zapisywane:

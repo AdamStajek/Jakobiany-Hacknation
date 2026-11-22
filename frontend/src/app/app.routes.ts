@@ -4,7 +4,8 @@ import { authGuard } from './core/state/auth.guard';
 const analysis = () => import('./features/analysis/analysis-page').then((m) => m.AnalysisPage);
 
 export const routes: Routes = [
-  {path: '', title: 'Pole Widzenia · Analiza działki', loadComponent: analysis},
+  {path: '', pathMatch: 'full', title: 'Pole Widzenia · Start', loadComponent: () => import('./features/home/home-page').then((m) => m.HomePage)},
+  {path: 'sprawdz', title: 'Pole Widzenia · Sprawdź pole', loadComponent: analysis},
   {path: 'dzialka/:id', title: 'Pole Widzenia · Działka', loadComponent: analysis},
   {path: 'dzialka/:id/analiza/:analysisId', title: 'Pole Widzenia · Raport', loadComponent: analysis},
   {path: 'pola', title: 'Pole Widzenia · Moje pola', loadComponent: () => import('./features/fields/fields-page').then((m) => m.FieldsPage)},
@@ -23,6 +24,8 @@ export const routes: Routes = [
     loadComponent: () => import('./features/fields/parcel-passport-page').then((m) => m.ParcelPassportPage)},
   {path: 'eksperymenty', pathMatch: 'full', redirectTo: 'metody/eksperymenty'},
   {path: 'eksperymenty/:slug', pathMatch: 'full', redirectTo: 'metody/eksperymenty/:slug'},
+  {path: 'powiadomienia', title: 'Pole Widzenia · Powiadomienia',
+    loadComponent: () => import('./features/notifications/notifications-page').then((m) => m.NotificationsPage)},
   {path: 'metody', loadComponent: () => import('./features/methods/methods-layout').then((m) => m.MethodsLayout), children: [
     {path: '', pathMatch: 'full', title: 'Pole Widzenia · Jak to działa',
       loadComponent: () => import('./features/methods/methods-page').then((m) => m.MethodsPage)},

@@ -1,0 +1,44 @@
+@if (!description()) {
+  <div class="flex flex-col gap-2">
+    <label for="field-text" class="text-sm font-medium">Opisz swoje pole własnymi słowami</label>
+    <textarea id="field-text" rows="4" class="p-inputtext p-component w-full" [maxlength]="maxLength"
+      aria-describedby="field-text-hint" placeholder="np. Pole jest na skarpie, ziemia lekka, po ulewach woda spływa, nie mam pieniędzy na drenaż"
+      [ngModel]="text()" (ngModelChange)="text.set($event)" [ngModelOptions]="{standalone: true}"></textarea>
+    <p id="field-text-hint" class="text-sm text-muted-color">Do {{maxLength}} znaków. Uporządkujemy opis, a Ty go sprawdzisz.</p>
+    @if (loading()) {
+      <div aria-live="polite" class="space-y-2">
+        <p class="text-sm">Porządkujemy opis…</p>
+        <p-skeleton height="2.5rem" />
+      </div>
+    }
+    @if (error()) { <p-message severity="error" role="alert">{{error()}}</p-message> }
+    <p-button type="button" styleClass="min-h-12 w-full" icon="pi pi-list-check" label="Uporządkuj opis"
+      [loading]="loading()" [disabled]="!canSubmit()" (onClick)="organize()" />
+  </div>
+} @else {
+  <section class="flex flex-col gap-3" aria-labelledby="desc-title">
+    <h3 id="desc-title" class="text-sm font-semibold">Czy dobrze Cię zrozumieliśmy?</h3>
+    @for (row of rows(); track row.key) {
+      <div class="pw-card flex flex-col gap-2 p-3">
+        <p class="text-sm font-medium">
+          {{row.title}}:
+          @if (row.value) { <span>{{row.value}}</span> }
+          @else { <span class="text-muted-color"><i class="pi pi-question-circle" aria-hidden="true"></i> Nie rozpoznano</span> }
+        </p>
+        @if (row.matched) { <p class="text-sm text-muted-color">z Twojego opisu: «{{row.matched}}»</p> }
+        <div role="group" class="flex flex-wrap gap-2" [attr.aria-label]="'Popraw: ' + row.title">
+          @for (option of description()!.options[row.key]; track option.value) {
+            <button type="button" (click)="choose(row.key, option.value)" [attr.aria-pressed]="option.value === description()![row.key].value"
+              class="min-h-12 rounded-border border border-surface px-3 text-sm font-medium aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-contrast">
+              {{option.label}}
+            </button>
+          }
+        </div>
+      </div>
+    }
+    <div class="flex flex-col gap-2 sm:flex-row">
+      <p-button type="button" styleClass="min-h-12" icon="pi pi-check" label="Potwierdzam" (onClick)="confirm()" />
+      <p-button type="button" styleClass="min-h-12" [outlined]="true" icon="pi pi-pencil" label="Zmień opis" (onClick)="edit()" />
+    </div>
+  </section>
+}

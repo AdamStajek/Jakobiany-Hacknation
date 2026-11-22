@@ -46,6 +46,8 @@ def test_all_catalog_actions_have_runnable_sourced_triggers():
                     answers = FarmerAnswers(recommendation_observations=observations)
                 match = next(rec for rec in matching_actions(facts, answers, DAY) if rec["id"] == key)
                 assert match["scope"] == scope and bool(match["points"]) == (scope == "point")
+                assert 3 <= len(match["steps"]) <= 4 and all(step.strip() for step in match["steps"])
+                assert ACTIONS[key]["termin_realizacji"].rstrip(".") in match["steps"][1]
 
 
 def test_catalog_costs_have_numeric_bounds_and_explain_the_estimate():

@@ -4,7 +4,7 @@ import { errorMessage } from '../api/errors';
 import type { Passport } from '../api/types';
 import { AnalysisStore } from './analysis.store';
 
-export type PassportEntry = {loading: boolean; error: string; data: Passport | null};
+type PassportEntry = {loading: boolean; error: string; data: Passport | null};
 const EMPTY: PassportEntry = {loading: false, error: '', data: null};
 
 /** Paszporty działek pobierane z API i trzymane w pamięci (klucz: działka + uprawa), żeby nie ładować ich wielokrotnie. */
