@@ -63,6 +63,13 @@ html.app-dark { color-scheme: dark; }
 html.app-dark body { background: var(--p-surface-950); color: var(--p-text-color); }
 :focus-visible { outline: 3px solid var(--pw-forest); outline-offset: 2px; }
 html.app-dark :focus-visible { outline-color: var(--pw-orange); }
+/* Natywne selecty: w ciemnym motywie jak pola p-inputtext (zamiast jasnego tła z bg-surface-0). */
+html.app-dark select.p-select {
+  background: var(--p-inputtext-background, var(--p-surface-950));
+  color: var(--p-inputtext-color, var(--p-text-color));
+  border-color: var(--p-inputtext-border-color, var(--p-surface-500));
+}
+html.app-dark select.p-select option { background: var(--p-surface-900); color: var(--p-text-color); }
 button, a { touch-action: manipulation; }
 /* Własne elementy Angulara domyślnie są inline; jako blok układ (fixed, wysokości dvh, przewijanie) jest przewidywalny na telefonach. */
 app-root, app-shell, app-home-page { display: block; }
