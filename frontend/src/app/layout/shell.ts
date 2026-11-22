@@ -61,7 +61,7 @@ const NAV: NavItem[] = [
 
     <nav aria-label="Nawigacja główna" class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-surface bg-surface-0/95 pb-[env(safe-area-inset-bottom)] backdrop-blur print:hidden lg:hidden dark:bg-surface-900/95">
       @for (item of nav; track item.path) {
-        <a [routerLink]="item.path" [attr.aria-current]="section() === item.id ? 'page' : null" [attr.aria-label]="item.label"
+        <a [routerLink]="item.path" [attr.aria-current]="section() === item.id ? 'page' : null"
            class="flex h-16 min-w-0 flex-col items-center justify-center gap-1 px-0.5 text-sm"
            [class]="section() === item.id ? 'font-semibold text-primary' : 'text-muted-color'">
           <i class="pi {{item.icon}} text-xl" aria-hidden="true"></i>{{item.short}}

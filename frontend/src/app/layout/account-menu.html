@@ -1,7 +1,7 @@
 @if (auth.status() !== 'loading') {
   <div class="relative" [class.w-full]="variant() === 'sidebar'">
     <button type="button" #trigger (click)="toggle()" [attr.aria-expanded]="open()" aria-controls="account-menu-panel" aria-haspopup="true"
-      [attr.aria-label]="triggerLabel()"
+      [attr.aria-label]="variant() === 'header' ? triggerLabel() : null"
       [class]="variant() === 'header'
         ? 'relative grid h-10 w-10 place-items-center rounded-full bg-surface-100 hover:bg-surface-200 dark:bg-surface-800 dark:hover:bg-surface-700'
         : 'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-surface-100 dark:hover:bg-surface-800'">
