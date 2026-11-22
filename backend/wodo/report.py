@@ -111,6 +111,8 @@ def surface_legend(report, st):
 
 def recommendation_details(rec, st):
     details = [p(rec["why"], st["body"]), p(rec["evidence"], st["body"]), p(rec["limits"], st["tiny"])]
+    if impact := rec.get("area_impact"):
+        details.append(p(f"Powierzchnia pod uprawę. {impact}", st["tiny"]))
     if estimate := rec.get("cost_estimate"):
         lower, upper = estimate["lower"], estimate["upper"]
         amount = f"{lower:g}" if lower == upper else f"{lower:g}–{upper:g}"

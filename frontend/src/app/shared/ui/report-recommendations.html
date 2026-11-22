@@ -22,6 +22,9 @@
     } @else if (item.cost) {
       <p class="text-sm"><strong>Koszt.</strong> {{item.cost}}</p>
     }
+    @if (item.area_impact) {
+      <p class="text-sm"><strong>Powierzchnia pod uprawę.</strong> {{item.area_impact}}</p>
+    }
     <p class="text-sm"><strong>Kiedy?</strong> {{item.when}}</p>
     <button type="button" class="flex min-h-11 w-full items-center justify-between gap-2 rounded-lg border border-surface px-3 py-2 text-left text-sm font-semibold text-primary"
       [attr.aria-expanded]="isOpen(item)" [attr.aria-controls]="'rec-' + key(item)" (click)="toggle(item)">
@@ -102,6 +105,9 @@
       <div><h4 class="font-semibold">Dlaczego na tej działce?</h4><p>{{rec.evidence}}</p></div>
       <div><h4 class="font-semibold">Jak to może pomóc?</h4><p>{{rec.why}}</p></div>
       <div><h4 class="font-semibold">Warunki i ograniczenia</h4><p>{{rec.limits}}</p></div>
+      @if (rec.area_impact) {
+        <div><h4 class="font-semibold">Powierzchnia pod uprawę</h4><p>{{rec.area_impact}}</p></div>
+      }
       @if (rec.cost_estimate; as estimate) {
         <div>
           <h4 class="font-semibold">Co obejmuje szacunek?</h4>

@@ -21,6 +21,7 @@ OBSERVATIONS = {
     "rotation_issue": "Na polu stale uprawia się ten sam gatunek albo pogarsza się struktura ziemi, np. ziemia tworzy twarde bryły",
     "reservoir_site": "Jest zagłębienie, do którego dopływa woda. Sprawdzono, że można tam zbudować zbiornik i spełnić formalności",
     "pond_site": "Było tu oczko wodne lub teren się do tego nadaje, a ocena przyrodnicza i sprawdzenie formalności pozwalają je odtworzyć",
+    "ditch_site": "W tym miejscu regularnie stoi woda. Specjalista potwierdził potrzebę nowego rowu i wskazał możliwy odbiornik wody",
     "ditch_control": "Rów odprowadza za dużo wody. Zarządca zgodził się na regulację odpływu i sprawdzono ryzyko podtopień",
     "windbreak_site": "Na otwartym polu silny wiatr często wywiewa ziemię. Wybrano miejsce oraz odpowiednie drzewa lub krzewy",
     "buffer_site": "Widać, że woda płynie po powierzchni ziemi, lub pole bezpośrednio przylega do rowu lub strumienia",
@@ -129,6 +130,7 @@ SOURCES = {
     "nwrm": ("Komisja Europejska (2015), dobór i projektowanie naturalnych działań retencyjnych", "https://op.europa.eu/en/publication-detail/-/publication/a6de1b15-d277-4753-bc37-3b746b09ef9f"),
     "pond": ("Badanie projektowania i bilansowania dopływu do zbiornika rolniczego (2025)", "https://www.mdpi.com/2073-4441/17/21/3034"),
     "wetlands": ("Ockenden i in. (2014), wyniki monitoringu mokradeł na polach rolnych", "https://pubmed.ncbi.nlm.nih.gov/24509365/"),
+    "melioration": ("Wody Polskie, melioracje wodne", "https://www.wody.gov.pl/images/Melioracje/melioracje_wodne-A5-4_kwietnia_2022.pdf"),
     "ditch": ("Badanie modelowe sterowanego drenażu w otwartych rowach (1990)", "https://www.sciencedirect.com/science/article/pii/037837749090013O"),
     "drain": ("Badanie reżimu wodnego drenażu swobodnego i regulowanego (2018)", "https://www.sciencedirect.com/science/article/abs/pii/S037837741831672X"),
     "drain_standard": ("USDA NRCS, praktyki projektowania i utrzymania urządzeń wodnych", "https://www.nrcs.usda.gov/sites/default/files/2024-01/587_NHCP_CPS_Structure_for_Water_Control_2023_0.pdf"),
@@ -237,6 +239,7 @@ RULES = {
     58: ("field", "spray_label heat", "spray", "Wpływ temperatury na działanie środka zależy od substancji, rośliny i warunków. O terminie decyduje etykieta konkretnego środka."),
     59: ("field", "fertilizer_planned heavy_rain", "fertilizer split", "Silny opad po aplikacji może przenosić składniki poza strefę wykorzystania. Znaczenie ma czas między aplikacją a opadem."),
     60: ("both", "outlet_issue | drainage ponding", "drain outlet", "Długie zastoiska przy istniejącym odwodnieniu uzasadniają oględziny drożności i konsultację z zarządcą."),
+    61: ("point", "ditch_site", "melioration ditch", "Rów może odprowadzić nadmiar wody z podtapianego miejsca. Projekt powinien ograniczyć przesuszenie pola i ryzyko podtopień poniżej odpływu."),
 }
 
 with (Path(__file__).resolve().parents[2] / "docs/baza_60_rekomendacji_KOWR.csv").open(encoding="utf-8-sig", newline="") as file:
@@ -257,11 +260,38 @@ TRIGGERS = {
 WET_FIELD_EXCLUSIONS = (21, 23, 24, 44)
 
 
+# Opis dodatkowej powierzchni wyłączanej z uprawy po wdrożeniu działania.
+AREA_IMPACT = {
+    11: "Odejmij obrys zbiornika wraz ze skarpami i pasem obsługi na dotychczas uprawianym gruncie.",
+    12: "Odejmij część obrysu odtwarzanego oczka i jego pasa obsługi, która jest obecnie uprawiana.",
+    13: "Zastawkę montuje się w istniejącym rowie. Odejmij tylko nowy pas obsługi, jeśli zajmie uprawiany grunt.",
+    14: "Odejmij powierzchnię pasa nasadzeń w obrębie uprawy. Przy stałej szerokości pomnóż długość pasa przez szerokość.",
+    15: "Odejmij powierzchnię nowego pasa trawy na uprawianym gruncie. Przy stałej szerokości pomnóż długość pasa przez szerokość.",
+    17: "Odejmij powierzchnię nowych skarp i dojazdów wyłączonych z uprawy. Powierzchnie uprawne tarasów pozostają w bilansie.",
+    18: "Jeśli zbiornik stanie na uprawianym gruncie, odejmij jego obrys wraz z wydzielonym miejscem obsługi.",
+    19: "Odejmij powierzchnię nowych elementów nadziemnych i stałego dostępu, jeśli wyłączą grunt z uprawy.",
+    20: "Ubytek obejmuje tylko część mokradła lub jego otoczenia, która jest dziś uprawiana i ma zostać wyłączona z uprawy.",
+    26: "Odejmij miejsce zajęte przez nowe stałe elementy instalacji, jeżeli zostaną ustawione na uprawianej części pola.",
+    30: "Odejmij powierzchnię trwale wyłączoną z uprawy wokół stacji pomiarowej, jeśli jej montaż tego wymaga.",
+    31: "Jeśli stałe ścieżki pozostają bez zasiewu, odejmij powierzchnię tylko nowo wyłączonych pasów.",
+    35: "Odejmij obrys uprawianego fragmentu przeznaczonego pod trwałą okrywę.",
+    36: "Odejmij część zadarnionej drogi spływu, która zajmie uprawiany grunt. Przy stałej szerokości pomnóż długość przez szerokość.",
+    37: "Odejmij obrys niecki wraz ze skarpami i pasem obsługi na dotychczas uprawianym gruncie.",
+    39: "Odejmij powierzchnię pasów drzew wyłączonych z uprawy. Uprawiane przestrzenie między pasami pozostają w bilansie.",
+    40: "Odejmij tylko ewentualne rozszerzenie istniejącego obiektu lub pasa obsługi na uprawiany grunt.",
+    61: "Odejmij powierzchnię rowu ze skarpami i pasem obsługi na uprawianym gruncie. Przy stałej szerokości pomnóż długość odcinka przez łączną szerokość. Pozostała powierzchnia to dotychczasowy areał pomniejszony o ten ubytek.",
+}
+
+
+def area_impact(key):
+    return AREA_IMPACT.get(key, "0 m² bezpośredniego ubytku. Samo działanie nie wyłącza gruntu z uprawy.")
+
+
 def catalog():
     return [
         {"id": key, "title": row["dzialanie"], "group": row["kategoria"], "when": row["termin_realizacji"],
          "cost": row["koszt"], "cost_details": row["skladniki_kosztu"], "conditions": row["warunki_rekomendacji"],
-         "description": DESCRIPTIONS[key], "cost_estimate": cost_estimate(key),
+         "description": DESCRIPTIONS[key], "cost_estimate": cost_estimate(key), "area_impact": area_impact(key),
          "triggers": {location: [[LABELS[fact] for fact in alternative] for alternative in alternatives]
                       for location, alternatives in TRIGGERS[key].items() if alternatives},
          "sources": references(key), "why": RULES[key][3],

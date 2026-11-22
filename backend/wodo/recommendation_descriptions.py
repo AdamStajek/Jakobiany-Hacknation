@@ -124,4 +124,7 @@ DESCRIPTIONS = {
          "Gdy prognoza zapowiada taki deszcz, warto przesunąć nawożenie na bezpieczniejszy termin."),
     60: ("Jeśli po podtopieniu woda długo stoi, po ustąpieniu zagrożenia można sprawdzić, czy odpływy są drożne. "
          "Ewentualne prace przy rowach i innych urządzeniach wodnych trzeba uzgodnić z ich zarządcą."),
+    61: ("Nowy rów może odprowadzić wodę z miejsca regularnie podtapianego. "
+         "Przed wykopem trzeba zweryfikować przebieg, odbiornik wody, wpływ na sąsiednie grunty i wymagane formalności. "
+         "Sprawdź też, czy odpływ nie pogłębi niedoboru wody w suchych okresach."),
 }

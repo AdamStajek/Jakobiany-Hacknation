@@ -620,6 +620,9 @@ def get_report(analysis_id):
             locate_action(recommendation, report.get("parcel", {}).get("sample_point"), report.get("date"))
         if "cost_estimate" not in recommendation:
             recommendation.update(action_details(recommendation.get("id")))
+        if "area_impact" not in recommendation:
+            if details := action_details(recommendation.get("id")):
+                recommendation["area_impact"] = details["area_impact"]
     report["experiments"] = experiment_checks(report)
     return report
 

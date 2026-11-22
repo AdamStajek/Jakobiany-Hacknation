@@ -82,6 +82,7 @@ COST_ESTIMATES = {
     58: (0, 0, "dodatkowych wydatków", "Przy zmianie terminu tego samego zabiegu bez nowego dojazdu lub opłaty za zmianę usługi.", ""),
     59: (0, 0, "dodatkowych wydatków", "Przy przełożeniu tego samego nawożenia bez kolejnego przejazdu lub opłaty za zmianę usługi.", ""),
     60: (34, 71, "za oględziny", "Przykład dla 1–2 godzin pracy. Udrożnienie odpływu, naprawę i pracę koparki wycenia się osobno.", "wodr"),
+    61: (60, 120, "za m³ wykopu", "Stawka odniesienia za wykop z wywozem ziemi. Projekt, uzgodnienia i utrzymanie rowu wycenia się osobno.", "earth"),
 }
 
 

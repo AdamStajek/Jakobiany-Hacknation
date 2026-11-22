@@ -20,11 +20,11 @@ POINT = {"geometry": {"type": "Point", "coordinates": [19, 52]}, "date": DAY, "t
 
 
 def test_all_catalog_actions_have_runnable_sourced_triggers():
-    assert set(ACTIONS) == set(RULES) == set(range(1, 61))
+    assert set(ACTIONS) == set(RULES) == set(range(1, 62))
     for item in catalog():
         key = item["id"]
         assert item["sources"] and item["why"]
-        assert item["description"].strip()
+        assert item["description"].strip() and item["area_impact"].strip()
         assert all(source["url"].startswith("https://") for source in item["sources"])
         assert item["triggers"]
 
@@ -47,6 +47,7 @@ def test_all_catalog_actions_have_runnable_sourced_triggers():
                 match = next(rec for rec in matching_actions(facts, answers, DAY) if rec["id"] == key)
                 expected = "site" if scope == "field" and key in SITE_LABELS else scope
                 assert match["scope"] == expected and bool(match["points"]) == (scope == "point")
+                assert match["area_impact"] == item["area_impact"]
                 assert 3 <= len(match["steps"]) <= 4 and all(step.strip() for step in match["steps"])
                 assert ACTIONS[key]["termin_realizacji"].rstrip(".") in match["steps"][1]
 
@@ -100,7 +101,20 @@ def test_saved_report_uses_catalogue_costs_and_plain_explanations(monkeypatch):
     action = next(item for item in catalog() if item["id"] == 15)
     assert recommendation["cost_estimate"] == action["cost_estimate"]
     assert recommendation["why"] == action["description"]
+    assert recommendation["area_impact"] == action["area_impact"]
     assert recommendation["evidence"] == "Zapisana obserwacja."
+
+
+def test_new_ditch_needs_confirmed_local_site_and_accounts_for_land_take():
+    flooded = POINT | {"type": "Zastoiska"}
+    answers = FarmerAnswers(problem_zones=[ProblemZone(**flooded)])
+    assert 61 not in {item["id"] for item in matching_actions({}, answers, DAY)}
+
+    confirmed = FarmerAnswers(problem_zones=[ProblemZone(**flooded, recommendation_observations=["ditch_site"])])
+    action = next(item for item in matching_actions({}, confirmed, DAY) if item["id"] == 61)
+    assert action["scope"] == "point"
+    assert "skarpami i pasem obsługi" in action["area_impact"]
+    assert "łączną szerokość" in action["area_impact"]
 
 
 def test_root_measurements_and_forecast_gate_irrigation():
