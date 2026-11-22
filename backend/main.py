@@ -197,9 +197,12 @@ def source_status():
 
 
 @app.get("/api/parcels/by-point")
-def parcel_point(
-    lon: float = Query(ge=13.98, le=24.3), lat: float = Query(ge=48.98, le=55.1)
-):
+def parcel_point(lon: float, lat: float):
+    if not (13.98 <= lon <= 24.3 and 48.98 <= lat <= 55.1):
+        raise HTTPException(
+            422,
+            "Wybrany punkt leży poza granicami Polski. Wskaż działkę na terytorium Polski.",
+        )
     return matches(by_point(lon, lat))
 
 
