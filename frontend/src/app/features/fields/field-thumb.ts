@@ -33,7 +33,7 @@ export function thumbPath(parcels: FieldParcel[]): string {
   host: {class: 'block'},
   template: `
     @if (path(); as d) {
-      <svg viewBox="0 0 56 56" class="h-14 w-14" aria-hidden="true" focusable="false">
+      <svg viewBox="0 0 56 56" class="h-9 w-9" aria-hidden="true" focusable="false">
         <path [attr.d]="d" fill="currentColor" fill-opacity="0.25" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
       </svg>
     }

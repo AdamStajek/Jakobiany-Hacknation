@@ -1,13 +1,24 @@
-import { Routes } from '@angular/router';
+import { Routes, UrlMatchResult, UrlSegment } from '@angular/router';
 import { authGuard } from './core/state/auth.guard';
 
 const analysis = () => import('./features/analysis/analysis-page').then((m) => m.AnalysisPage);
 
+/**
+ * Jedna trasa dla /sprawdz, /dzialka/:id i /dzialka/:id/analiza/:analysisId: dzięki temu zmiana działki lub
+ * pojawienie się raportu (zmiana adresu) nie niszczy i nie odtwarza strony z mapą (to powodowało migotanie).
+ */
+export function analysisMatcher(segments: UrlSegment[]): UrlMatchResult | null {
+  const [first, , mid] = segments.map((s) => s.path);
+  if (segments.length === 1 && first === 'sprawdz') return {consumed: segments};
+  if (first !== 'dzialka') return null;
+  if (segments.length === 2) return {consumed: segments, posParams: {id: segments[1]}};
+  if (segments.length === 4 && mid === 'analiza') return {consumed: segments, posParams: {id: segments[1], analysisId: segments[3]}};
+  return null;
+}
+
 export const routes: Routes = [
   {path: '', pathMatch: 'full', title: 'Pole Widzenia · Start', loadComponent: () => import('./features/home/home-page').then((m) => m.HomePage)},
-  {path: 'sprawdz', title: 'Pole Widzenia · Analizuj pole', loadComponent: analysis},
-  {path: 'dzialka/:id', title: 'Pole Widzenia · Działka', loadComponent: analysis},
-  {path: 'dzialka/:id/analiza/:analysisId', title: 'Pole Widzenia · Raport', loadComponent: analysis},
+  {matcher: analysisMatcher, title: 'Pole Widzenia · Analizuj pole', loadComponent: analysis},
   {path: 'pola', title: 'Pole Widzenia · Moje pola', loadComponent: () => import('./features/fields/fields-page').then((m) => m.FieldsPage)},
   {path: 'zaloguj', title: 'Pole Widzenia · Logowanie', loadComponent: () => import('./features/auth/login-page').then((m) => m.LoginPage)},
   {path: 'rejestracja', title: 'Pole Widzenia · Rejestracja', loadComponent: () => import('./features/auth/register-page').then((m) => m.RegisterPage)},

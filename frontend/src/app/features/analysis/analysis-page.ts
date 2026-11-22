@@ -226,6 +226,11 @@ export class AnalysisPage {
       });
     });
 
+    // Raport zniknął (np. zmiana pola): nie zostawiaj pustego widoku raportu, wróć do mapy.
+    effect(() => {
+      if (!this.hasReport() && this.view() === 'report') untracked(() => this.view.set('map'));
+    });
+
     // Odznaczenie działki lub błąd bez raportu: wróć do widoku z danymi.
     effect(() => {
       if (this.analysis.error() && !this.analysis.report()) untracked(() => this.view.set('form'));

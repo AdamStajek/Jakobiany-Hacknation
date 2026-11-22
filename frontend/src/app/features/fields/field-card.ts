@@ -19,7 +19,7 @@ const TONES: Record<RiskTone, ToneStyle> = {
   template: `
     <article class="pw-card flex flex-col gap-3 border-l-4 p-4 {{toneStyle().border}}" [attr.aria-labelledby]="'field-' + field().id">
       <header class="flex items-start gap-3">
-        <app-field-thumb class="grid h-16 w-16 shrink-0 place-items-center rounded-xl bg-surface-100 {{toneStyle().text}} dark:bg-surface-800" [parcels]="field().parcels" />
+        <app-field-thumb class="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-surface-100 {{toneStyle().text}} dark:bg-surface-800" [parcels]="field().parcels" />
         <div class="min-w-0 flex-1">
           @if (editing()) {
             <form class="flex items-center gap-2" (submit)="$event.preventDefault(); save()">
