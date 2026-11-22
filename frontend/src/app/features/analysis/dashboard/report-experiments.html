@@ -34,19 +34,10 @@
       @if (planMessage()) { <p class="mt-2 font-semibold">{{planMessage()}}</p> }
     </div>
 
-    <p-accordion class="pw-print-open mt-4 block" [multiple]="true" [value]="openChecks()">
+    <div class="mt-4 space-y-4">
       @for (check of report().experiments; track check.slug) {
-        <p-accordion-panel [value]="check.slug">
-          <p-accordion-header>
-            <span class="flex flex-1 flex-wrap items-center justify-between gap-2 pr-2">
-              <span class="text-base font-semibold">{{check.title}}</span>
-              <span class="text-sm font-normal text-muted-color">
-                @if (report().experiment_results?.[check.slug]) { Wynik zapisany } @else { Do wykonania }
-              </span>
-            </span>
-          </p-accordion-header>
-          <p-accordion-content>
-        <article class="space-y-2 text-sm">
+        <article class="space-y-2 rounded-xl border border-surface p-3 text-sm">
+          <h4 class="font-semibold">{{check.title}}</h4>
           <p>{{check.reason}}</p>
           <p><strong>Jak zmieni diagnozę?</strong> {{check.impact}}</p>
           <a class="inline-block py-2 text-primary underline print:hidden"
@@ -74,10 +65,8 @@
             }
           </div>
         </article>
-          </p-accordion-content>
-        </p-accordion-panel>
       }
-    </p-accordion>
+    </div>
   } @else {
     <p class="text-sm text-muted-color">Dla tej analizy nie zaproponowano eksperymentów.</p>
   }
