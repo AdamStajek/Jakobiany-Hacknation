@@ -34,6 +34,15 @@ import { MIN_PASSWORD, emailError, passwordError, repeatError, usernameError } f
           <app-auth-field id="reg-password" label="Hasło" type="password" autocomplete="new-password" [(value)]="password"
             [hint]="'Co najmniej ' + min + ' znaków.'" [error]="errors().password" />
           <app-auth-field id="reg-repeat" label="Powtórz hasło" type="password" autocomplete="new-password" [(value)]="repeat" [error]="errors().repeat" />
+          <div class="flex flex-col gap-1">
+            <label class="flex items-start gap-2 text-sm">
+              <input id="reg-privacy" type="checkbox" class="mt-1 h-5 w-5 shrink-0 accent-[var(--p-primary-color)]" [checked]="accepted()"
+                (change)="accepted.set(checked($event))" [attr.aria-invalid]="errors().privacy ? 'true' : null"
+                [attr.aria-describedby]="errors().privacy ? 'reg-privacy-error' : null" required>
+              <span>Zapoznałem(-am) się z <a routerLink="/prywatnosc" target="_blank" class="font-semibold text-primary underline">polityką prywatności</a> i akceptuję przetwarzanie danych konta.</span>
+            </label>
+            @if (errors().privacy) { <p id="reg-privacy-error" class="flex items-center gap-1 text-xs text-red-700 dark:text-red-400" role="alert"><i class="pi pi-exclamation-circle" aria-hidden="true"></i>{{errors().privacy}}</p> }
+          </div>
           @if (error()) { <p-message severity="error" icon="pi pi-exclamation-circle" role="alert">{{error()}}</p-message> }
           <p-button type="submit" label="Załóż konto" icon="pi pi-user-plus" styleClass="w-full" [loading]="busy()" [disabled]="busy()" />
         </form>
@@ -56,6 +65,7 @@ export class RegisterPage {
   protected readonly username = signal('');
   protected readonly password = signal('');
   protected readonly repeat = signal('');
+  protected readonly accepted = signal(false);
   protected readonly submitted = signal(false);
   protected readonly busy = signal(false);
   protected readonly done = signal(false);
@@ -64,13 +74,18 @@ export class RegisterPage {
   /** Błędy pól pokazujemy dopiero po pierwszej próbie wysłania. */
   protected readonly errors = computed(() => this.submitted()
     ? {email: emailError(this.email()), username: usernameError(this.username()), password: passwordError(this.password()),
-      repeat: repeatError(this.password(), this.repeat())}
-    : {email: '', username: '', password: '', repeat: ''});
+      repeat: repeatError(this.password(), this.repeat()),
+      privacy: this.accepted() ? '' : 'Aby założyć konto, potwierdź zapoznanie się z polityką prywatności.'}
+    : {email: '', username: '', password: '', repeat: '', privacy: ''});
+
+  protected checked(event: Event): boolean {
+    return (event.target as HTMLInputElement).checked;
+  }
 
   protected async submit() {
     this.submitted.set(true);
     const e = this.errors();
-    if (this.busy() || e.email || e.username || e.password || e.repeat) return;
+    if (this.busy() || e.email || e.username || e.password || e.repeat || e.privacy) return;
     this.busy.set(true);
     this.error.set('');
     try {

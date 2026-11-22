@@ -1,4 +1,6 @@
 import asyncio
+import base64
+import hashlib
 import json
 import logging
 import os
@@ -6,6 +8,8 @@ import re
 import time
 from collections import OrderedDict, deque
 from datetime import date
+from functools import lru_cache
+from pathlib import Path
 from threading import BoundedSemaphore, Lock
 from typing import Annotated, Literal
 from uuid import uuid4
@@ -20,6 +24,7 @@ from fastapi import (
     WebSocket,
     WebSocketDisconnect,
 )
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -47,6 +52,7 @@ from wodo.science import CROPS, years_ago
 from wodo.store import SourceError, read, timestamp, write
 
 app = FastAPI(title="Pole Widzenia", version="1.0.0")
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 analysis_slots = BoundedSemaphore(2)
 buckets = OrderedDict()
 PASSPORT_CACHE_TTL = 3600
@@ -105,6 +111,55 @@ class AnalysisRequest(BaseModel):
         return self
 
 
+TILE_HOSTS = "https://tile.openstreetmap.org https://mapy.geoportal.gov.pl"
+
+
+def inline_script_hashes():
+    """Skróty inline-skryptów z index.html (np. wybór motywu przed startem), aby CSP nie wymagał 'unsafe-inline'."""
+    site_dir = os.environ.get("WODO_SITE_DIR")
+    index = Path(site_dir, "index.html") if site_dir else None
+    if not index or not index.is_file():
+        return ""
+    html = index.read_text(encoding="utf-8")
+    scripts = re.findall(r"<script(?![^>]*\ssrc=)[^>]*>(.*?)</script>", html, re.S)
+    return " ".join(
+        "'sha256-" + base64.b64encode(hashlib.sha256(code.encode()).digest()).decode() + "'"
+        for code in scripts
+        if code.strip()
+    )
+
+
+@lru_cache(maxsize=1)
+def security_headers():
+    """Nagłówki bezpieczeństwa (OWASP ASVS V14): CSP, ochrona przed osadzaniem, HSTS poza trybem dev."""
+    csp = "; ".join(
+        [
+            "default-src 'self'",
+            f"script-src 'self' {inline_script_hashes()}".strip(),
+            "style-src 'self' 'unsafe-inline'",
+            f"img-src 'self' data: blob: {TILE_HOSTS}",
+            f"connect-src 'self' ws: wss: {TILE_HOSTS}",
+            "worker-src 'self' blob:",
+            "font-src 'self' data:",
+            "manifest-src 'self'",
+            "object-src 'none'",
+            "base-uri 'self'",
+            "form-action 'self'",
+            "frame-ancestors 'none'",
+        ]
+    )
+    headers = {
+        "Content-Security-Policy": csp,
+        "X-Frame-Options": "DENY",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "Permissions-Policy": "camera=(), microphone=(), geolocation=(self), payment=(), usb=()",
+        "Cross-Origin-Opener-Policy": "same-origin",
+    }
+    if os.environ.get("WODO_ENV", "production").lower() not in {"dev", "development", "test"}:
+        headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return headers
+
+
 @app.middleware("http")
 async def request_limits(request: Request, call_next):
     if request.method == "POST" and request.url.path.startswith("/api/"):
@@ -136,6 +191,8 @@ async def request_limits(request: Request, call_next):
         history.append(now)
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
+    for name, value in security_headers().items():
+        response.headers.setdefault(name, value)
     if (
         request.url.path.startswith("/api/analysis")
         or request.url.path == "/api/passport"

@@ -42,7 +42,7 @@ const NAV: NavItem[] = [
       </nav>
       <div class="mt-auto space-y-3">
         <app-account-menu variant="sidebar" [url]="url()" />
-        <p class="px-3 text-xs leading-snug text-muted-color">Zespół Jakobiany<br>HackNation 2026 · KOWR</p>
+        <p class="px-3 text-xs leading-snug text-muted-color">Zespół Jakobiany<br>HackNation 2026 · KOWR<br><a routerLink="/prywatnosc" class="underline">Prywatność i cookies</a></p>
       </div>
     </aside>
 

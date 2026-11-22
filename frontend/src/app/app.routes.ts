@@ -31,5 +31,7 @@ export const routes: Routes = [
       loadComponent: () => import('./features/methods/methods-page').then((m) => m.MethodsPage)},
     {path: 'eksperymenty', loadChildren: () => import('./features/experiments/experiments-page').then((m) => m.experimentRoutes)},
   ]},
+  {path: 'prywatnosc', title: 'Pole Widzenia · Polityka prywatności',
+    loadComponent: () => import('./features/legal/privacy-page').then((m) => m.PrivacyPage)},
   {path: '**', redirectTo: ''},
 ];
