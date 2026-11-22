@@ -38,6 +38,7 @@ type Pane = 'map' | 'report';
   host: {class: 'block'},
   template: `
     <div class="flex h-[calc(100dvh-var(--shell-top)-var(--shell-bottom))] flex-col print:block print:h-auto">
+      <p class="sr-only" role="status" aria-live="polite">Widok: {{viewLabel()}}</p>
       <div class="border-b border-surface bg-surface-0 px-3 py-2 print:hidden lg:hidden dark:bg-surface-900">
         <app-segmented label="Widok" [options]="mobileViews()" [(value)]="view" />
       </div>
@@ -149,6 +150,7 @@ export class AnalysisPage {
     {value: 'map', label: 'Mapa', icon: 'pi-map'},
     {value: 'report', label: 'Raport', icon: 'pi-chart-bar', disabled: !this.hasReport()},
   ]);
+  protected readonly viewLabel = computed(() => ({map: 'Mapa', form: 'Dane analizy', report: 'Raport'})[this.view()]);
   protected readonly mobileViews = computed<SegmentOption<View>[]>(() => [
     {value: 'map', label: 'Mapa', icon: 'pi-map'},
     {value: 'form', label: 'Dane', icon: 'pi-sliders-h'},

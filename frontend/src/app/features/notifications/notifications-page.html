@@ -66,6 +66,8 @@
     }
   </app-panel>
 
+  @if (loggedIn()) { <app-delivery-settings /> }
+
   <app-panel heading="Przykładowe powiadomienia" icon="pi-envelope">
     <p class="text-sm text-muted-color">Zobacz, jak wyglądałaby wiadomość. To tylko podgląd — nic nie jest wysyłane.</p>
 

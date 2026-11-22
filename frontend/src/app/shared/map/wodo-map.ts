@@ -8,7 +8,8 @@ import { FieldShape, fieldsFeatureCollection } from './map-fields';
 import { startPolygonDraw } from './map-draw';
 import { addMapLayers } from './map-layers';
 import { requestUserLocation } from './map-locate';
-import { Basemap, MAP_STYLE, POLAND_CENTER } from './map-style';
+import { browserEnvironment, isLite, performanceOptions } from './map-performance';
+import { Basemap, POLAND_CENTER, mapStyle } from './map-style';
 import { fitMapTo, FieldPin, syncMapData } from './map-sync';
 import { MapTools } from './map-tools';
 import { MapZoneBar } from './map-zone-bar';
@@ -177,8 +178,10 @@ export class WodoMap implements OnDestroy {
     const maplibregl = await import('maplibre-gl');
     // Worker serwowany jako zasób statyczny (bundler nie potrafi go wskazać samodzielnie).
     maplibregl.setWorkerUrl('/maplibre/maplibre-gl-worker.mjs');
+    const env = browserEnvironment();
     const map = new maplibregl.Map({
-      container: this.container().nativeElement, style: MAP_STYLE, center: POLAND_CENTER, zoom: 5.4, minZoom: 4, maxZoom: 19,
+      ...performanceOptions(env),
+      container: this.container().nativeElement, style: mapStyle(isLite(env)), center: POLAND_CENTER, zoom: 5.4, minZoom: 4, maxZoom: 19,
       maxBounds: [[9, 46], [29, 58]], attributionControl: {compact: true},
     });
     map.addControl(new maplibregl.ScaleControl({unit: 'metric'}), 'bottom-left');

@@ -4,7 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import {
   AnalysisProgress, AnalysisRequest, Crop, DemoNotification, DemoNotificationKind,
   DemoNotificationQuery, FarmerQuestion, FieldDescription, Health, LastReportInput, LoginRequest,
-  NotificationPrefs, NotificationSettings, Parcel, Passport, PasswordChange, RecommendationCatalog,
+  DeliverySettings, NotificationPrefs, NotificationSettings, Parcel, PushSubscriptionInput, Passport, PasswordChange, RecommendationCatalog,
   RegisterRequest, Report, ServerField, ServerFieldInput, TestEmailEvent, User,
 } from './types';
 
@@ -65,9 +65,18 @@ export class ApiService {
     return firstValueFrom(this.http.post<unknown>('/api/auth/reset', {token, password}, STATE_CHANGING));
   }
   notificationPrefs() { return firstValueFrom(this.http.get<NotificationPrefs>('/api/me/notifications', READ)); }
-  setNotificationPrefs(body: Partial<NotificationSettings>) {
+  setNotificationPrefs(body: Partial<NotificationSettings & DeliverySettings>) {
     return firstValueFrom(this.http.patch<NotificationPrefs>('/api/me/notifications', body, STATE_CHANGING));
   }
+
+  pushKey() { return firstValueFrom(this.http.get<{public_key: string}>('/api/me/push/key', READ)); }
+  savePushSubscription(body: PushSubscriptionInput) {
+    return firstValueFrom(this.http.put<void>('/api/me/push/subscription', body, STATE_CHANGING));
+  }
+  removePushSubscription(endpoint: string) {
+    return firstValueFrom(this.http.post<void>('/api/me/push/unsubscribe', {endpoint}, STATE_CHANGING));
+  }
+  sendTestPush() { return firstValueFrom(this.http.post<void>('/api/me/push/test', {}, STATE_CHANGING)); }
 
   sendTestEmail(onProgress: (progress: AnalysisProgress) => void) {
     const sendOverHttp = () => firstValueFrom(

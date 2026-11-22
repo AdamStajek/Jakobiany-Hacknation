@@ -11,6 +11,7 @@ import { FieldDescriptionStore } from '../../core/state/field-description.store'
 import { FieldsStore } from '../../core/state/fields.store';
 import { NOTIFY_KEY, NotifyChannel, demoQuery, emailProblem, parseSettings } from '../../core/state/notification-settings';
 import { Panel } from '../../shared/ui/panel';
+import { DeliverySettingsPanel } from './delivery-settings';
 
 const CHANNELS: {value: NotifyChannel; label: string}[] = [{value: 'email', label: 'E-mail'}, {value: 'app', label: 'Powiadomienia w aplikacji'}];
 
@@ -19,7 +20,7 @@ type PrefsState = 'loading' | 'ready' | 'error';
 /** Ekran /powiadomienia: ustawienia powiadomień (konto albo ten telefon) i podgląd przykładowych wiadomości. */
 @Component({
   selector: 'app-notifications-page',
-  imports: [ButtonModule, MessageModule, SkeletonModule, Panel],
+  imports: [ButtonModule, MessageModule, SkeletonModule, Panel, DeliverySettingsPanel],
   host: {class: 'block'},
   templateUrl: './notifications-page.html',
 })

@@ -7,6 +7,7 @@ import { FieldsStore } from '../core/state/fields.store';
 import { ThemeService } from '../core/theme/theme';
 import { AccountMenu } from './account-menu';
 import { ConsentBanner } from './consent-banner';
+import { PwaBanner } from './pwa-banner';
 import { ReportPrompt } from './report-prompt';
 
 type Section = 'start' | 'analiza' | 'pola' | 'metody';
@@ -22,7 +23,7 @@ const NAV: NavItem[] = [
 /** Powłoka aplikacji: pasek boczny na desktopie, górny pasek i dolna nawigacja na telefonie. */
 @Component({
   selector: 'app-shell',
-  imports: [RouterLink, AccountMenu, ConsentBanner, ReportPrompt],
+  imports: [RouterLink, AccountMenu, ConsentBanner, PwaBanner, ReportPrompt],
   template: `
     <a class="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-contrast" href="#tresc">Przejdź do treści</a>
 
@@ -62,6 +63,7 @@ const NAV: NavItem[] = [
       </button>
     </header>
 
+    <div class="lg:pl-60"><app-pwa-banner /></div>
     <main id="tresc" class="lg:pl-60"><ng-content /></main>
     <app-consent-banner />
     <app-report-prompt [active]="section() === 'analiza'" [url]="url()" />

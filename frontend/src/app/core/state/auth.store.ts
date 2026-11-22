@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { ApiService } from '../api/api.service';
 import { errorMessage } from '../api/errors';
+import { clearPrivateCache } from '../pwa/service-worker';
 import type { LoginRequest, RegisterRequest, User } from '../api/types';
 
 /** loading = sesja jeszcze nie sprawdzona; guest = brak sesji (401); user = zalogowany. */
@@ -40,6 +41,7 @@ export class AuthStore {
 
   /** Wywoływane przez interceptor, gdy serwer odpowie 401 na żądanie wymagające sesji. */
   expire() {
+    void clearPrivateCache();
     this.user.set(null);
     this.status.set('guest');
   }

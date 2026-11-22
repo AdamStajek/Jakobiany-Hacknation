@@ -22,6 +22,6 @@ Pierwsza wersja używa tylko sygnałów, które analiza już liczy (lista w sekc
 ## Kanały
 
 - [ ] **E-mail** (częściowo: potwierdzenie, reset, „pole wymaga uwagi”; brak podsumowań dziennych/tygodniowych i linku „wypisz się”) — adres w koncie, SMTP (wdrożone: potwierdzenie, reset, „pole wymaga uwagi” z `python -m wodo.notify`), podsumowania dzienne/tygodniowe, link „wypisz się”. Zależy od: wyboru dostawcy (darmowy/open source). Priorytet: P1. Właściciel: —.
-- [ ] **Web Push (PWA)** — manifest, service worker, klucze VAPID, zgoda przy pierwszym powiadomieniu. Priorytet: P2. Właściciel: —.
-- [ ] **Godziny ciszy i strefa czasowa użytkownika.** Priorytet: P2. Właściciel: —.
+- [x] ~~**Web Push (PWA)**~~ — zrobione: `wodo/notify/push.py`, endpointy `/api/me/push/*`, wysyłka w `python -m wodo.notify`, zgoda przeglądarki po włączeniu w „Powiadomieniach”. Wymaga kluczy VAPID (`python -m wodo.notify.push`, zmienne `WODO_VAPID_*`) i `uv lock` po dodaniu `pywebpush`; wysyłka przez prawdziwą bibliotekę nie była testowana (testy używają atrapy). Było — manifest, service worker, klucze VAPID, zgoda przy pierwszym powiadomieniu. Priorytet: P2. Właściciel: —.
+- [x] ~~**Godziny ciszy i strefa czasowa użytkownika.**~~ — zrobione: `wodo/notify/quiet.py`, ustawienia w „Powiadomieniach”, dotyczy e-maili i push (nie dotyczy e-maili o nowych rekomendacjach). Priorytet: P2. Właściciel: —.
 - [ ] **Powiadomienia SMS/komunikatory** — tylko jeśli będzie zapotrzebowanie; wymaga płatnej bramki, więc poza zasadą „darmowe” bez osobnej decyzji. Priorytet: —. Właściciel: —.

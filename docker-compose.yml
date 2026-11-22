@@ -26,6 +26,9 @@ services:
       WODO_SMTP_PASSWORD:
       WODO_SMTP_FROM:
       WODO_SMTP_TLS:
+      WODO_VAPID_PUBLIC_KEY:
+      WODO_VAPID_PRIVATE_KEY:
+      WODO_VAPID_SUBJECT:
     volumes:
       - wodo-cache:/var/lib/wodo
       - ./.wodo-cache/egib:/egib:ro

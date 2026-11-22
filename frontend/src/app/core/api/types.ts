@@ -111,7 +111,18 @@ export type NotificationSettings = {
   email_enabled: boolean;
   recommendation_email_enabled: boolean;
 };
-export type NotificationPrefs = NotificationSettings & {email?: string; email_verified?: boolean};
+/** Push (Web Push) oraz godziny ciszy; `quiet_*` to „HH:MM” w strefie `timezone` (nazwa IANA). */
+export type DeliverySettings = {
+  push_enabled: boolean;
+  quiet_enabled: boolean;
+  quiet_start: string;
+  quiet_end: string;
+  timezone: string;
+};
+export type NotificationPrefs = NotificationSettings & DeliverySettings & {
+  email?: string; email_verified?: boolean; push_available: boolean; push_devices: number;
+};
+export type PushSubscriptionInput = {endpoint: string; keys: {p256dh: string; auth: string}};
 export type TestEmailEvent =
   | ({type: 'progress'} & AnalysisProgress)
   | {type: 'result'}

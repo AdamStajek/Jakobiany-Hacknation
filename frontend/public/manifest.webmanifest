@@ -1,0 +1,23 @@
+{
+  "name": "Pole Widzenia — asystent gospodarowania wodą",
+  "short_name": "Pole Widzenia",
+  "description": "Sprawdź zapas wody na działce, ryzyko suszy i zalecenia retencyjne.",
+  "lang": "pl",
+  "id": "/",
+  "start_url": "/?źródło=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F7F6EE",
+  "theme_color": "#F7F6EE",
+  "categories": ["agriculture", "weather", "productivity"],
+  "icons": [
+    {"src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ],
+  "shortcuts": [
+    {"name": "Analizuj pole", "url": "/sprawdz"},
+    {"name": "Moje pola", "url": "/pola"}
+  ]
+}

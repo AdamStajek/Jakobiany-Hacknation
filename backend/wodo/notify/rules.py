@@ -5,7 +5,7 @@ import logging
 
 from wodo.auth import security
 from wodo.db import connect
-from wodo.notify import mailer, templates
+from wodo.notify import mailer, quiet, templates
 
 log = logging.getLogger(__name__)
 DRY_SPELL_DAYS = 7
@@ -46,35 +46,40 @@ def attention_for(db, user_id):
     return items
 
 
+def fresh_items(db, user_id, table):
+    """Pola wymagające uwagi, o których kanał (`notification_log` albo `push_log`) jeszcze nie informował."""
+    items = attention_for(db, user_id)
+    current = {item["field_id"] for item in items}
+    sent = {
+        row["field_id"]: row["dedupe_key"]
+        for row in db.execute(f"SELECT field_id, dedupe_key FROM {table} WHERE user_id = ?", (user_id,))
+    }
+    for field_id in set(sent) - current:
+        db.execute(f"DELETE FROM {table} WHERE user_id = ? AND field_id = ?", (user_id, field_id))
+    return [item for item in items if sent.get(item["field_id"]) != item["key"]]
+
+
+def remember(db, user_id, table, items):
+    for item in items:
+        db.execute(
+            f"INSERT OR REPLACE INTO {table} VALUES (?, ?, ?, ?)",
+            (user_id, item["field_id"], item["key"], security.now()),
+        )
+
+
 def notify_user(user, send=mailer.send):
     """Wysyła jedną wiadomość z polami, o których użytkownik jeszcze nie został powiadomiony."""
     if not (user["email_verified"] and user["notify_email"]):
         return 0
     with connect() as db:
-        items = attention_for(db, user["id"])
-        current = {item["field_id"] for item in items}
-        sent = {
-            row["field_id"]: row["dedupe_key"]
-            for row in db.execute(
-                "SELECT field_id, dedupe_key FROM notification_log WHERE user_id = ?",
-                (user["id"],),
-            )
-        }
-        for field_id in set(sent) - current:
-            db.execute(
-                "DELETE FROM notification_log WHERE user_id = ? AND field_id = ?",
-                (user["id"], field_id),
-            )
-        fresh = [item for item in items if sent.get(item["field_id"]) != item["key"]]
+        if quiet.quiet_now(db, user["id"], security.now()):
+            return 0
+        fresh = fresh_items(db, user["id"], "notification_log")
         if not fresh:
             return 0
         if not send(user["email"], *templates.attention(user["username"], fresh)):
             return 0
-        for item in fresh:
-            db.execute(
-                "INSERT OR REPLACE INTO notification_log VALUES (?, ?, ?, ?)",
-                (user["id"], item["field_id"], item["key"], security.now()),
-            )
+        remember(db, user["id"], "notification_log", fresh)
     return len(fresh)
 
 

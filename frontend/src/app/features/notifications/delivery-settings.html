@@ -1,0 +1,56 @@
+@if (prefs(); as p) {
+  <app-panel heading="Powiadomienia push na tym urządzeniu" icon="pi-mobile">
+    @if (!pushAvailable()) {
+      <p class="text-sm text-muted-color">Serwer nie ma jeszcze włączonych powiadomień push. Powiadomienia e-mail działają normalnie.</p>
+    } @else if (push.state() === 'unsupported') {
+      <p class="text-sm text-muted-color">Ta przeglądarka nie obsługuje powiadomień push. Na iPhonie dodaj najpierw aplikację do ekranu głównego.</p>
+    } @else {
+      <label class="flex min-h-12 cursor-pointer items-center gap-3 text-sm">
+        <input type="checkbox" role="switch" class="h-6 w-6 accent-primary" [checked]="push.state() === 'on' && p.push_enabled"
+          [disabled]="push.busy() || saving() || push.state() === 'blocked'" (change)="togglePush(checked($event))" />
+        <span class="flex-1"><strong class="block font-medium">Powiadamiaj o polach wymagających uwagi</strong>
+          <span class="text-muted-color">Zapytamy przeglądarkę o zgodę dopiero po włączeniu.</span></span>
+      </label>
+      @if (push.state() === 'blocked') {
+        <p class="mt-2 text-sm" role="alert">Powiadomienia są zablokowane w ustawieniach przeglądarki dla tej strony. Odblokuj je i spróbuj ponownie.</p>
+      }
+      @if (push.state() === 'on' && p.push_enabled) {
+        <p-button class="mt-2 block" label="Wyślij powiadomienie testowe" icon="pi pi-send" severity="secondary" [outlined]="true"
+          styleClass="min-h-12" (onClick)="sendTest()" />
+      }
+    }
+  </app-panel>
+
+  <app-panel class="mt-4 block" heading="Godziny ciszy" icon="pi-moon">
+    <label class="flex min-h-12 cursor-pointer items-center gap-3 text-sm">
+      <input type="checkbox" role="switch" class="h-6 w-6 accent-primary" [checked]="p.quiet_enabled" [disabled]="saving()"
+        (change)="toggleQuiet(checked($event))" />
+      <span class="flex-1"><strong class="block font-medium">Nie powiadamiaj w nocy</strong>
+        <span class="text-muted-color">Dotyczy e-maili i powiadomień push; wiadomość dojdzie po zakończeniu ciszy.</span></span>
+    </label>
+    <form class="mt-3 flex flex-col gap-3" (submit)="$event.preventDefault(); saveQuiet()">
+      <div class="grid grid-cols-2 gap-3">
+        <div class="flex flex-col gap-1">
+          <label for="quiet-start" class="text-sm font-medium">Cisza od</label>
+          <input id="quiet-start" type="time" class="p-inputtext p-component h-12 w-full text-base" [value]="quietStart()" (input)="quietStart.set(read($event))" required />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label for="quiet-end" class="text-sm font-medium">Cisza do</label>
+          <input id="quiet-end" type="time" class="p-inputtext p-component h-12 w-full text-base" [value]="quietEnd()" (input)="quietEnd.set(read($event))" required />
+        </div>
+      </div>
+      <div class="flex flex-col gap-1">
+        <label for="quiet-zone" class="text-sm font-medium">Strefa czasowa</label>
+        <select id="quiet-zone" class="p-select p-component h-12 w-full rounded-lg border border-surface bg-surface-0 px-3 text-base" (change)="timezone.set(read($event))">
+          @for (zone of zones(); track zone) { <option [value]="zone" [selected]="zone === timezone()">{{zone}}</option> }
+        </select>
+        @if (deviceZone !== timezone()) {
+          <button type="button" class="min-h-11 self-start text-sm font-medium text-primary underline" (click)="timezone.set(deviceZone)">Użyj strefy tego urządzenia ({{deviceZone}})</button>
+        }
+      </div>
+      <div><p-button type="submit" label="Zapisz godziny ciszy" icon="pi pi-check" styleClass="min-h-12" [loading]="saving()" [disabled]="saving()" /></div>
+    </form>
+  </app-panel>
+}
+@if (error()) { <p-message class="mt-4 block" severity="error" icon="pi pi-exclamation-circle" role="alert">{{error()}}</p-message> }
+<p class="mt-2 text-sm font-medium text-primary" role="status" aria-live="polite">{{info()}}</p>
