@@ -6,7 +6,7 @@ import re
 import time
 from collections import OrderedDict, deque
 from datetime import date
-from threading import BoundedSemaphore
+from threading import BoundedSemaphore, Lock
 from typing import Annotated, Literal
 from uuid import uuid4
 from zoneinfo import ZoneInfo
@@ -47,6 +47,10 @@ from wodo.store import SourceError, read, timestamp, write
 app = FastAPI(title="WodoStrażnik", version="1.0.0")
 analysis_slots = BoundedSemaphore(2)
 buckets = OrderedDict()
+PASSPORT_CACHE_TTL = 3600
+PASSPORT_CACHE_SIZE = 64
+passport_cache = OrderedDict()
+passport_cache_lock = Lock()
 for router in (auth_router, fields_router, notify_router, notify_progress_router, describe_router, demo_router):
     app.include_router(router)
 
@@ -258,8 +262,40 @@ def passport(
     sowing: date | None = None,
     stage: int | None = None,
     irrigation_mm: float = 0,
+    view: Literal["full", "summary"] = "full",
 ):
-    return build_passport(parcel_id, None, as_of, crop, sowing, stage, irrigation_mm)
+    return passport_view(build_passport(parcel_id, None, as_of, crop, sowing, stage, irrigation_mm), view)
+
+
+def passport_view(result, view="full"):
+    """`summary`: lekka odpowiedź bez ciężkiej tablicy `fields` (do kart w UI)."""
+    if view == "full":
+        return result
+    report = result.get("farmer_report") or {}
+    return {
+        "parcel_id": result["parcel_id"],
+        "analysis_as_of": result["analysis_as_of"],
+        "summary": result["summary"],
+        "farmer_report": {"situation": report.get("situation"), "next_check": report.get("next_check")},
+    }
+
+
+def passport_cache_get(key):
+    with passport_cache_lock:
+        entry = passport_cache.get(key)
+        if entry and time.monotonic() - entry[0] < PASSPORT_CACHE_TTL:
+            passport_cache.move_to_end(key)
+            return entry[1]
+        passport_cache.pop(key, None)
+    return None
+
+
+def passport_cache_put(key, value):
+    with passport_cache_lock:
+        passport_cache[key] = (time.monotonic(), value)
+        passport_cache.move_to_end(key)
+        while len(passport_cache) > PASSPORT_CACHE_SIZE:
+            passport_cache.popitem(last=False)
 
 
 class PassportSelection(BaseModel):
@@ -287,7 +323,7 @@ def passport_from_geojson(
 
 
 def build_passport(parcel_id, geojson, as_of, crop, sowing, stage, irrigation_mm,
-                   farmer_answers=None, irrigation=False, soil_observation=None):
+                   farmer_answers=None, irrigation=False, soil_observation=None, on_progress=None):
     day = as_of or today()
     if (
         (crop is not None and crop not in CROPS)
@@ -302,6 +338,14 @@ def build_passport(parcel_id, geojson, as_of, crop, sowing, stage, irrigation_mm
         raise HTTPException(
             422, "Podaj pełny identyfikator EGiB i datę z ostatnich dziesięciu lat."
         )
+    # Cache tylko dla działek z ewidencji i bez deklaracji rolnika (wynik zależy wtedy od samych parametrów).
+    cache_key = (
+        (parcel_id, day, crop, sowing, stage, irrigation_mm)
+        if geojson is None and not farmer_answers and not irrigation and not soil_observation
+        else None
+    )
+    if cache_key and (cached := passport_cache_get(cache_key)) is not None:
+        return cached
     if not analysis_slots.acquire(blocking=False):
         raise HTTPException(
             429,
@@ -319,12 +363,25 @@ def build_passport(parcel_id, geojson, as_of, crop, sowing, stage, irrigation_mm
         ensure_analyzable(parcel)
         if farmer_answers:
             farmer_answers.validate_zones(parcel["geometry"])
-        passport = collect(parcel, day, crop, sowing, stage, irrigation_mm)
-        return {**passport, "summary": passport_summary(passport["fields"], day, crop, farmer_answers, soil_observation),
-                "farmer_report": analyze_field(
+        total = 0
+
+        def source_done(done, count, label):
+            nonlocal total
+            total = count + 1
+            if on_progress:
+                on_progress(done, total, label)
+
+        passport = collect(parcel, day, crop, sowing, stage, irrigation_mm, source_done)
+        if on_progress:
+            on_progress(total, total, "Obliczam podsumowanie")
+        result = {**passport, "summary": passport_summary(passport["fields"], day, crop, farmer_answers, soil_observation),
+                  "farmer_report": analyze_field(
             passport, day, farmer_answers=farmer_answers, irrigation=irrigation, crop_key=crop, sowing=sowing, stage=stage,
             soil_observation=soil_observation,
         )["farmer_report"]}
+        if cache_key:
+            passport_cache_put(cache_key, result)
+        return result
     finally:
         analysis_slots.release()
 
@@ -442,6 +499,80 @@ async def analysis_socket(ws: WebSocket):
             emit({"type": "error", "status": 500, "detail": "Analiza nie powiodła się. Spróbuj ponownie."})
 
     await ws.send_json({"type": "progress", "done": 0, "total": 0, "label": "Start analizy"})
+    task = loop.run_in_executor(None, work)
+    try:
+        while True:
+            event = await events.get()
+            await ws.send_json(event)
+            if event["type"] != "progress":
+                break
+    except WebSocketDisconnect:
+        pass
+    finally:
+        await task
+        try:
+            await ws.close()
+        except RuntimeError:
+            pass
+
+
+class PassportSocketRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    parcel_id: str = Field(max_length=90)
+    as_of: date | None = None
+    crop: str | None = None
+
+
+@app.websocket("/api/ws/passport")
+async def passport_socket(ws: WebSocket):
+    """Dane działki z postępem na żywo.
+
+    Klient wysyła jeden JSON {"parcel_id","as_of","crop"}. Serwer odsyła zdarzenia
+    {"type":"progress","done":n,"total":m,"label":"…"} i jedno {"type":"result","passport":{…}}
+    (widok `summary`) albo {"type":"error","status":int,"detail":"…"}. Trafienie w cache = od razu wynik.
+    """
+    await ws.accept()
+    loop = asyncio.get_running_loop()
+    events: asyncio.Queue = asyncio.Queue()
+
+    def emit(event):
+        loop.call_soon_threadsafe(events.put_nowait, event)
+
+    try:
+        raw = await asyncio.wait_for(ws.receive_text(), timeout=10)
+        if len(raw) > 2_000:
+            raise HTTPException(413, "Dopuszczalny rozmiar danych to 2 kB.")
+        request = PassportSocketRequest.model_validate_json(raw)
+    except (WebSocketDisconnect, TimeoutError):
+        return
+    except HTTPException as error:
+        await ws.send_json({"type": "error", "status": error.status_code, "detail": error.detail})
+        await ws.close()
+        return
+    except Exception as error:
+        detail = "Nieprawidłowe dane."
+        if hasattr(error, "errors"):
+            detail = "; ".join(str(e["msg"]).removeprefix("Value error, ") for e in error.errors())
+        await ws.send_json({"type": "error", "status": 422, "detail": detail})
+        await ws.close()
+        return
+
+    def work():
+        try:
+            result = build_passport(
+                request.parcel_id, None, request.as_of, request.crop, None, None, 0,
+                on_progress=lambda done, total, label: emit(
+                    {"type": "progress", "done": done, "total": total, "label": label}),
+            )
+            emit({"type": "result", "passport": json.loads(json.dumps(passport_view(result, "summary"), default=str))})
+        except HTTPException as error:
+            emit({"type": "error", "status": error.status_code, "detail": error.detail})
+        except (SourceError, ValueError) as error:
+            emit({"type": "error", "status": 503 if isinstance(error, SourceError) else 422, "detail": str(error)})
+        except Exception:
+            logging.getLogger(__name__).exception("WS passport failed")
+            emit({"type": "error", "status": 500, "detail": "Nie udało się pobrać danych działki. Spróbuj ponownie."})
+
     task = loop.run_in_executor(None, work)
     try:
         while True:

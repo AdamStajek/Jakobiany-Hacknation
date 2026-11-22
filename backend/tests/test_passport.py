@@ -161,3 +161,19 @@ def test_geojson_identity_and_weather_fallback():
     assert values["precipitation_mm"] == {"2024-07-05": 2}
     assert values["temp_mean_c"] == {"2024-07-05": 22}
     assert meta["field_sources"]["precipitation_mm"]["source_id"] == "NASA POWER"
+
+
+def test_collect_reports_progress_per_source(monkeypatch):
+    monkeypatch.setattr(passport, "WORKERS", {
+        "GUGiK EGiB": lambda parcel, start, end: ({"parcel_area_ha": 1.0}, {}),
+        "Sentinel-2 L2A / Earth Search": lambda parcel, start, end: ({}, {}),
+    })
+    monkeypatch.setattr(passport, "soil_history", lambda *args: ({}, {}))
+    monkeypatch.setattr(passport, "basin_flow", lambda *args: ({}, {}))
+    monkeypatch.setattr(passport, "nasa", lambda *args: None)
+    events = []
+    passport.collect({"id": "p"}, date(2024, 7, 5), on_progress=lambda *args: events.append(args))
+    labels = {e[2] for e in events}
+    assert {"Ewidencja działek", "Sentinel-2"} <= labels
+    assert [e[0] for e in events] == list(range(1, len(events) + 1))
+    assert all(e[1] == len(events) for e in events)

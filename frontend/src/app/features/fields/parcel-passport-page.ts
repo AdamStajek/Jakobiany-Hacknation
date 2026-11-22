@@ -20,7 +20,7 @@ import { PassportSummary } from '../../shared/ui/passport-summary';
       <header>
         <h1 class="text-2xl font-extrabold tracking-tight">Dane działki</h1>
       </header>
-      <app-passport-summary [data]="entry().data" [loading]="entry().loading" [error]="entry().error"
+      <app-passport-summary [data]="entry().data" [loading]="entry().loading" [progress]="entry().progress" [percent]="entry().percent" [error]="entry().error"
         [title]="id() ?? ''" [subtitle]="subtitle()" (retry)="reload()" />
       @if (parcels.parcel(); as parcel) {
         <div class="flex flex-wrap items-center gap-3">
@@ -47,7 +47,7 @@ export class ParcelPassportPage {
   });
   protected readonly entry = computed(() => {
     const id = this.id();
-    return id ? this.store.entry(id, this.crop()) : {loading: false, error: '', data: null};
+    return this.store.entry(id ?? '', this.crop());
   });
   protected readonly subtitle = computed(() => {
     const parcel = this.parcels.parcel();

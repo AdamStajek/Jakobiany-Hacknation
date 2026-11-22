@@ -89,10 +89,10 @@ export type PassportField = {
   status: string; value: unknown; detail?: string | null; provenance?: {source_id?: string};
 };
 type PassportFact = {label: string; value: number | string | null; unit?: string | null; hint?: string | null};
-/** Paszport pola z /api/passport; frontend pokazuje z niego tylko krótkie podsumowanie. */
+/** Dane działki z /api/passport (`view=summary` pomija `fields` i `steps`); UI pokazuje tylko krótkie podsumowanie. */
 export type Passport = {
-  parcel_id: string; analysis_as_of: string; fields: PassportField[]; summary: PassportFact[];
-  farmer_report?: {situation: string; next_check: string | null; steps: Recommendation[]};
+  parcel_id: string; analysis_as_of: string; fields?: PassportField[]; summary: PassportFact[];
+  farmer_report?: {situation: string; next_check: string | null; steps?: Recommendation[]};
 };
 export type Health = {status: string; analysis_date_min: string; analysis_date_max: string};
 export type Crop = {id: string; label: string};

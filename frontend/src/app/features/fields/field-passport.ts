@@ -4,7 +4,7 @@ import type { Field } from '../../core/state/fields.store';
 import { PassportStore } from '../../core/state/passport.store';
 import { PassportSummary } from '../../shared/ui/passport-summary';
 
-/** Paszport wybranego pola (dla pola z kilkoma działkami: z wyborem działki). */
+/** Dane działki wybranego pola (dla pola z kilkoma działkami: z wyborem działki). */
 @Component({
   selector: 'app-field-passport',
   imports: [PassportSummary],
@@ -19,7 +19,7 @@ import { PassportSummary } from '../../shared/ui/passport-summary';
         </select>
       </label>
     }
-    <app-passport-summary [data]="entry().data" [loading]="entry().loading" [error]="entry().error"
+    <app-passport-summary [data]="entry().data" [loading]="entry().loading" [progress]="entry().progress" [percent]="entry().percent" [error]="entry().error"
       [title]="field().name" [subtitle]="subtitle()" (retry)="reload()" />
   `,
 })
@@ -36,7 +36,7 @@ export class FieldPassport {
   });
   protected readonly entry = computed(() => {
     const target = this.target();
-    return target ? this.store.entry(target.parcelId, target.crop) : {loading: false, error: '', data: null};
+    return target ? this.store.entry(target.parcelId, target.crop) : this.store.entry('', null);
   });
   protected readonly subtitle = computed(() => this.field().parcels.length > 1 ? `działka ${this.target()?.parcelId ?? ''}` : '');
 
@@ -45,9 +45,12 @@ export class FieldPassport {
       this.field();
       untracked(() => this.index.set(0));
     });
-    effect(() => {
+    effect((onCleanup) => {
       const target = this.target();
-      if (target) untracked(() => void this.store.load(target.parcelId, target.crop));
+      if (!target) return;
+      untracked(() => void this.store.load(target.parcelId, target.crop));
+      // Zmiana pola/działki przerywa trwające pobieranie poprzedniego.
+      onCleanup(() => this.store.cancel(target.parcelId, target.crop));
     });
   }
 
