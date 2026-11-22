@@ -196,15 +196,15 @@ async function run(name) {
     const verdict = waterAnalysis.getByRole('heading', {name: report.evidence.headline, exact: true});
     await verdict.waitFor();
     assert.equal(await waterAnalysis.getByText(/^Pewność:/).count(), 0);
-    await waterAnalysis.getByRole('button', {name: /Czy woda może spływać/}).press('Enter');
+    await waterAnalysis.getByRole('button', {name: /^Spływ wody z pola/}).press('Enter');
     await waterAnalysis.getByText('Spływ wody po powierzchni podczas ulewy: Często.').waitFor();
     await noOverflow('raport');
 
     // 5. Oba widoki odnoszą się do tej samej diagnozy.
-    const balance = waterAnalysis.getByRole('button', {name: /Czy deszcz pokrył/});
+    const balance = waterAnalysis.getByRole('button', {name: /^Bilans wodny uprawy/});
     await balance.press('Space');
     await balance.and(page.locator('[aria-expanded=true]')).waitFor();
-    await waterAnalysis.locator('#bilans').getByText('Jak to oceniamy?').waitFor();
+    await waterAnalysis.locator('#bilans').getByText('Metoda oceny').waitFor();
     await shot('07-prosty');
     const mode = waterAnalysis.getByRole('group', {name: 'Widok raportu'});
     await mode.getByRole('button', {name: 'Zaawansowany'}).click();

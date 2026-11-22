@@ -15,7 +15,7 @@
     <div>
       <h4 id="diagnoza" class="text-2xl leading-tight font-bold tracking-tight lg:text-3xl">{{e.headline}}</h4>
       @if (m.risk !== 'Poza okresem aktywnej uprawy') {
-        <p class="mt-2">{{e.reason}}</p>
+        @if (!root) { <p class="mt-2">{{e.reason}}</p> }
         <p class="mt-1 text-sm text-muted-color">{{e.confidence_note}}</p>
       }
       @if (r.experiments?.[0]; as check) {
@@ -28,14 +28,14 @@
         </div>
       }
     </div>
-    @if (root) { <app-root-water-scale [root]="root" /> }
+    @if (root) { <app-root-water-scale [root]="root" [conclusion]="e.reason" /> }
     @if (advanced()) {
       <p class="border-t border-surface pt-2 text-sm text-muted-color">Ocena modelu {{r.model_version}} · {{m.risk}} · Faza uprawy: {{m.stage}}</p>
     }
   </article>
 
   <div class="space-y-2">
-    <app-report-question sectionId="bilans" icon="pi-cloud" question="Czy deszcz pokrył potrzeby uprawy?" [finding]="e.balance">
+    <app-report-question sectionId="bilans" icon="pi-cloud" question="Bilans wodny uprawy" [finding]="e.balance">
       <ng-template>
         @if (recent) {
           <p class="text-muted-color"><strong class="text-color">{{recent.start}} – {{recent.end}}</strong> · Dane z {{recent.samples}} z {{recent.days}} dni</p>
@@ -56,7 +56,7 @@
           }
         } @else { <p>Bilans wymaga co najmniej 27 z 30 dni z jednoczesnym odczytem opadu i parowania.</p> }
         <div class="space-y-2 rounded-r-xl border-l-4 border-primary bg-surface-100 p-3 dark:bg-surface-900">
-          <h5 class="font-semibold text-primary"><i class="pi pi-book mr-2" aria-hidden="true"></i>Jak to oceniamy?</h5>
+          <h5 class="font-semibold text-primary"><i class="pi pi-book mr-2" aria-hidden="true"></i>Metoda oceny</h5>
           <p>Od sumy opadu odejmujemy potrzeby wodne uprawy (ETc). Dla każdej doby mnożymy parowanie referencyjne (ET₀)
             przez współczynnik zależny od uprawy i fazy wzrostu. Gdy deszczu brakuje, korzenie mogą jeszcze korzystać z zapasu w glebie.</p>
           <p class="text-xs text-muted-color">Podstawa metody: Allen, Pereira i Smith, FAO-56, „Crop evapotranspiration” (2025).</p>
@@ -64,7 +64,7 @@
       </ng-template>
     </app-report-question>
 
-    <app-report-question sectionId="gleba" icon="pi-sitemap" question="Ile wody może zatrzymać gleba przy korzeniach?"
+    <app-report-question sectionId="gleba" icon="pi-sitemap" question="Zapas wody w strefie korzeni"
       [finding]="root ? 'Modelowana pojemność strefy korzeni: ' + (root.taw_mm | number:'1.0-1') + ' mm.' : 'Dla tej daty nie ma oceny zapasu przy korzeniach.'">
       <ng-template>
         @if (root) {
@@ -78,7 +78,7 @@
             i co najmniej 21 kolejnych dób pogody do dnia oceny.</p>
         }
         <div class="space-y-2 rounded-r-xl border-l-4 border-primary bg-surface-100 p-3 dark:bg-surface-900">
-          <h5 class="font-semibold text-primary"><i class="pi pi-book mr-2" aria-hidden="true"></i>Jak to oceniamy?</h5>
+          <h5 class="font-semibold text-primary"><i class="pi pi-book mr-2" aria-hidden="true"></i>Metoda oceny</h5>
           <p>W każdej warstwie gleby część zatrzymanej wody jest zbyt silnie związana, żeby korzenie mogły ją pobrać.
             Z mapy SoilGrids sumujemy dostępną część zapasu do głębokości przyjętej dla tej uprawy ({{m.crop.root_m | number:'1.0-2'}} m).
             To szacunek z mapy o rozdzielczości 250 m.</p>
@@ -102,7 +102,7 @@
       </ng-template>
     </app-report-question>
 
-    <app-report-question sectionId="satelita" icon="pi-camera" question="Co widać na zdjęciu satelitarnym?" [finding]="e.satellite">
+    <app-report-question sectionId="satelita" icon="pi-camera" question="Obserwacje satelitarne" [finding]="e.satellite">
       <ng-template>
         @if (sources()['satellite']?.scene; as scene) {
           <p>Zdjęcie z <strong>{{scene.date}}</strong> · {{scene.clear_share * 100 | number:'1.0-0'}}% użytecznych pikseli.
@@ -118,7 +118,7 @@
         } @else { <p>{{r.missing['Sentinel-2'] || 'Brakuje odczytu dla analizowanej działki i daty.'}}</p> }
         @if (advanced() && sources()['satellite']) { <app-satellite-chart [report]="r" /> }
         <div class="space-y-2 rounded-r-xl border-l-4 border-primary bg-surface-100 p-3 dark:bg-surface-900">
-          <h5 class="font-semibold text-primary"><i class="pi pi-book mr-2" aria-hidden="true"></i>Jak to oceniamy?</h5>
+          <h5 class="font-semibold text-primary"><i class="pi pi-book mr-2" aria-hidden="true"></i>Metoda oceny</h5>
           <p>Sentinel-2 pokazuje zieleń łanu i sygnał uwilgotnienia roślin. Na oba wpływają także wschody, dojrzewanie, zbiór i płodozmian.
             Porównanie wymaga co najmniej dwóch wcześniejszych zdjęć pasujących do fazy rozwoju wybranej uprawy.
             Sygnał ze zdjęcia uzupełnia bilans deszczu i ocenę gleby. Sam nie pozwala rozpoznać suszy.</p>
@@ -128,13 +128,13 @@
       </ng-template>
     </app-report-question>
 
-    <app-report-question sectionId="odplyw" icon="pi-compass" question="Czy woda może spływać z pola?" [finding]="e.runoff">
+    <app-report-question sectionId="odplyw" icon="pi-compass" question="Spływ wody z pola" [finding]="e.runoff">
       <ng-template>
         <app-report-environment [report]="r" />
         @if (r.farmer_answers?.['surface_runoff_frequency']; as runoff) { <p>Spływ wody po powierzchni podczas ulewy: {{runoff}}.</p> }
         @if (r.farmer_answers?.['ponding_frequency']; as ponding) { <p>Zastoiska po deszczu według obserwacji z pola: {{ponding}}.</p> }
         <div class="space-y-2 rounded-r-xl border-l-4 border-primary bg-surface-100 p-3 dark:bg-surface-900">
-          <h5 class="font-semibold text-primary"><i class="pi pi-book mr-2" aria-hidden="true"></i>Jak to oceniamy?</h5>
+          <h5 class="font-semibold text-primary"><i class="pi pi-book mr-2" aria-hidden="true"></i>Metoda oceny</h5>
           <p>Nachylenie terenu ułatwia spływ podczas ulewy. Mapa wód powierzchniowych i dostępny odczyt wodowskazu opisują otoczenie.
             Nie mierzą odpływu z tej działki. Model zapasu przy korzeniach nie odejmuje od opadu strat spowodowanych nachyleniem pola.</p>
           @if (sources()['land'] && r.missing['Kontekst przestrzenny']; as context) { <p>{{context}}</p> }
@@ -143,7 +143,7 @@
       </ng-template>
     </app-report-question>
 
-    <app-report-question sectionId="historia" icon="pi-history" question="Czy takie warunki często się tu powtarzają?" [finding]="historyFinding()">
+    <app-report-question sectionId="historia" icon="pi-history" question="Historia niedoborów wody" [finding]="historyFinding()">
       <ng-template>
         <div class="flex flex-wrap items-center justify-between gap-2">
           <p class="font-semibold">Tło wieloletnie <span class="block font-normal text-muted-color">{{e.history_start}} – {{r.date}}</span></p>
@@ -166,7 +166,7 @@
             różnica opadu {{recent.rain_anomaly_mm | number:'1.0-1'}} mm, różnica bilansu opad − ET₀ {{recent.balance_anomaly_mm | number:'1.0-1'}} mm.</p> }
         }
         <div class="space-y-2 rounded-r-xl border-l-4 border-primary bg-surface-100 p-3 dark:bg-surface-900">
-          <h5 class="font-semibold text-primary"><i class="pi pi-book mr-2" aria-hidden="true"></i>Jak to oceniamy?</h5>
+          <h5 class="font-semibold text-primary"><i class="pi pi-book mr-2" aria-hidden="true"></i>Metoda oceny</h5>
           <p>W każdym sezonie z co najmniej 90% dni z danymi porównujemy opad z parowaniem referencyjnym (ET₀).
             Powtarzający się ujemny bilans wskazuje na podatność na niedobory opadu. Do oceny konkretnej uprawy w wybranym dniu służy osobny bilans uwzględniający jej potrzeby.</p>
           <p class="text-xs text-muted-color">Kontekst naukowy: Doroszewski i in. (2012), „Podstawy Systemu Monitoringu Suszy Rolniczej”. Raport stosuje własne porównanie sezonów.</p>
@@ -174,7 +174,7 @@
       </ng-template>
     </app-report-question>
 
-    <app-report-question sectionId="zrodla" icon="pi-database" question="Skąd pochodzą dane i czego brakuje?"
+    <app-report-question sectionId="zrodla" icon="pi-database" question="Źródła i ograniczenia danych"
       [finding]="'Źródła opisane w raporcie: ' + r.sources.length + '. Zgłoszone ograniczenia: ' + missing().length + '.'">
       <ng-template>
         @if (missing().length) {
