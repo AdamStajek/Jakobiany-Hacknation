@@ -1,5 +1,6 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { AccordionModule } from 'primeng/accordion';
 import { ButtonModule } from 'primeng/button';
 import { ExperimentCheck, Report } from '../../../core/api/types';
 import { ExperimentPlanStore } from '../../../core/state/experiment-plan.store';
@@ -16,7 +17,7 @@ function today(): string {
 
 @Component({
   selector: 'app-report-experiments',
-  imports: [RouterLink, ButtonModule, Panel, ExperimentDiagram],
+  imports: [RouterLink, AccordionModule, ButtonModule, Panel, ExperimentDiagram],
   templateUrl: './report-experiments.html',
 })
 export class ReportExperiments {
@@ -25,6 +26,9 @@ export class ReportExperiments {
   private readonly plans = inject(ExperimentPlanStore);
   private readonly fields = inject(FieldsStore);
 
+  /** Rozwinięte są tylko próby z zapisanym wynikiem. */
+  protected readonly openChecks = computed(() => (this.report().experiments ?? [])
+    .filter((check) => !!this.report().experiment_results?.[check.slug]).map((check) => check.slug));
   protected readonly proposed = signal(false);
   protected readonly startDate = signal(today());
   protected readonly planMessage = signal('');

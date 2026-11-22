@@ -1,6 +1,7 @@
 import { DecimalPipe } from '@angular/common';
 import { Component, computed, inject, input, signal } from '@angular/core';
-import { ButtonModule } from 'primeng/button';
+import { MenuItem } from 'primeng/api';
+import { SplitButtonModule } from 'primeng/splitbutton';
 import { MessageModule } from 'primeng/message';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
@@ -36,7 +37,7 @@ const TONE_CLASS: Record<Tone, string> = {
 
 @Component({
   selector: 'app-report-dashboard',
-  imports: [DecimalPipe, ButtonModule, MessageModule, TableModule, TagModule, ConfidenceChip, KpiCard, Panel, RiskScale, RouterLink, Segmented,
+  imports: [DecimalPipe, SplitButtonModule, MessageModule, TableModule, TagModule, ConfidenceChip, KpiCard, Panel, RiskScale, RouterLink, Segmented,
     ReportRecommendations, ReportExperiments, ReportEnvironment, WaterBalanceChart, SeasonChart, SoilChart, SatelliteChart],
   host: {class: 'block'},
   templateUrl: './report-dashboard.html',
@@ -75,6 +76,18 @@ export class ReportDashboard {
     this.consent.write('report-mode', mode);
   }
   protected source(key: string): Source | undefined { return this.report().sources.find((s) => s.key === key); }
+  protected readonly pdfUrl = computed(() => `/api/analysis/${this.report().analysis_id}/report`);
+  protected readonly exportMenu = computed<MenuItem[]>(() => [
+    {label: 'Pobierz dane (JSON)', icon: 'pi pi-download', command: () => this.download(`${this.pdfUrl()}?format=json`)},
+    {label: 'Drukuj', icon: 'pi pi-print', command: () => this.print()},
+    {label: 'Kopiuj link', icon: 'pi pi-link', command: () => void this.copyLink()},
+  ]);
+  protected download(url: string) {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = '';
+    link.click();
+  }
   protected print() { window.print(); }
   protected async copyLink() {
     try { await navigator.clipboard.writeText(location.href); } catch { /* brak uprawnień schowka */ }

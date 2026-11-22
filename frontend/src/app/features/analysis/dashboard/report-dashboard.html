@@ -1,17 +1,18 @@
 <section aria-labelledby="wynik" class="space-y-5">
   <header class="space-y-3">
-    <div>
+    <div class="flex flex-wrap items-start justify-between gap-3">
+    <div class="min-w-0">
       <h2 id="wynik" tabindex="-1" class="text-xl font-bold tracking-tight outline-none lg:text-2xl">Stan wody na Twojej działce</h2>
       <p class="text-sm text-muted-color">{{report().parcel.id}} · {{report().metrics.crop.label}} · {{report().metrics.stage}} ·
         {{report().parcel.area_ha | number:'1.0-4'}} ha · {{report().date}}</p>
     </div>
-    <div class="flex flex-wrap items-center gap-2 print:hidden">
-      <a pButton [href]="'/api/analysis/' + report().analysis_id + '/report'" download icon="pi pi-file-pdf">PDF</a>
-      <a pButton [routerLink]="['/dzialka', report().parcel.id, 'paszport']" icon="pi pi-id-card" severity="secondary" [outlined]="true">Dane działki</a>
-      <p-button icon="pi pi-link" ariaLabel="Kopiuj link" severity="secondary" [outlined]="true" (onClick)="copyLink()" />
-      <p-button icon="pi pi-print" ariaLabel="Drukuj" severity="secondary" [outlined]="true" (onClick)="print()" />
-      <a pButton [href]="'/api/analysis/' + report().analysis_id + '/report?format=json'" download icon="pi pi-download" aria-label="Pobierz JSON"
-        severity="secondary" [outlined]="true"></a>
+    <div class="flex flex-wrap items-center gap-3 print:hidden">
+      <p-splitbutton label="Pobierz raport" icon="pi pi-file-pdf" [model]="exportMenu()" expandAriaLabel="Więcej opcji raportu"
+        menuStyleClass="min-w-52" (onClick)="download(pdfUrl())" />
+      <a [routerLink]="['/dzialka', report().parcel.id, 'paszport']" class="inline-flex min-h-11 items-center gap-2 text-sm text-primary underline">
+        <i class="pi pi-id-card" aria-hidden="true"></i>Dane działki
+      </a>
+    </div>
     </div>
     <div class="space-y-1 print:hidden">
       <app-segmented label="Widok raportu" [options]="modes" [value]="mode()" (valueChange)="setMode($event)" />
